@@ -3,12 +3,14 @@ module Main where
 import Data.Foldable
 import Data.List
 import Graphics.Vty
+import System.Posix
 
 main :: IO ()
 main = do
+    ls <- fmap lines (getContents)
     cfg <- standardIOConfig
-    vty <- mkVty cfg
-    ls <- fmap lines (readFile "vgrep.cabal")
+    tty <- openFd "/dev/tty" ReadOnly Nothing defaultFileFlags
+    vty <- mkVty (cfg { inputFd = Just tty })
     eventLoop vty ls 0
     shutdown vty
 
