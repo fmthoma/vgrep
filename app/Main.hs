@@ -40,10 +40,10 @@ renderer PagerState{..} =
     let dpls = (fmap fore bufferPre |> back currentLine) >< fmap fore bufferPost
     in  picForImage (fold dpls)
   where
-    fore = string (defAttr `withForeColor` green) . truncate . (' ':)
-    back = string (defAttr `withBackColor` blue) . truncate . (' ':)
-    truncate s = let width = regionWidth region
-                 in  take width (s ++ repeat ' ')
+    fore = string (defAttr `withForeColor` green) . truncate
+    back = string (defAttr `withBackColor` blue) . truncate
+    truncate s = let width = (regionWidth region `div` 2) - 1
+                 in  take width (' ' : s ++ repeat ' ') ++ " "
 
 eventHandler :: EventHandler Event PagerState
 eventHandler = exitOn    (KChar 'q') []
