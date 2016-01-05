@@ -34,16 +34,16 @@ renderer PagerState{..} =
     back = string (defAttr `withBackColor` blue) . (' ':)
 
 eventHandler :: EventHandler Event PagerState
-eventHandler state = \case
+eventHandler = EventHandler $ \state -> \case
     EvKey KUp         [] -> return (Continue (previousLine state))
     EvKey KDown       [] -> return (Continue (nextLine state))
     EvKey (KChar 'q') [] -> return (Halt state)
     EvKey (KChar 'd') [] -> return (Continue (deleteLine state))
     EvKey (KChar 'D') [] -> return (Continue ((deleteLine . previousLine) state))
-    EvResize w h         -> return (Continue state)
+    EvResize w h         -> return Unchanged
     ev                   -> do
       putStrLn (show ev)
-      return (Continue state)
+      return Unchanged
 
 nextLine :: PagerState -> PagerState
 nextLine state@PagerState{..} = case viewl bufferPost of
