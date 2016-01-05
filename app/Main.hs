@@ -37,6 +37,8 @@ handleEvent state = \case
     EvKey KUp         [] -> return (Continue (previousLine state))
     EvKey KDown       [] -> return (Continue (nextLine state))
     EvKey (KChar 'q') [] -> return (Halt state)
+    EvKey (KChar 'd') [] -> return (Continue (deleteLine state))
+    EvKey (KChar 'D') [] -> return (Continue ((deleteLine . previousLine) state))
     _                    -> return (Continue state)
 
 nextLine :: PagerState -> PagerState
@@ -52,6 +54,13 @@ previousLine state@PagerState{..} = case viewr bufferPre of
     ls :> l -> state { bufferPre   = ls
                      , currentLine = l
                      , bufferPost  = currentLine <| bufferPost }
+
+deleteLine :: PagerState -> PagerState
+deleteLine state@PagerState{..} = case viewl bufferPost of
+    EmptyL  -> state
+    l :< ls -> state { currentLine = l
+                     , bufferPost  = ls }
+
 
 
 type EventHandler e s = s -> e -> IO (Next s)
