@@ -1,9 +1,10 @@
-{-# LANGUAGE RecordWildCards, LambdaCase #-}
+{-# LANGUAGE RecordWildCards, LambdaCase, MultiWayIf #-}
 module Main where
 
 import Data.Foldable
 import Data.Monoid
 import Data.Sequence hiding (update, take, empty)
+import qualified Data.Sequence as Seq
 import Graphics.Vty
 import Graphics.Vty.Prelude
 
@@ -18,6 +19,7 @@ main = do
 data PagerState = PagerState { bufferPre   :: Seq String
                              , currentLine :: String
                              , bufferPost  :: Seq String
+                             , scrollPos   :: Int
                              , region      :: DisplayRegion }
 
 app :: App Event PagerState
@@ -33,12 +35,13 @@ initPager vty = do
     return $ PagerState { bufferPre   = empty
                         , currentLine = head ls
                         , bufferPost  = fromList (tail ls)
+                        , scrollPos   = 0
                         , region      = displayRegion }
 
 renderer :: Renderer PagerState
 renderer PagerState{..} =
     let dpls = (fmap fore bufferPre |> back currentLine) >< fmap fore bufferPost
-    in  picForImage (fold dpls)
+    in  (picForImage . fold . Seq.drop scrollPos) dpls
   where
     fore = string (defAttr `withForeColor` green) . truncate
     back = string (defAttr `withBackColor` blue) . truncate
@@ -47,10 +50,10 @@ renderer PagerState{..} =
 
 eventHandler :: EventHandler Event PagerState
 eventHandler = exitOn    (KChar 'q') []
-            <> handleKey KUp         [] previousLine
-            <> handleKey KDown       [] nextLine
-            <> handleKey (KChar 'd') [] deleteLine
-            <> handleKey (KChar 'D') [] (deleteLine . previousLine)
+            <> handleKey KUp         [] (updateScrollPos . previousLine)
+            <> handleKey KDown       [] (updateScrollPos . nextLine)
+            <> handleKey (KChar 'd') [] (updateScrollPos . deleteLine)
+            <> handleKey (KChar 'D') [] (updateScrollPos . deleteLine . previousLine)
             <> handleResize             resizeToRegion
 
 nextLine :: PagerState -> PagerState
@@ -74,4 +77,15 @@ deleteLine state@PagerState{..} = case viewl bufferPost of
                      , bufferPost  = ls }
 
 resizeToRegion :: DisplayRegion -> PagerState -> PagerState
-resizeToRegion newRegion state = state { region = newRegion }
+resizeToRegion newRegion state = updateScrollPos $ state { region = newRegion }
+
+updateScrollPos :: PagerState -> PagerState
+updateScrollPos state@PagerState{..} =
+    if | current < firstVisible -> state { scrollPos = current }
+       | current > lastVisible  -> state { scrollPos = current - height + 1 }
+       | otherwise              -> state
+  where
+    height       = regionHeight region
+    current      = Seq.length bufferPre
+    firstVisible = scrollPos
+    lastVisible  = scrollPos + height - 1
