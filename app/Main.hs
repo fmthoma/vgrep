@@ -16,7 +16,8 @@ main = do
 
 data PagerState = PagerState { bufferPre   :: Seq String
                              , currentLine :: String
-                             , bufferPost  :: Seq String }
+                             , bufferPost  :: Seq String
+                             , region      :: DisplayRegion }
 
 app :: App Event PagerState
 app = App { initialize  = initPager
@@ -25,11 +26,13 @@ app = App { initialize  = initPager
           , render      = renderer }
 
 initPager :: Vty -> IO PagerState
-initPager _ = do
+initPager vty = do
     ls <- fmap lines (getContents)
+    displayRegion <- displayBounds (outputIface vty)
     return $ PagerState { bufferPre   = empty
                         , currentLine = head ls
-                        , bufferPost  = fromList (tail ls) }
+                        , bufferPost  = fromList (tail ls)
+                        , region      = displayRegion }
 
 renderer :: Renderer PagerState
 renderer PagerState{..} =
@@ -45,7 +48,7 @@ eventHandler = exitOn    (KChar 'q') []
             <> handleKey KDown       [] nextLine
             <> handleKey (KChar 'd') [] deleteLine
             <> handleKey (KChar 'D') [] (deleteLine . previousLine)
-            <> handleResize             id
+            <> handleResize             resizeToRegion
 
 nextLine :: PagerState -> PagerState
 nextLine state@PagerState{..} = case viewl bufferPost of
@@ -66,3 +69,6 @@ deleteLine state@PagerState{..} = case viewl bufferPost of
     EmptyL  -> state
     l :< ls -> state { currentLine = l
                      , bufferPost  = ls }
+
+resizeToRegion :: DisplayRegion -> PagerState -> PagerState
+resizeToRegion newRegion state = state { region = newRegion }

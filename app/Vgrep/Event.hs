@@ -27,9 +27,9 @@ handleKey key modifiers action = EventHandler $ \state -> \case
     EvKey k ms | k == key && ms == modifiers -> (return . Continue . action) state
     _                                        -> return Unchanged
 
-handleResize :: (s -> s) -> EventHandler Event s
+handleResize :: (DisplayRegion -> s -> s) -> EventHandler Event s
 handleResize action = EventHandler $ \state -> \case
-    EvResize _ _ -> (return . Continue . action) state
+    EvResize w h -> (return . Continue . action (w, h)) state
     _            -> return Unchanged
 
 exitOn :: Key -> [Modifier] -> EventHandler Event s
