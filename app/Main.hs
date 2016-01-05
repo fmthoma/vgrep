@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 module Main where
 
 import Data.Foldable
@@ -11,22 +12,38 @@ main = do
     cfg <- standardIOConfig
     tty <- openFd "/dev/tty" ReadOnly Nothing defaultFileFlags
     vty <- mkVty (cfg { inputFd = Just tty })
-    eventLoop vty ls 0
+    eventLoop (PagerState ls 0 vty)
     shutdown vty
 
-eventLoop :: Vty -> [String] -> Int -> IO ()
-eventLoop vty ls ln = do
-    let dpls = fmap fore (take ln ls)
-            ++ [ back (ls !! ln) ]
-            ++ fmap fore (drop (ln + 1) ls)
+data PagerState = PagerState { lineBuffer  :: [String]
+                             , currentLine :: Int
+                             , display     :: Vty }
+
+eventLoop :: PagerState -> IO ()
+eventLoop state@PagerState{..} = do
+    let dpls = fmap fore (take currentLine lineBuffer)
+            ++ [ back (lineBuffer !! currentLine) ]
+            ++ fmap fore (drop (currentLine + 1) lineBuffer)
         img = fold dpls
         pic = picForImage img
-    update vty pic
-    e <- nextEvent vty
+    update display pic
+    e <- nextEvent display
     case e of
-        EvKey KUp    [] -> eventLoop vty ls (if ln == 0 then 0 else ln - 1)
-        EvKey KDown  [] -> eventLoop vty ls (if ln < length ls - 1 then ln + 1 else length ls - 1)
+        EvKey KUp    [] -> eventLoop (previousLine state)
+        EvKey KDown  [] -> eventLoop (nextLine state)
         EvKey _      [] -> return ()
   where
     fore = string (defAttr `withForeColor` green) . (' ':)
     back = string (defAttr `withBackColor` blue) . (' ':)
+
+nextLine :: PagerState -> PagerState
+nextLine state = let line = currentLine state + 1
+                 in  if line < length (lineBuffer state)
+                         then state { currentLine = line }
+                         else state { currentLine = length (lineBuffer state) - 1 }
+
+previousLine :: PagerState -> PagerState
+previousLine state = let line = currentLine state - 1
+                     in  if line >= 0
+                             then state { currentLine = line }
+                             else state { currentLine = 0 }
