@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE RecordWildCards, LambdaCase #-}
 module Main where
 
 import Data.Foldable
@@ -12,31 +12,32 @@ main = do
     cfg <- standardIOConfig
     tty <- openFd "/dev/tty" ReadOnly Nothing defaultFileFlags
     vty <- mkVty (cfg { inputFd = Just tty })
-    eventLoop $ PagerState { bufferPre   = empty
+    let initialState = PagerState { bufferPre   = empty
                            , currentLine = head ls
-                           , bufferPost  = fromList (tail ls)
-                           , display     = vty }
+                           , bufferPost  = fromList (tail ls) }
+    _finalState <- eventLoop vty handleEvent render initialState
     shutdown vty
 
 data PagerState = PagerState { bufferPre   :: Seq String
                              , currentLine :: String
-                             , bufferPost  :: Seq String
-                             , display     :: Vty }
+                             , bufferPost  :: Seq String }
 
-eventLoop :: PagerState -> IO ()
-eventLoop state@PagerState{..} = do
+render :: Vty -> PagerState -> IO ()
+render display state@PagerState{..} =
     let dpls = (fmap fore bufferPre |> back currentLine) >< fmap fore bufferPost
         img = fold dpls
         pic = picForImage img
-    update display pic
-    e <- nextEvent display
-    case e of
-        EvKey KUp    [] -> eventLoop (previousLine state)
-        EvKey KDown  [] -> eventLoop (nextLine state)
-        EvKey _      [] -> return ()
+    in  update display pic
   where
     fore = string (defAttr `withForeColor` green) . (' ':)
     back = string (defAttr `withBackColor` blue) . (' ':)
+
+handleEvent :: EventHandler Event PagerState
+handleEvent state = \case
+    EvKey KUp         [] -> return (Continue (previousLine state))
+    EvKey KDown       [] -> return (Continue (nextLine state))
+    EvKey (KChar 'q') [] -> return (Halt state)
+    _                    -> return (Continue state)
 
 nextLine :: PagerState -> PagerState
 nextLine state@PagerState{..} = case viewl bufferPost of
@@ -51,3 +52,18 @@ previousLine state@PagerState{..} = case viewr bufferPre of
     ls :> l -> state { bufferPre   = ls
                      , currentLine = l
                      , bufferPost  = currentLine <| bufferPost }
+
+
+type EventHandler e s = s -> e -> IO (Next s)
+type Renderer s = Vty -> s -> IO ()
+
+data Next s = Continue s
+            | Halt s
+
+eventLoop :: Vty -> EventHandler Event s -> Renderer s -> s -> IO s
+eventLoop vty handler renderer state = do
+    renderer vty state
+    event <- nextEvent vty
+    next <- handler state event
+    case next of Continue newState -> eventLoop vty handler renderer newState
+                 Halt     newState -> return newState
