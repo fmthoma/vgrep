@@ -2,6 +2,7 @@
 module Main where
 
 import Data.Foldable
+import Data.Monoid
 import Data.Sequence hiding (update)
 import Graphics.Vty
 
@@ -34,16 +35,27 @@ renderer PagerState{..} =
     back = string (defAttr `withBackColor` blue) . (' ':)
 
 eventHandler :: EventHandler Event PagerState
-eventHandler = EventHandler $ \state -> \case
-    EvKey KUp         [] -> return (Continue (previousLine state))
-    EvKey KDown       [] -> return (Continue (nextLine state))
-    EvKey (KChar 'q') [] -> return (Halt state)
-    EvKey (KChar 'd') [] -> return (Continue (deleteLine state))
-    EvKey (KChar 'D') [] -> return (Continue ((deleteLine . previousLine) state))
-    EvResize w h         -> return Unchanged
-    ev                   -> do
-      putStrLn (show ev)
-      return Unchanged
+eventHandler = exitOn    (KChar 'q') []
+            <> handleKey KUp         [] previousLine
+            <> handleKey KDown       [] nextLine
+            <> handleKey (KChar 'd') [] deleteLine
+            <> handleKey (KChar 'D') [] (deleteLine . previousLine)
+            <> handleResize             id
+
+handleKey :: Key -> [Modifier] -> (s -> s) -> EventHandler Event s
+handleKey key modifiers action = EventHandler $ \state -> \case
+    EvKey k ms | k == key && ms == modifiers -> (return . Continue . action) state
+    _                                        -> return Unchanged
+
+handleResize :: (s -> s) -> EventHandler Event s
+handleResize action = EventHandler $ \state -> \case
+    EvResize _ _ -> (return . Continue . action) state
+    _            -> return Unchanged
+
+exitOn :: Key -> [Modifier] -> EventHandler Event s
+exitOn key modifiers = EventHandler $ \state -> \case
+    EvKey k ms | k == key && ms == modifiers -> (return . Halt) state
+    _                                        -> return Unchanged
 
 nextLine :: PagerState -> PagerState
 nextLine state@PagerState{..} = case viewl bufferPost of
