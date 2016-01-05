@@ -25,8 +25,9 @@ runApp app = do
 initVty :: IO Vty
 initVty = do
     cfg <- standardIOConfig
-    tty <- openFd "/dev/tty" ReadOnly Nothing defaultFileFlags
-    mkVty (cfg { inputFd = Just tty })
+    ttyIn  <- openFd "/dev/tty" ReadOnly  Nothing defaultFileFlags
+    ttyOut <- openFd "/dev/tty" WriteOnly Nothing defaultFileFlags
+    mkVty (cfg { inputFd = Just ttyIn , outputFd = Just ttyOut })
 
 eventLoop :: Vty -> App e s -> s -> IO s
 eventLoop vty app@App{..} initialState = do
