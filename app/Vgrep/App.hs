@@ -1,6 +1,7 @@
 {-# LANGUAGE RecordWildCards, GeneralizedNewtypeDeriving #-}
 module Vgrep.App where
 
+import Control.Applicative
 import Graphics.Vty as Vty
 import System.Posix
 
@@ -12,17 +13,21 @@ newtype EventHandler e s = EventHandler { handle :: s -> e -> IO (Next s) }
 
 instance Monoid (EventHandler e s) where
     mempty = EventHandler $ \_ _ -> return Unchanged
-    h1 `mappend` h2 = EventHandler $ \state event -> do
-        res1 <- handle h1 state event
-        case res1 of
-            Unchanged -> handle h2 state event
-            next      -> return res1
+    h1 `mappend` h2 = EventHandler $ \state event ->
+        liftA2 mappend (handle h1 state event)
+                       (handle h2 state event)
 
 type Renderer s = s -> Vty.Picture
 
 data Next s = Continue s
             | Halt s
             | Unchanged
+
+instance Monoid (Next s) where
+    mempty = Unchanged
+    Unchanged `mappend` next = next
+    next      `mappend` _    = next
+
 
 runApp :: App e s -> s -> IO s
 runApp app initialState = do
