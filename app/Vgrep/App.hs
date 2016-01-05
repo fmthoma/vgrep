@@ -6,16 +6,18 @@ import System.Posix
 
 import Vgrep.Event
 
-data App e s = App { liftEvent   :: Vty.Event -> e
+data App e s = App { initialize  :: Vty -> IO s
+                   , liftEvent   :: Vty.Event -> e
                    , handleEvent :: EventHandler e s
                    , render      :: Renderer s }
 
 type Renderer s = s -> Vty.Picture
 
 
-runApp :: App e s -> s -> IO s
-runApp app initialState = do
+runApp :: App e s -> IO s
+runApp app = do
     vty <- initVty
+    initialState <- initialize app vty
     finalState <- eventLoop vty app initialState
     shutdown vty
     return finalState

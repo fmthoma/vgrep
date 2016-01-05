@@ -11,11 +11,7 @@ import Vgrep.Event
 
 main :: IO ()
 main = do
-    ls <- fmap lines (getContents)
-    let initialState = PagerState { bufferPre   = empty
-                                  , currentLine = head ls
-                                  , bufferPost  = fromList (tail ls) }
-    _finalState <- runApp app initialState
+    _finalState <- runApp app
     return ()
 
 data PagerState = PagerState { bufferPre   :: Seq String
@@ -23,9 +19,17 @@ data PagerState = PagerState { bufferPre   :: Seq String
                              , bufferPost  :: Seq String }
 
 app :: App Event PagerState
-app = App { liftEvent   = id
+app = App { initialize  = initPager
+          , liftEvent   = id
           , handleEvent = eventHandler
           , render      = renderer }
+
+initPager :: Vty -> IO PagerState
+initPager _ = do
+    ls <- fmap lines (getContents)
+    return $ PagerState { bufferPre   = empty
+                        , currentLine = head ls
+                        , bufferPost  = fromList (tail ls) }
 
 renderer :: Renderer PagerState
 renderer PagerState{..} =
