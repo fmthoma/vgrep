@@ -10,7 +10,7 @@ data App e s = App { liftEvent   :: Vty.Event -> e
 
 type EventHandler e s = s -> e -> IO (Next s)
 
-type Renderer s = Vty -> s -> IO ()
+type Renderer s = s -> Vty.Picture
 
 data Next s = Continue s
             | Halt s
@@ -30,7 +30,7 @@ initVty = do
 
 eventLoop :: Vty -> App e s -> s -> IO s
 eventLoop vty app@App{..} currentState = do
-    render vty currentState
+    update vty (render currentState)
     event <- nextEvent vty
     next <- handleEvent currentState (liftEvent event)
     case next of

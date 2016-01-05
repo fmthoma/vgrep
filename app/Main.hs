@@ -25,12 +25,10 @@ app = App { liftEvent   = id
           , handleEvent = eventHandler
           , render      = renderer }
 
-renderer :: Vty -> PagerState -> IO ()
-renderer display state@PagerState{..} =
+renderer :: Renderer PagerState
+renderer PagerState{..} =
     let dpls = (fmap fore bufferPre |> back currentLine) >< fmap fore bufferPost
-        img = fold dpls
-        pic = picForImage img
-    in  update display pic
+    in  picForImage (fold dpls)
   where
     fore = string (defAttr `withForeColor` green) . (' ':)
     back = string (defAttr `withBackColor` blue) . (' ':)
