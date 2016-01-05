@@ -7,6 +7,7 @@ import Data.Sequence hiding (update)
 import Graphics.Vty
 
 import Vgrep.App
+import Vgrep.Event
 
 main :: IO ()
 main = do
@@ -41,21 +42,6 @@ eventHandler = exitOn    (KChar 'q') []
             <> handleKey (KChar 'd') [] deleteLine
             <> handleKey (KChar 'D') [] (deleteLine . previousLine)
             <> handleResize             id
-
-handleKey :: Key -> [Modifier] -> (s -> s) -> EventHandler Event s
-handleKey key modifiers action = EventHandler $ \state -> \case
-    EvKey k ms | k == key && ms == modifiers -> (return . Continue . action) state
-    _                                        -> return Unchanged
-
-handleResize :: (s -> s) -> EventHandler Event s
-handleResize action = EventHandler $ \state -> \case
-    EvResize _ _ -> (return . Continue . action) state
-    _            -> return Unchanged
-
-exitOn :: Key -> [Modifier] -> EventHandler Event s
-exitOn key modifiers = EventHandler $ \state -> \case
-    EvKey k ms | k == key && ms == modifiers -> (return . Halt) state
-    _                                        -> return Unchanged
 
 nextLine :: PagerState -> PagerState
 nextLine state@PagerState{..} = case viewl bufferPost of
