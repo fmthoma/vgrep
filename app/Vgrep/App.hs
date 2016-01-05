@@ -38,11 +38,15 @@ initVty = do
     mkVty (cfg { inputFd = Just tty })
 
 eventLoop :: Vty -> App e s -> s -> IO s
-eventLoop vty app@App{..} currentState = do
-    update vty (render currentState)
-    event <- nextEvent vty
-    next <- handle handleEvent currentState (liftEvent event)
-    case next of
-        Unchanged         -> eventLoop vty app currentState
-        Continue newState -> eventLoop vty app newState
-        Halt     newState -> return newState
+eventLoop vty app@App{..} initialState = do
+    refresh initialState
+    runLoop initialState
+  where
+    runLoop currentState = do
+        event <- nextEvent vty
+        next <- handle handleEvent currentState (liftEvent event)
+        case next of
+            Unchanged         -> runLoop currentState
+            Halt     newState -> return newState
+            Continue newState -> refresh newState >> runLoop newState
+    refresh currentState = update vty (render currentState)
