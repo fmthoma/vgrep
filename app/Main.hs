@@ -3,8 +3,9 @@ module Main where
 
 import Data.Foldable
 import Data.Monoid
-import Data.Sequence hiding (update)
+import Data.Sequence hiding (update, take, empty)
 import Graphics.Vty
+import Graphics.Vty.Prelude
 
 import Vgrep.App
 import Vgrep.Event
@@ -39,8 +40,10 @@ renderer PagerState{..} =
     let dpls = (fmap fore bufferPre |> back currentLine) >< fmap fore bufferPost
     in  picForImage (fold dpls)
   where
-    fore = string (defAttr `withForeColor` green) . (' ':)
-    back = string (defAttr `withBackColor` blue) . (' ':)
+    fore = string (defAttr `withForeColor` green) . truncate . (' ':)
+    back = string (defAttr `withBackColor` blue) . truncate . (' ':)
+    truncate s = let width = regionWidth region
+                 in  take width (s ++ repeat ' ')
 
 eventHandler :: EventHandler Event PagerState
 eventHandler = exitOn    (KChar 'q') []
