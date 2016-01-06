@@ -5,7 +5,7 @@ import Graphics.Vty
 
 import Vgrep.App
 import Vgrep.Event
-import Vgrep.Widget.List
+import Vgrep.Widget.Pager
 
 main :: IO ()
 main = do
@@ -13,22 +13,20 @@ main = do
     return ()
 
 
-app :: App Event ListState
-app = App { initialize  = initList
+app :: App Event PagerState
+app = App { initialize  = initPager
           , liftEvent   = id
           , handleEvent = eventHandler
-          , render      = renderList }
+          , render      = renderPager }
 
-initList :: Vty -> IO ListState
-initList vty = do
+initPager :: Vty -> IO PagerState
+initPager vty = do
     ls <- fmap lines (getContents)
     displayRegion <- displayBounds (outputIface vty)
-    return (initialListState ls displayRegion)
+    return (initialPagerState ls displayRegion)
 
-eventHandler :: EventHandler Event ListState
-eventHandler = exitOn    (KChar 'q') []
-            <> handleKey (KChar 'd') [] (updateScrollPos . deleteLine)
-            <> handleKey (KChar 'D') [] (updateScrollPos . deleteLine . previousLine)
-            <> handleResize             resizeToRegion
-            <> handleListEvents
+eventHandler :: EventHandler Event PagerState
+eventHandler = exitOn (KChar 'q') []
+            <> handleResize resizeToRegion
+            <> handlePagerEvents
 

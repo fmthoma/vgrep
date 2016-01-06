@@ -37,7 +37,7 @@ renderList ListState{..} =
   where
     fore = string (defAttr `withForeColor` green) . truncate
     back = string (defAttr `withBackColor` blue) . truncate
-    truncate s = let width = (regionWidth region `div` 2) - 1
+    truncate s = let width = regionWidth region
                  in  take width (' ' : s ++ repeat ' ') ++ " "
 
 nextLine :: ListState -> ListState
