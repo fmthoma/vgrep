@@ -1,5 +1,6 @@
 {-# LANGUAGE RecordWildCards, MultiWayIf #-}
 module Vgrep.Widget.List ( ListState()
+                         , ListWidget
                          , listWidget
                          ) where
 
@@ -19,9 +20,11 @@ data ListState = ListState { bufferPre   :: Seq String
                            , scrollPos   :: Int
                            , region      :: DisplayRegion }
 
+type ListWidget = Widget Event ListState
+
 listWidget :: [String]
            -> DisplayRegion
-           -> Widget Event ListState
+           -> ListWidget
 listWidget items region = Widget { state       = initialListState items region
                                  , dimensions  = region
                                  , resize      = resizeToRegion

@@ -1,5 +1,6 @@
 {-# LANGUAGE RecordWildCards, MultiWayIf #-}
 module Vgrep.Widget.Pager ( PagerState()
+                          , PagerWidget
                           , pagerWidget
                           ) where
 
@@ -16,9 +17,11 @@ data PagerState = PagerState { buffer          :: [String]
                              , region          :: DisplayRegion
                              , showLineNumbers :: Bool }
 
+type PagerWidget = Widget Event PagerState
+
 pagerWidget :: [String]
             -> DisplayRegion
-            -> Widget Event PagerState
+            -> PagerWidget
 pagerWidget items region = Widget { state       = initialPagerState items region
                                   , dimensions  = region
                                   , resize      = resizeToRegion
