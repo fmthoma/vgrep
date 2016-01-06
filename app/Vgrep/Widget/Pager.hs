@@ -17,7 +17,7 @@ data PagerState = PagerState { buffer          :: [String]
                              , region          :: DisplayRegion
                              , showLineNumbers :: Bool }
 
-type PagerWidget = Widget Event PagerState
+type PagerWidget = Widget PagerState
 
 pagerWidget :: [String]
             -> DisplayRegion
@@ -36,7 +36,7 @@ initialPagerState items displayRegion =
                , region          = displayRegion
                , showLineNumbers = True }
 
-handlePagerEvents :: EventHandler Event PagerState
+handlePagerEvents :: EventHandler PagerState
 handlePagerEvents = handleKey KUp   [] (updateScrollPos . scrollUp)
                  <> handleKey KDown [] (updateScrollPos . scrollDown)
 

@@ -6,13 +6,12 @@ import System.Posix
 
 import Vgrep.Event
 
-data App e s = App { initialize  :: Vty -> IO s
-                   , liftEvent   :: Vty.Event -> e
-                   , handleEvent :: EventHandler e s
-                   , render      :: s -> Vty.Picture }
+data App s = App { initialize  :: Vty -> IO s
+                 , handleEvent :: EventHandler s
+                 , render      :: s -> Vty.Picture }
 
 
-runApp :: App e s -> IO s
+runApp :: App s -> IO s
 runApp app = do
     vty <- initVty
     initialState <- initialize app vty
@@ -27,14 +26,14 @@ initVty = do
     ttyOut <- openFd "/dev/tty" WriteOnly Nothing defaultFileFlags
     mkVty (cfg { inputFd = Just ttyIn , outputFd = Just ttyOut })
 
-eventLoop :: Vty -> App e s -> s -> IO s
+eventLoop :: Vty -> App s -> s -> IO s
 eventLoop vty app@App{..} initialState = do
     refresh initialState
     runLoop initialState
   where
     runLoop currentState = do
         event <- nextEvent vty
-        next <- handle handleEvent currentState (liftEvent event)
+        next <- handle handleEvent currentState event
         case next of
             Unchanged         -> runLoop currentState
             Halt     newState -> return newState

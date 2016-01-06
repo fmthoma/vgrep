@@ -20,7 +20,7 @@ data ListState = ListState { bufferPre   :: Seq String
                            , scrollPos   :: Int
                            , region      :: DisplayRegion }
 
-type ListWidget = Widget Event ListState
+type ListWidget = Widget ListState
 
 listWidget :: [String]
            -> DisplayRegion
@@ -41,7 +41,7 @@ initialListState items region = case items of
                        , scrollPos   = 0
                        , region      = region }
 
-handleListEvents :: EventHandler Event ListState
+handleListEvents :: EventHandler ListState
 handleListEvents = handleKey KUp         [] (updateScrollPos . previousLine)
                 <> handleKey KDown       [] (updateScrollPos . nextLine)
 
