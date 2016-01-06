@@ -1,5 +1,7 @@
 {-# LANGUAGE RecordWildCards, MultiWayIf #-}
-module Vgrep.Widget.List where
+module Vgrep.Widget.List ( ListState()
+                         , listWidget
+                         ) where
 
 import Data.Foldable
 import Data.Monoid
@@ -9,12 +11,22 @@ import Graphics.Vty
 import Graphics.Vty.Prelude
 
 import Vgrep.Event
+import Vgrep.Widget.Type
 
 data ListState = ListState { bufferPre   :: Seq String
                            , currentLine :: String
                            , bufferPost  :: Seq String
                            , scrollPos   :: Int
                            , region      :: DisplayRegion }
+
+listWidget :: [String]
+           -> DisplayRegion
+           -> Widget Event ListState
+listWidget items region = Widget { state       = initialListState items region
+                                 , dimensions  = region
+                                 , resize      = resizeToRegion
+                                 , draw        = renderList
+                                 , handleEvent = handleListEvents }
 
 
 initialListState :: [String] -> DisplayRegion -> ListState
@@ -30,10 +42,10 @@ handleListEvents :: EventHandler Event ListState
 handleListEvents = handleKey KUp         [] (updateScrollPos . previousLine)
                 <> handleKey KDown       [] (updateScrollPos . nextLine)
 
-renderList :: ListState -> Picture
+renderList :: ListState -> Image
 renderList ListState{..} =
     let dpls = (fmap fore bufferPre |> back currentLine) >< fmap fore bufferPost
-    in  (picForImage . fold . Seq.drop scrollPos) dpls
+    in  (fold . Seq.drop scrollPos) dpls
   where
     fore = string (defAttr `withForeColor` green) . truncate
     back = string (defAttr `withBackColor` blue) . truncate
