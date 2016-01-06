@@ -48,7 +48,8 @@ resizeToRegion newRegion state = updateScrollPos $ state { region = newRegion }
 
 updateScrollPos :: PagerState -> PagerState
 updateScrollPos state@PagerState{..} =
-    if | scrollPos <= 0                  -> state { scrollPos = 0 }
+    if | scrollPos < 0                   -> state { scrollPos = 0 }
+       | linesCount < height             -> state { scrollPos = 0 }
        | scrollPos > linesCount - height -> state { scrollPos = linesCount - height }
        | otherwise                       -> state
   where height = regionHeight region
