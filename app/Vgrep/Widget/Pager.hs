@@ -37,11 +37,12 @@ renderPager PagerState{..} =
   where
     textLines = fold . fmap (string defAttr)
                      . take (regionHeight region)
-                     . drop scrollPos . fmap (' ' :) $ buffer
+                     . drop scrollPos . fmap padWithSpace $ buffer
 
-    lineNumbers = fold . fmap (string (defAttr `withForeColor` brightBlack))
+    lineNumbers = fold . fmap (string (defAttr `withForeColor` brightBlack `withBackColor` black))
                        . take (min (regionHeight region) (length buffer - scrollPos))
-                       . drop scrollPos . fmap show $ [1..]
+                       . drop scrollPos . fmap (padWithSpace . show) $ [1..]
+    padWithSpace s = ' ' : s ++ " "
 
 resizeToRegion :: DisplayRegion -> PagerState -> PagerState
 resizeToRegion newRegion state = updateScrollPos $ state { region = newRegion }
