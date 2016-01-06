@@ -9,9 +9,7 @@ import Vgrep.Event
 data App e s = App { initialize  :: Vty -> IO s
                    , liftEvent   :: Vty.Event -> e
                    , handleEvent :: EventHandler e s
-                   , render      :: Renderer s }
-
-type Renderer s = s -> Vty.Picture
+                   , render      :: s -> Vty.Picture }
 
 
 runApp :: App e s -> IO s
