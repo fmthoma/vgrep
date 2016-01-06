@@ -1,5 +1,7 @@
 {-# LANGUAGE RecordWildCards, MultiWayIf #-}
-module Vgrep.Widget.Pager where
+module Vgrep.Widget.Pager ( PagerState()
+                          , pagerWidget
+                          ) where
 
 import Data.Foldable
 import Data.Monoid
@@ -7,18 +9,28 @@ import Graphics.Vty
 import Graphics.Vty.Prelude
 
 import Vgrep.Event
+import Vgrep.Widget.Type
 
 data PagerState = PagerState { buffer          :: [String]
                              , scrollPos       :: Int
                              , region          :: DisplayRegion
                              , showLineNumbers :: Bool }
 
+pagerWidget :: [String]
+            -> DisplayRegion
+            -> Widget Event PagerState
+pagerWidget items region = Widget { state       = initialPagerState items region
+                                  , dimensions  = region
+                                  , resize      = resizeToRegion
+                                  , draw        = renderPager
+                                  , handleEvent = handlePagerEvents }
 
-initialPagerState :: [String] -> DisplayRegion -> PagerState
-initialPagerState items region =
+
+initialPagerState :: [String] -> DisplayRegion-> PagerState
+initialPagerState items displayRegion =
     PagerState { buffer          = items
                , scrollPos       = 0
-               , region          = region
+               , region          = displayRegion
                , showLineNumbers = True }
 
 handlePagerEvents :: EventHandler Event PagerState
@@ -31,17 +43,21 @@ scrollUp state@PagerState{..} = state { scrollPos = scrollPos - 1 }
 scrollDown :: PagerState -> PagerState
 scrollDown state@PagerState{..} = state { scrollPos = scrollPos + 1 }
 
-renderPager :: PagerState -> Picture
+renderPager :: PagerState -> Image
 renderPager PagerState{..} =
-    picForImage . resizeWidth (regionWidth region) $ (lineNumbers <|> textLines)
+    resizeWidth width $ (lineNumbers <|> textLines)
   where
+    width  = regionWidth  region
+    height = regionHeight region
+
     textLines = fold . fmap (string defAttr)
-                     . take (regionHeight region)
+                     . take height
                      . drop scrollPos . fmap padWithSpace $ buffer
 
     lineNumbers = fold . fmap (string (defAttr `withForeColor` brightBlack `withBackColor` black))
-                       . take (min (regionHeight region) (length buffer - scrollPos))
+                       . take (min height (length buffer - scrollPos))
                        . drop scrollPos . fmap (padWithSpace . show) $ [1..]
+
     padWithSpace s = ' ' : s ++ " "
 
 resizeToRegion :: DisplayRegion -> PagerState -> PagerState

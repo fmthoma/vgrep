@@ -1,4 +1,4 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase, DeriveFunctor #-}
 module Vgrep.Event where
 
 import Control.Applicative
@@ -15,12 +15,12 @@ instance Monoid (EventHandler e s) where
 data Next s = Continue s
             | Halt s
             | Unchanged
+            deriving (Functor)
 
 instance Monoid (Next s) where
     mempty = Unchanged
     Unchanged `mappend` next = next
     next      `mappend` _    = next
-
 
 handleKey :: Key -> [Modifier] -> (s -> s) -> EventHandler Event s
 handleKey key modifiers action = EventHandler $ \state -> \case
