@@ -2,6 +2,7 @@
 module Vgrep.Widget.HorizontalSplit where
 
 import Control.Lens
+import Data.Monoid
 import Graphics.Vty hiding (resize)
 import Graphics.Vty.Prelude
 
@@ -37,7 +38,8 @@ hSplitWidget left right ratio region =
            , dimensions  = region
            , resize      = resizeWidgets
            , draw        = drawWidgets
-           , handleEvent = passEventToFocusedWidget }
+           , handleEvent = switchFocusOn (KChar '\t')
+                        <> passEventToFocusedWidget }
 
 initState :: Widget s
           -> Widget t
@@ -50,6 +52,13 @@ initState left right ratio region = resizeWidgets region $
           , ratio   = ratio
           , region  = region }
 
+
+switchFocusOn :: Key -> EventHandler (HSplitState s t)
+switchFocusOn key = handleKey key [] $
+    \state@State{..} ->state { focused = switch focused }
+  where
+    switch FocusLeft  = FocusRight
+    switch FocusRight = FocusLeft
 
 passEventToFocusedWidget :: EventHandler (HSplitState (Widget s) (Widget t))
 passEventToFocusedWidget = EventHandler $ \event state@State{..} ->
