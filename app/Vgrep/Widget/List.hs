@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards, MultiWayIf, TemplateHaskell #-}
+{-# LANGUAGE MultiWayIf, TemplateHaskell #-}
 module Vgrep.Widget.List ( ListState()
                          , ListWidget
                          , listWidget

@@ -1,4 +1,4 @@
-{-# LANGUAGE RecordWildCards, Rank2Types, TemplateHaskell #-}
+{-# LANGUAGE Rank2Types, TemplateHaskell #-}
 module Vgrep.Widget.HorizontalSplit where
 
 import Control.Lens
