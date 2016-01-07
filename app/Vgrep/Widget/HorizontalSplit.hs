@@ -34,12 +34,12 @@ hSplitWidget :: Widget s
              -> DisplayRegion
              -> HSplitWidget (Widget s) (Widget t)
 hSplitWidget left right ratio region =
-    Widget { state       = initState left right ratio region
-           , dimensions  = region
-           , resize      = resizeWidgets
-           , draw        = drawWidgets
-           , handleEvent = switchFocusOn (KChar '\t')
-                        <> passEventToFocusedWidget }
+    Widget { _state       = initState left right ratio region
+           , _dimensions  = region
+           , _resize      = resizeWidgets
+           , _draw        = drawWidgets
+           , _handleEvent = switchFocusOn (KChar '\t')
+                         <> passEventToFocusedWidget }
 
 initState :: Widget s
           -> Widget t

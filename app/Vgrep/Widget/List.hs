@@ -14,22 +14,22 @@ import Graphics.Vty.Prelude
 import Vgrep.Event
 import Vgrep.Widget.Type
 
-data ListState = ListState { bufferPre   :: Seq String
-                           , currentLine :: String
-                           , bufferPost  :: Seq String
-                           , scrollPos   :: Int
-                           , region      :: DisplayRegion }
+data ListState = ListState { _bufferPre   :: Seq String
+                           , _currentLine :: String
+                           , _bufferPost  :: Seq String
+                           , _scrollPos   :: Int
+                           , _region      :: DisplayRegion }
 
 type ListWidget = Widget ListState
 
 listWidget :: [String]
            -> DisplayRegion
            -> ListWidget
-listWidget items region = Widget { state       = initialListState items region
-                                 , dimensions  = region
-                                 , resize      = resizeToRegion
-                                 , draw        = renderList
-                                 , handleEvent = handleListEvents }
+listWidget items region = Widget { _state       = initialListState items region
+                                 , _dimensions  = region
+                                 , _resize      = resizeToRegion
+                                 , _draw        = renderList
+                                 , _handleEvent = handleListEvents }
 
 
 initialListState :: [String] -> DisplayRegion -> ListState
