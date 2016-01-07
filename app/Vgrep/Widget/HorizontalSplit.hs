@@ -2,7 +2,7 @@
 module Vgrep.Widget.HorizontalSplit where
 
 import Control.Lens
-import Graphics.Vty
+import Graphics.Vty hiding (resize)
 import Graphics.Vty.Prelude
 
 import Vgrep.Event
@@ -35,8 +35,8 @@ hSplitWidget :: Widget s
 hSplitWidget left right ratio region =
     Widget { state       = State (left, right) FocusLeft ratio region
            , dimensions  = region
-           , resize      = undefined
-           , draw        = undefined
+           , resize      = resizeWidgets
+           , draw        = drawWidgets
            , handleEvent = passEventToFocusedWidget }
 
 
@@ -57,3 +57,15 @@ liftNext :: Lens' s a
          -> Lens s (IO (Next s)) a (IO (Next a))
 liftNext l = lens (view l)
                   (\s -> fmap (fmap (\a -> set l a s)))
+
+resizeWidgets :: DisplayRegion -> HSplitState s t -> HSplitState s t
+resizeWidgets newRegion@(w, h) state@State{..} =
+    let leftRegion  = (ceiling (ratio * fromIntegral w), h)
+        rightRegion = (floor   (ratio * fromIntegral w), h)
+    in  state { widgets = ( resizeWidget (fst widgets) leftRegion
+                          , resizeWidget (snd widgets) rightRegion )
+              , region = newRegion }
+
+drawWidgets :: HSplitState s t -> Image
+drawWidgets state@State{..} = drawWidget (view leftWidget  state)
+                          <-> drawWidget (view rightWidget state)

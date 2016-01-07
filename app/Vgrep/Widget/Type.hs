@@ -1,6 +1,6 @@
 module Vgrep.Widget.Type where
 
-import Graphics.Vty
+import Graphics.Vty hiding (resize)
 
 import Vgrep.Event
 
@@ -19,3 +19,7 @@ passEventsToWidget = EventHandler $ \event widget -> do
 
 drawWidget :: Widget s -> Image
 drawWidget widget = draw widget (state widget)
+
+resizeWidget :: Widget s -> DisplayRegion -> Widget s
+resizeWidget widget newRegion =
+    widget { state = (resize widget) newRegion (state widget) }

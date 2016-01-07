@@ -33,6 +33,5 @@ eventHandler = exitOn (KChar 'q') []
 
 handleResizeEvent :: EventHandler PagerWidget
 handleResizeEvent = EventHandler $ \event widget -> case event of
-    EvResize w h -> return . Continue $ widget
-                        { state = resize widget (w, h) (state widget) }
+    EvResize w h -> return . Continue $ resizeWidget widget (w, h)
     _            -> return Unchanged
