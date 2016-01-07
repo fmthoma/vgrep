@@ -1,12 +1,13 @@
 {-# LANGUAGE TemplateHaskell, DisambiguateRecordFields, MultiWayIf #-}
 module Vgrep.Widget.Results where
 
-import Control.Lens (over, set, view, _2, (&))
+import Control.Lens (Lens', over, set, view, _2, (&))
 import Control.Lens.TH
 import Data.Map (Map)
 import qualified Data.Map as Map
-import Data.Sequence (Seq)
+import Data.Sequence (Seq, ViewL(..), ViewR(..), (><), (|>), (<|))
 import qualified Data.Sequence as Seq
+import Data.Sequence.Lens
 import Graphics.Vty (Image)
 import Graphics.Vty.Prelude
 
@@ -59,6 +60,45 @@ initState files dimensions =
   where
     buffer = (initBuffer . map (over _2 initBuffer) . Map.toList) files
 
+
+currentFile :: Lens' ResultsState (Buffer Line)
+currentFile = files . cur . _2
+
+previousLine :: ResultsState -> ResultsState
+previousLine state = case view (currentFile . pre . viewR) state of
+    EmptyR  -> previousFile state
+    ls :> l -> state & set  (currentFile . pre) ls
+                     & set  (currentFile . cur) l
+                     & over (currentFile . post)
+                            (view (currentFile . cur) state <|)
+                     & updateScrollPos
+
+previousFile :: ResultsState -> ResultsState
+previousFile state = case view (files . pre . viewR) state of
+    EmptyR  -> state
+    fs :> f -> state & set  (files . pre) fs
+                     & set  (files . cur) f
+                     & over (files . post) (view (files . cur) state <|)
+                     & updateScrollPos
+
+nextLine :: ResultsState -> ResultsState
+nextLine state = case view (currentFile . post . viewL) state of
+    EmptyL  -> nextFile state
+    l :< ls -> state & over (currentFile . pre)
+                            (|> view (currentFile . cur) state)
+                     & set  (currentFile . cur) l
+                     & set  (currentFile . post) ls
+                     & updateScrollPos
+
+nextFile :: ResultsState -> ResultsState
+nextFile state = case view (files . post . viewL) state of
+    EmptyL  -> state
+    f :< fs -> state & over (files . pre) (|> view (files . cur) state)
+                     & set  (files . cur) f
+                     & set  (files . post) fs
+                     & updateScrollPos
+
+
 updateScrollPos :: ResultsState -> ResultsState
 updateScrollPos state =
     if | current < firstVisible -> state & set scrollPos current
@@ -66,7 +106,7 @@ updateScrollPos state =
        | otherwise              -> state
   where
     height       = regionHeight (view region state)
-    current = computeCurrentItem (view files state)
+    current      = computeCurrentItem (view files state)
     firstVisible = view scrollPos state
     lastVisible  = firstVisible + height - 1
 
