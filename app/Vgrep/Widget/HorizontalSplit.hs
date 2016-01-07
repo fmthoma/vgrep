@@ -1,4 +1,4 @@
-{-# LANGUAGE ExistentialQuantification, RecordWildCards, Rank2Types #-}
+{-# LANGUAGE RecordWildCards, Rank2Types #-}
 module Vgrep.Widget.HorizontalSplit where
 
 import Control.Lens
@@ -8,32 +8,52 @@ import Graphics.Vty.Prelude
 import Vgrep.Event
 import Vgrep.Widget.Type
 
-data HSplitState s = State { widgets :: (Widget s, Widget s)
-                           , focused :: Lens' (Widget s, Widget s) (Widget s)
-                           , ratio   :: Rational
-                           , region  :: DisplayRegion }
+data HSplitState s t = State { widgets :: (Widget s, Widget t)
+                             , focused :: Focus
+                             , ratio   :: Rational
+                             , region  :: DisplayRegion }
 
-focusedWidget :: Lens' (HSplitState s) (Widget s)
-focusedWidget = lens widgets (\state widgets' -> state { widgets = widgets' }) . _1
+data Focus = FocusLeft | FocusRight
 
-focusedWidget' :: Lens (HSplitState s) (IO (Next (HSplitState s))) (Widget s) (IO (Next (Widget s)))
-focusedWidget' = lens (view focusedWidget) (\state -> fmap (fmap (\w -> set focusedWidget w state)))
+_widgets :: Lens' (HSplitState s t) (Widget s, Widget t)
+_widgets = lens widgets
+                (\state widgets' -> state { widgets = widgets' })
 
-type HSplitWidget s = Widget (HSplitState s)
+leftWidget :: Lens' (HSplitState s t) (Widget s)
+leftWidget = _widgets . _1
+
+rightWidget :: Lens' (HSplitState s t) (Widget t)
+rightWidget = _widgets . _2
+
+type HSplitWidget = forall s t. Widget (HSplitState s t)
 
 hSplitWidget :: Widget s
-             -> Widget s
+             -> Widget t
              -> Rational
              -> DisplayRegion
-             -> HSplitWidget s
+             -> Widget (HSplitState s t)
 hSplitWidget left right ratio region =
-    Widget { state       = State (left, right) _1 ratio region
+    Widget { state       = State (left, right) FocusLeft ratio region
            , dimensions  = region
            , resize      = undefined
            , draw        = undefined
            , handleEvent = passEventToFocusedWidget }
 
 
-passEventToFocusedWidget :: EventHandler (HSplitState s)
-passEventToFocusedWidget = EventHandler $ \event ->
-    over focusedWidget' (handle passEventsToWidget event)
+passEventToFocusedWidget :: EventHandler (HSplitState s t)
+passEventToFocusedWidget = EventHandler $ \event state@State{..} ->
+    case focused of
+        FocusLeft  -> passEventTo leftWidget  event state
+        FocusRight -> passEventTo rightWidget event state
+
+passEventTo :: Lens' (HSplitState s t) (Widget u)
+            -> Event
+            -> HSplitState s t
+            -> IO (Next (HSplitState s t))
+passEventTo selector event =
+    over (liftNext selector) (handle passEventsToWidget event)
+
+liftNext :: Lens' s a
+         -> Lens s (IO (Next s)) a (IO (Next a))
+liftNext l = lens (view l)
+                  (\s -> fmap (fmap (\a -> set l a s)))
