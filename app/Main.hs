@@ -1,4 +1,4 @@
-{-# LANGUAGE LambdaCase, DisambiguateRecordFields #-}
+{-# LANGUAGE DisambiguateRecordFields #-}
 module Main where
 
 import Data.Monoid
@@ -32,7 +32,7 @@ eventHandler = exitOn (KChar 'q') []
             <> passEventsToWidget
 
 handleResizeEvent :: EventHandler PagerWidget
-handleResizeEvent = EventHandler $ \widget -> \case
+handleResizeEvent = EventHandler $ \event widget -> case event of
     EvResize w h -> return . Continue $ widget
                         { state = resize widget (w, h) (state widget) }
     _            -> return Unchanged

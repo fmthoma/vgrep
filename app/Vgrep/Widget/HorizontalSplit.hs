@@ -35,5 +35,5 @@ hSplitWidget left right ratio region =
 
 
 passEventToFocusedWidget :: EventHandler (HSplitState s)
-passEventToFocusedWidget = EventHandler $ \state@State{..} event ->
-    over focusedWidget' (\w -> handle passEventsToWidget w event) state
+passEventToFocusedWidget = EventHandler $ \event ->
+    over focusedWidget' (handle passEventsToWidget event)

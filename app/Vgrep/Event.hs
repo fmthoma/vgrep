@@ -1,10 +1,10 @@
-{-# LANGUAGE LambdaCase, DeriveFunctor #-}
+{-# LANGUAGE DeriveFunctor #-}
 module Vgrep.Event where
 
 import Control.Applicative
 import Graphics.Vty as Vty
 
-newtype EventHandler s = EventHandler { handle :: s -> Event -> IO (Next s) }
+newtype EventHandler s = EventHandler { handle :: Event -> s -> IO (Next s) }
 
 instance Monoid (EventHandler s) where
     mempty = EventHandler $ \_ _ -> return Unchanged
@@ -23,16 +23,16 @@ instance Monoid (Next s) where
     next      `mappend` _    = next
 
 handleKey :: Key -> [Modifier] -> (s -> s) -> EventHandler s
-handleKey key modifiers action = EventHandler $ \state -> \case
+handleKey key modifiers action = EventHandler $ \event state -> case event of
     EvKey k ms | k == key && ms == modifiers -> (return . Continue . action) state
     _                                        -> return Unchanged
 
 handleResize :: (DisplayRegion -> s -> s) -> EventHandler s
-handleResize action = EventHandler $ \state -> \case
+handleResize action = EventHandler $ \event state -> case event of
     EvResize w h -> (return . Continue . action (w, h)) state
     _            -> return Unchanged
 
 exitOn :: Key -> [Modifier] -> EventHandler s
-exitOn key modifiers = EventHandler $ \state -> \case
+exitOn key modifiers = EventHandler $ \event state -> case event of
     EvKey k ms | k == key && ms == modifiers -> (return . Halt) state
     _                                        -> return Unchanged
