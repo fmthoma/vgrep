@@ -20,9 +20,9 @@ main = do
 type MainWidget = HSplitWidget PagerWidget PagerWidget
 
 app :: App MainWidget
-app = App { initialize  = initSplitView
-          , handleEvent = eventHandler
-          , render      = picForImage . drawWidget }
+app = App { _initialize  = initSplitView
+          , _handleEvent = eventHandler
+          , _render      = picForImage . drawWidget }
 
 initSplitView :: Vty -> IO MainWidget
 initSplitView vty = do
