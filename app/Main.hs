@@ -8,6 +8,7 @@ import Graphics.Vty hiding (resize)
 import Vgrep.App
 import Vgrep.Event
 import Vgrep.Widget as Widget
+import Vgrep.Widget.List
 import Vgrep.Widget.HorizontalSplit
 import Vgrep.Widget.Pager
 
@@ -17,7 +18,7 @@ main = do
     return ()
 
 
-type MainWidget = HSplitWidget PagerWidget PagerWidget
+type MainWidget = HSplitWidget PagerWidget ListWidget
 
 app :: App MainWidget
 app = App { _initialize  = initSplitView
@@ -29,7 +30,7 @@ initSplitView vty = do
     ls <- fmap lines (getContents)
     displayRegion <- displayBounds (outputIface vty)
     let leftPager  = pagerWidget ls displayRegion
-        rightPager = pagerWidget (reverse ls) displayRegion
+        rightPager = listWidget (reverse ls) displayRegion
     displayRegion <- displayBounds (outputIface vty)
     return (hSplitWidget leftPager rightPager (1 % 3) displayRegion)
 

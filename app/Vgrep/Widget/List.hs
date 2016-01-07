@@ -1,13 +1,16 @@
-{-# LANGUAGE RecordWildCards, MultiWayIf #-}
+{-# LANGUAGE RecordWildCards, MultiWayIf, TemplateHaskell #-}
 module Vgrep.Widget.List ( ListState()
                          , ListWidget
                          , listWidget
                          ) where
 
+import Control.Lens hiding ((|>), (<|), (:>), (:<))
+import Control.Lens.TH
 import Data.Foldable
 import Data.Monoid
 import Data.Sequence hiding (update, take, empty)
 import qualified Data.Sequence as Seq
+import Data.Sequence.Lens
 import Graphics.Vty
 import Graphics.Vty.Prelude
 
@@ -19,6 +22,8 @@ data ListState = ListState { _bufferPre   :: Seq String
                            , _bufferPost  :: Seq String
                            , _scrollPos   :: Int
                            , _region      :: DisplayRegion }
+
+makeLenses ''ListState
 
 type ListWidget = Widget ListState
 
@@ -35,56 +40,60 @@ listWidget items region = Widget { _state       = initialListState items region
 initialListState :: [String] -> DisplayRegion -> ListState
 initialListState items region = case items of
     []    -> initialListState [""] region
-    hd:tl -> ListState { bufferPre   = Seq.empty
-                       , currentLine = hd
-                       , bufferPost  = fromList tl
-                       , scrollPos   = 0
-                       , region      = region }
+    hd:tl -> ListState { _bufferPre   = Seq.empty
+                       , _currentLine = hd
+                       , _bufferPost  = fromList tl
+                       , _scrollPos   = 0
+                       , _region      = region }
 
 handleListEvents :: EventHandler ListState
 handleListEvents = handleKey KUp         [] (updateScrollPos . previousLine)
                 <> handleKey KDown       [] (updateScrollPos . nextLine)
 
 renderList :: ListState -> Image
-renderList ListState{..} =
-    let dpls = (fmap fore bufferPre |> back currentLine) >< fmap fore bufferPost
-    in  (fold . Seq.drop scrollPos) dpls
+renderList state =
+    let dpls = (fmap fore (view bufferPre state)
+             |> back (view currentLine state))
+             >< fmap fore (view bufferPost state)
+    in  (fold . Seq.drop (view scrollPos state)) dpls
   where
     fore = string (defAttr `withForeColor` green) . truncate
     back = string (defAttr `withBackColor` blue) . truncate
-    truncate s = let width = regionWidth region
+    truncate s = let width = regionWidth (view region state)
                  in  take width (' ' : s ++ repeat ' ') ++ " "
 
 nextLine :: ListState -> ListState
-nextLine state@ListState{..} = case viewl bufferPost of
+nextLine state = case view (bufferPost . viewL) state of
     EmptyL  -> state
-    l :< ls -> state { bufferPre   = bufferPre |> currentLine
-                     , currentLine = l
-                     , bufferPost  = ls }
+    l :< ls -> state & set bufferPre ( view bufferPre state
+                                    |> view currentLine state )
+                     . set currentLine l
+                     . set bufferPost  ls
 
 previousLine :: ListState -> ListState
-previousLine state@ListState{..} = case viewr bufferPre of
+previousLine state = case view (bufferPre . viewR) state of
     EmptyR  -> state
-    ls :> l -> state { bufferPre   = ls
-                     , currentLine = l
-                     , bufferPost  = currentLine <| bufferPost }
+    ls :> l -> state & set bufferPre   ls
+                     . set currentLine l
+                     . set bufferPost  ( view currentLine state
+                                      <| view bufferPost state )
 
 deleteLine :: ListState -> ListState
-deleteLine state@ListState{..} = case viewl bufferPost of
+deleteLine state = case view (bufferPost . viewL) state of
     EmptyL  -> state
-    l :< ls -> state { currentLine = l
-                     , bufferPost  = ls }
+    l :< ls -> state & set currentLine l
+                     . set bufferPost  ls
 
 resizeToRegion :: DisplayRegion -> ListState -> ListState
-resizeToRegion newRegion state = updateScrollPos $ state { region = newRegion }
+resizeToRegion newRegion = updateScrollPos . set region newRegion
 
 updateScrollPos :: ListState -> ListState
-updateScrollPos state@ListState{..} =
-    if | current < firstVisible -> state { scrollPos = current }
-       | current > lastVisible  -> state { scrollPos = current - height + 1 }
+updateScrollPos state =
+    if | current < firstVisible -> state & set scrollPos current
+       | current > lastVisible  -> state & set scrollPos (current - height + 1)
        | otherwise              -> state
   where
-    height       = regionHeight region
-    current      = Seq.length bufferPre
-    firstVisible = scrollPos
-    lastVisible  = scrollPos + height - 1
+    height       = regionHeight (view region state)
+    current      = Seq.length (view bufferPre state)
+    firstVisible = view scrollPos state
+    lastVisible  = firstVisible + height - 1
