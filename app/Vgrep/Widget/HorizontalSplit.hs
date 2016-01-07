@@ -1,5 +1,8 @@
 {-# LANGUAGE Rank2Types, TemplateHaskell #-}
-module Vgrep.Widget.HorizontalSplit where
+module Vgrep.Widget.HorizontalSplit ( HSplitState()
+                                    , HSplitWidget
+                                    , hSplitWidget
+                                    ) where
 
 import Control.Lens
 import Control.Lens.TH
