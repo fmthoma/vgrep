@@ -55,7 +55,7 @@ initState left right ratio region = resizeWidgets region $
 
 switchFocusOn :: Key -> EventHandler (HSplitState s t)
 switchFocusOn key = handleKey key [] $
-    \state@State{..} ->state { focused = switch focused }
+    \state@State{..} -> state { focused = switch focused }
   where
     switch FocusLeft  = FocusRight
     switch FocusRight = FocusLeft
@@ -69,14 +69,14 @@ passEventToFocusedWidget = EventHandler $ \event state@State{..} ->
 passEventTo :: Lens' (HSplitState (Widget s) (Widget t)) (Widget u)
             -> Event
             -> HSplitState (Widget s) (Widget t)
-            -> IO (Next (HSplitState (Widget s) (Widget t)))
+            -> Next (HSplitState (Widget s) (Widget t))
 passEventTo selector event =
     over (liftNext selector) (handle passEventsToWidget event)
 
 liftNext :: Lens' s a
-         -> Lens s (IO (Next s)) a (IO (Next a))
+         -> Lens s (Next s) a (Next a)
 liftNext l = lens (view l)
-                  (\s -> fmap (fmap (\a -> set l a s)))
+                  (\s -> fmap (\a -> set l a s))
 
 resizeWidgets :: DisplayRegion
               -> HSplitState (Widget s) (Widget t)

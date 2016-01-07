@@ -11,9 +11,9 @@ data Widget s = Widget { state       :: s
                        , handleEvent :: EventHandler s }
 
 passEventsToWidget :: EventHandler (Widget s)
-passEventsToWidget = EventHandler $ \event widget -> do
-    next <- handle (handleEvent widget) event (state widget)
-    return (fmap (updateState widget) next)
+passEventsToWidget = EventHandler $ \event widget ->
+    fmap (updateState widget)
+         (handle (handleEvent widget) event (state widget))
   where
     updateState widget newState = widget { state = newState }
 

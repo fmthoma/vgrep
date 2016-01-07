@@ -33,7 +33,7 @@ eventLoop vty app@App{..} initialState = do
   where
     runLoop currentState = do
         event <- nextEvent vty
-        next <- handle handleEvent event currentState
+        let next = handle handleEvent event currentState
         case next of
             Unchanged         -> runLoop currentState
             Halt     newState -> return newState

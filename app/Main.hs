@@ -40,5 +40,5 @@ eventHandler = exitOn (KChar 'q') []
 
 handleResizeEvent :: EventHandler MainWidget
 handleResizeEvent = EventHandler $ \event widget -> case event of
-    EvResize w h -> return . Continue $ resizeWidget widget (w, h)
-    _            -> return Unchanged
+    EvResize w h -> Continue (resizeWidget widget (w, h))
+    _            -> Unchanged
