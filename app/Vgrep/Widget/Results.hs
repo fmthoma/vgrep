@@ -6,6 +6,7 @@ import Control.Lens.TH
 import Data.Foldable
 import Data.Map (Map)
 import qualified Data.Map as Map
+import Data.Monoid
 import Data.Sequence (Seq, ViewL(..), ViewR(..), (><), (|>), (<|))
 import qualified Data.Sequence as Seq
 import Data.Sequence.Lens
@@ -13,6 +14,7 @@ import Graphics.Vty
 import Graphics.Vty.Prelude
 
 import Vgrep.Widget.Type
+import Vgrep.Event
 
 data Buffer a = Buffer { _size :: !Int
                        , _pre  :: !(Seq a)
@@ -41,9 +43,9 @@ resultsWidget :: Map String [Line]
 resultsWidget files dimensions =
     Widget { _state       = initState files dimensions
            , _dimensions  = dimensions
-           , _resize      = undefined
+           , _resize      = resizeToRegion
            , _draw        = drawResultList
-           , _handleEvent = undefined }
+           , _handleEvent = handleResultListEvent }
 
 initBuffer :: [a] -> Buffer a
 initBuffer as = Buffer { _size = length as
@@ -61,6 +63,10 @@ initState files dimensions =
   where
     buffer = (initBuffer . map (over _2 initBuffer) . Map.toList) files
 
+
+handleResultListEvent :: EventHandler ResultsState
+handleResultListEvent = handleKey KUp   [] previousLine
+                     <> handleKey KDown [] nextLine
 
 currentFile :: Lens' ResultsState (Buffer Line)
 currentFile = files . cur . _2
@@ -178,3 +184,6 @@ drawResultList state =
          >< fmap (style     . view lens) (view post items)
 
     padWithSpace s = ' ' : s ++ " "
+
+resizeToRegion :: DisplayRegion -> ResultsState -> ResultsState
+resizeToRegion newRegion = updateScrollPos . set region newRegion
