@@ -4,8 +4,6 @@ module Vgrep.Widget.Results where
 import Control.Lens (Lens', over, set, view, views, _1, _2, (&))
 import Control.Lens.TH
 import Data.Foldable
-import Data.Map (Map)
-import qualified Data.Map as Map
 import Data.Monoid
 import Data.Sequence (Seq, ViewL(..), ViewR(..), (><), (|>), (<|))
 import qualified Data.Sequence as Seq
@@ -37,10 +35,10 @@ makeLenses ''ResultsState
 
 type ResultsWidget = Widget ResultsState
 
-resultsWidget :: Map String [Line]
-              -> DisplayRegion
+resultsWidget :: DisplayRegion
+              -> [(String, [Line])]
               -> ResultsWidget
-resultsWidget files dimensions =
+resultsWidget dimensions files =
     Widget { _state       = initState files dimensions
            , _dimensions  = dimensions
            , _resize      = resizeToRegion
@@ -53,7 +51,7 @@ initBuffer as = Buffer { _size = length as
                        , _cur  = head as -- FIXME partial function!
                        , _post = Seq.fromList (tail as) }
 
-initState :: Map String [Line]
+initState :: [(String, [Line])]
           -> DisplayRegion
           -> ResultsState
 initState files dimensions =
@@ -61,7 +59,7 @@ initState files dimensions =
           , _scrollPos = 0
           , _region    = dimensions }
   where
-    buffer = (initBuffer . map (over _2 initBuffer) . Map.toList) files
+    buffer = (initBuffer . map (over _2 initBuffer)) files
 
 
 handleResultListEvent :: EventHandler ResultsState
@@ -119,7 +117,7 @@ updateScrollPos state =
 
 computeCurrentItem :: Buffer FileResults -> Int
 computeCurrentItem buffer = linesInFilesBeforeCurrent
-                          + fileHeadersBeforeCurrent
+                          + 2 * fileHeadersBeforeCurrent + 1
                           + linesInCurrentFileBeforeCursor
   where
     fileHeadersBeforeCurrent = length (view pre buffer)
@@ -133,13 +131,18 @@ drawResultList :: ResultsState -> Image
 drawResultList state =
     fold . Seq.take height
          . Seq.drop pos
-         $ (  foldMap drawFileResults (view (files . pre)  state)
-           >< drawCurrentFileResults  (view (files . cur)  state) )
-           >< foldMap drawFileResults (view (files . post) state)
+         $  foldMap drawFileResults (view (files . pre)  state)
+         >< drawCurrentFileResults  (view (files . cur)  state)
+         >< foldMap drawFileResults (view (files . post) state)
   where
     pos    = view scrollPos state
     width  = regionWidth  (view region state)
     height = regionHeight (view region state)
+
+    fileHeader = defAttr `withBackColor` green
+    lineNumber = defAttr `withForeColor` brightBlack
+    resultLine = defAttr
+    highlight  = defAttr `withStyle` standout
 
     drawFileResults :: FileResults -> Seq Image
     drawFileResults results = drawFileHeader results
@@ -150,7 +153,7 @@ drawResultList state =
                                   <| drawCurrentFileItems results
 
     drawFileHeader :: FileResults -> Image
-    drawFileHeader (fileName, _) = string defAttr fileName
+    drawFileHeader (fileName, _) = string fileHeader fileName
 
     drawFileItems :: FileResults -> Seq Image
     drawFileItems results =
@@ -163,15 +166,18 @@ drawResultList state =
                           (drawCurrentFileLinePreviews results)
 
     drawLineNumbers :: FileResults -> Seq Image
-    drawLineNumbers  = drawItemsIn _1 lineNumberStyle lineNumberStyle
-        where lineNumberStyle = (string defAttr . padWithSpace . show)
+    drawLineNumbers  =
+        drawItemsIn _1 (string lineNumber . padWithSpace . show)
+                       (string lineNumber . padWithSpace . show)
 
     drawLinePreviews :: FileResults -> Seq Image
-    drawLinePreviews = drawItemsIn _2 (string defAttr) (string defAttr)
+    drawLinePreviews = drawItemsIn _2 (string resultLine)
+                                      (string resultLine)
 
     drawCurrentFileLinePreviews :: FileResults -> Seq Image
-    drawCurrentFileLinePreviews = drawItemsIn _2 (string defAttr) highlight
-        where highlight = string defAttr
+    drawCurrentFileLinePreviews =
+        drawItemsIn _2 (string resultLine)
+                       (string (resultLine <> highlight))
 
     drawItemsIn :: Lens' Line a
                 -> (a -> Image)
