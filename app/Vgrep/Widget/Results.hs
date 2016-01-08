@@ -1,14 +1,15 @@
-{-# LANGUAGE TemplateHaskell, DisambiguateRecordFields, MultiWayIf #-}
+{-# LANGUAGE Rank2Types, TemplateHaskell, DisambiguateRecordFields, MultiWayIf #-}
 module Vgrep.Widget.Results where
 
-import Control.Lens (Lens', over, set, view, _2, (&))
+import Control.Lens (Lens', over, set, view, views, _1, _2, (&))
 import Control.Lens.TH
+import Data.Foldable
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Sequence (Seq, ViewL(..), ViewR(..), (><), (|>), (<|))
 import qualified Data.Sequence as Seq
 import Data.Sequence.Lens
-import Graphics.Vty (Image)
+import Graphics.Vty
 import Graphics.Vty.Prelude
 
 import Vgrep.Widget.Type
@@ -41,7 +42,7 @@ resultsWidget files dimensions =
     Widget { _state       = initState files dimensions
            , _dimensions  = dimensions
            , _resize      = undefined
-           , _draw        = undefined
+           , _draw        = drawResultList
            , _handleEvent = undefined }
 
 initBuffer :: [a] -> Buffer a
@@ -120,3 +121,60 @@ computeCurrentItem buffer = linesInFilesBeforeCurrent
         (sum . fmap length) (view (pre . traverse . _2 . pre) buffer)
     linesInCurrentFileBeforeCursor =
         (sum . fmap length) (view (cur . _2 . pre) buffer)
+
+
+drawResultList :: ResultsState -> Image
+drawResultList state =
+    fold . Seq.take height
+         . Seq.drop pos
+         $ (  foldMap drawFileResults (view (files . pre)  state)
+           >< drawCurrentFileResults  (view (files . cur)  state) )
+           >< foldMap drawFileResults (view (files . post) state)
+  where
+    pos    = view scrollPos state
+    width  = regionWidth  (view region state)
+    height = regionHeight (view region state)
+
+    drawFileResults :: FileResults -> Seq Image
+    drawFileResults results = drawFileHeader results
+                           <| drawFileItems results
+
+    drawCurrentFileResults :: FileResults -> Seq Image
+    drawCurrentFileResults results = drawFileHeader results
+                                  <| drawCurrentFileItems results
+
+    drawFileHeader :: FileResults -> Image
+    drawFileHeader (fileName, _) = string defAttr fileName
+
+    drawFileItems :: FileResults -> Seq Image
+    drawFileItems results =
+        Seq.zipWith (<|>) (drawLineNumbers results)
+                          (drawLinePreviews results)
+
+    drawCurrentFileItems :: FileResults -> Seq Image
+    drawCurrentFileItems results =
+        Seq.zipWith (<|>) (drawLineNumbers results)
+                          (drawCurrentFileLinePreviews results)
+
+    drawLineNumbers :: FileResults -> Seq Image
+    drawLineNumbers  = drawItemsIn _1 lineNumberStyle lineNumberStyle
+        where lineNumberStyle = (string defAttr . padWithSpace . show)
+
+    drawLinePreviews :: FileResults -> Seq Image
+    drawLinePreviews = drawItemsIn _2 (string defAttr) (string defAttr)
+
+    drawCurrentFileLinePreviews :: FileResults -> Seq Image
+    drawCurrentFileLinePreviews = drawItemsIn _2 (string defAttr) highlight
+        where highlight = string defAttr
+
+    drawItemsIn :: Lens' Line a
+                -> (a -> Image)
+                -> (a -> Image)
+                -> FileResults
+                -> Seq Image
+    drawItemsIn lens style highlightStyle (_, items) =
+         (  fmap (style     . view lens) (view pre  items)
+         |> (highlightStyle . view lens) (view cur  items) )
+         >< fmap (style     . view lens) (view post items)
+
+    padWithSpace s = ' ' : s ++ " "
