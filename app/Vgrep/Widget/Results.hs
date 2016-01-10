@@ -4,10 +4,10 @@ module Vgrep.Widget.Results ( ResultsState()
                             , resultsWidget
                             ) where
 
-import Control.Lens ( Lens', Traversal'
+import Control.Lens ( Lens', Traversal', Getter
                     , over, set, view, views, preview
                     , _1, _2, _Just
-                    , (&) )
+                    , (&), to )
 import Control.Lens.TH
 import Data.Foldable
 import Data.Maybe
@@ -15,7 +15,7 @@ import Data.Monoid
 import Data.Sequence (Seq, ViewL(..), ViewR(..), (><), (|>), (<|))
 import qualified Data.Sequence as Seq
 import Data.Sequence.Lens
-import Graphics.Vty
+import Graphics.Vty hiding (text)
 import Graphics.Vty.Prelude
 import Prelude hiding (lines)
 
@@ -117,9 +117,11 @@ nextFile state = case preview (filesBelow . viewL) state of
 
 updateScrollPos :: ResultsState -> ResultsState
 updateScrollPos state =
-    if | current < firstVisible -> state & set scrollPos current
-       | current > lastVisible  -> state & set scrollPos (current - height + 1)
-       | otherwise              -> state
+    if | current < firstVisible
+         -> state & set scrollPos (if current <= 1 then 0 else current)
+       | current > lastVisible
+         -> state & set scrollPos (current - height + 1)
+       | otherwise -> state
   where
     height       = regionHeight (view region state)
     current      = computeCurrentItem state
@@ -142,51 +144,61 @@ drawResultList :: ResultsState -> Image
 drawResultList state =
     fold . Seq.take height
          . Seq.drop pos
-         $  foldMap drawFileResults (view filesAbove  state)
-         >< foldMap drawFileResults (viewAsSeq (files . cur) state)
-         >< foldMap drawFileResults (view filesBelow state)
+         $  foldMap (drawFileResults False) (view      filesAbove  state)
+         >< foldMap (drawFileResults True)  (viewAsSeq currentFile state)
+         >< foldMap (drawFileResults False) (view      filesBelow  state)
   where
     pos    = view scrollPos state
     width  = regionWidth  (view region state)
     height = regionHeight (view region state)
+    lineNumberWidth = maximum $
+        views (allFiles . traverse . allLines . traverse . lineNumber)
+              ((:[]) . length . show)
+              state
 
-    fileHeader = defAttr `withBackColor` green
-    lineNumber = defAttr `withForeColor` brightBlack
-    resultLine = defAttr
-    highlight  = defAttr `withStyle` standout
+    fileHeaderStyle = defAttr `withBackColor` green
+    lineNumberStyle = defAttr `withForeColor` brightBlack
+    resultLineStyle = defAttr
+    highlightStyle  = defAttr `withStyle` standout
 
-    drawFileResults :: FileResults -> Seq Image
-    drawFileResults results = drawFileHeader results
-                           <| drawFileItems results
+    drawFileResults :: Bool -> FileResults -> Seq Image
+    drawFileResults current results = drawFileHeader results
+                                   <| drawFileItems current results
 
     drawFileHeader :: FileResults -> Image
-    drawFileHeader (fileName, _) = string fileHeader fileName
+    drawFileHeader = string fileHeaderStyle . padWithSpace width . view fileName
 
-    drawFileItems :: FileResults -> Seq Image
-    drawFileItems results =
+    drawFileItems :: Bool -> FileResults -> Seq Image
+    drawFileItems current results =
         Seq.zipWith (<|>) (drawLineNumbers results)
-                          (drawLinePreviews results)
+                          (drawLinePreviews current results)
+
+    drawLinePreviews :: Bool -> FileResults -> Seq Image
+    drawLinePreviews current results =
+           fmap (drawLinePreview False)   (view      linesAbove  results)
+        >< fmap (drawLinePreview current) (viewAsSeq currentLine results)
+        >< fmap (drawLinePreview False)   (view      linesBelow  results)
+
+    drawLinePreview :: Bool -> Line -> Image
+    drawLinePreview current = string style
+                            . padWithSpace (width - lineNumberWidth)
+                            . view text
+      where style = if current then resultLineStyle <> highlightStyle
+                               else resultLineStyle
 
     drawLineNumbers :: FileResults -> Seq Image
-    drawLineNumbers  =
-        drawItemsIn _1 (string lineNumber . padWithSpace . show)
-                       (string lineNumber . padWithSpace . show)
+    drawLineNumbers results = fmap drawLineNumber
+        $  view      linesAbove  results
+        >< viewAsSeq currentLine results
+        >< view      linesBelow  results
 
-    drawLinePreviews :: FileResults -> Seq Image
-    drawLinePreviews = drawItemsIn _2 (string resultLine)
-                                      (string (resultLine <> highlight))
+    drawLineNumber :: Line -> Image
+    drawLineNumber = string lineNumberStyle
+                   . justifyRight lineNumberWidth
+                   . show . view lineNumber
 
-    drawItemsIn :: Lens' Line a
-                -> (a -> Image)
-                -> (a -> Image)
-                -> FileResults
-                -> Seq Image
-    drawItemsIn lens style highlightStyle (_, items) =
-            fmap (style          . view lens) (view pre  items)
-         >< fmap (highlightStyle . view lens) (viewAsSeq cur items)
-         >< fmap (style          . view lens) (view post items)
-
-    padWithSpace s = ' ' : s ++ " "
+    padWithSpace w s = take w (' ' : s ++ repeat ' ')
+    justifyRight w s = replicate (w - length s) ' ' ++ s
 
 resizeToRegion :: DisplayRegion -> ResultsState -> ResultsState
 resizeToRegion newRegion = updateScrollPos . set region newRegion
@@ -212,6 +224,11 @@ currentFile = files . cur
 currentFile' :: Traversal' ResultsState FileResults
 currentFile' = files . cur . _Just
 
+allFiles :: Getter ResultsState (Seq FileResults)
+allFiles = to $ \state -> view      filesAbove state
+                       >< viewAsSeq currentFile state
+                       >< view      filesBelow  state
+
 fileName :: Lens' FileResults String
 fileName = _1
 
@@ -229,6 +246,11 @@ currentLine = _2 . cur
 
 currentLine' :: Traversal' FileResults Line
 currentLine' = _2 . cur . _Just
+
+allLines :: Getter FileResults (Seq Line)
+allLines = to $ \results -> view      linesAbove  results
+                         >< viewAsSeq currentLine results
+                         >< view      linesBelow  results
 
 lineNumber :: Lens' Line LineNumber
 lineNumber = _1
