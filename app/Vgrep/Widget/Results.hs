@@ -1,5 +1,8 @@
 {-# LANGUAGE Rank2Types, TemplateHaskell, DisambiguateRecordFields, MultiWayIf #-}
-module Vgrep.Widget.Results where
+module Vgrep.Widget.Results ( ResultsState()
+                            , ResultsWidget
+                            , resultsWidget
+                            ) where
 
 import Control.Lens ( Lens', Traversal'
                     , over, set, view, views, preview
@@ -14,6 +17,7 @@ import qualified Data.Sequence as Seq
 import Data.Sequence.Lens
 import Graphics.Vty
 import Graphics.Vty.Prelude
+import Prelude hiding (lines)
 
 import Vgrep.Widget.Type
 import Vgrep.Event
@@ -70,47 +74,44 @@ handleResultListEvent :: EventHandler ResultsState
 handleResultListEvent = handleKey KUp   [] previousLine
                      <> handleKey KDown [] nextLine
 
-currentFile :: Traversal' ResultsState (Buffer Line)
-currentFile = files . cur . _Just . _2
-
 previousLine :: ResultsState -> ResultsState
-previousLine state = case preview (currentFile . pre . viewR) state of
+previousLine state = case preview (currentFile' . linesAbove . viewR) state of
     Nothing        -> state
     Just EmptyR    -> previousFile state
-    Just (ls :> l) -> state & set  (currentFile . pre) ls
-                            & set  (currentFile . cur) (Just l)
-                            & over (currentFile . post)
-                                   (views (currentFile . cur) asSeq state ><)
+    Just (ls :> l) -> state & set  (currentFile' . linesAbove) ls
+                            & set  (currentFile' . currentLine) (Just l)
+                            & over (currentFile' . linesBelow)
+                                   (views (currentFile' . currentLine) asSeq state ><)
                             & updateScrollPos
 
 previousFile :: ResultsState -> ResultsState
-previousFile state = case preview (files . pre . viewR) state of
+previousFile state = case preview (filesAbove . viewR) state of
     Nothing        -> state
     Just EmptyR    -> state
-    Just (fs :> f) -> state & set  (files . pre) fs
-                            & set  (files . cur) (Just f)
-                            & over (files . post)
-                                   (views (files . cur) asSeq state ><)
+    Just (fs :> f) -> state & set  filesAbove fs
+                            & set  currentFile (Just f)
+                            & over filesBelow
+                                   (viewAsSeq currentFile state ><)
                             & updateScrollPos
 
 nextLine :: ResultsState -> ResultsState
-nextLine state = case preview (currentFile . post . viewL) state of
+nextLine state = case preview (currentFile' . linesBelow . viewL) state of
     Nothing        -> state
     Just EmptyL    -> nextFile state
-    Just (l :< ls) -> state & over (currentFile . pre)
-                                   (>< views (currentFile . cur) asSeq state)
-                            & set  (currentFile . cur) (Just l)
-                            & set  (currentFile . post) ls
+    Just (l :< ls) -> state & over (currentFile' . linesAbove)
+                                   (>< views (currentFile' . currentLine) asSeq state)
+                            & set  (currentFile' . currentLine) (Just l)
+                            & set  (currentFile' . linesBelow) ls
                             & updateScrollPos
 
 nextFile :: ResultsState -> ResultsState
-nextFile state = case preview (files . post . viewL) state of
+nextFile state = case preview (filesBelow . viewL) state of
     Nothing        -> state
     Just EmptyL    -> state
-    Just (f :< fs) -> state & over (files . pre)
-                                   (>< views (files . cur) asSeq state)
-                            & set  (files . cur) (Just f)
-                            & set  (files . post) fs
+    Just (f :< fs) -> state & over filesAbove
+                                   (>< viewAsSeq currentFile state)
+                            & set  currentFile (Just f)
+                            & set  filesBelow fs
                             & updateScrollPos
 
 
@@ -121,29 +122,29 @@ updateScrollPos state =
        | otherwise              -> state
   where
     height       = regionHeight (view region state)
-    current      = computeCurrentItem (view files state)
+    current      = computeCurrentItem state
     firstVisible = view scrollPos state
     lastVisible  = firstVisible + height - 1
 
-computeCurrentItem :: Buffer FileResults -> Int
-computeCurrentItem buffer = linesInFilesBeforeCurrent
-                          + 2 * fileHeadersBeforeCurrent + 1
-                          + linesInCurrentFileBeforeCursor
+computeCurrentItem :: ResultsState -> Int
+computeCurrentItem state = linesInFilesBeforeCurrent
+                         + 2 * fileHeadersBeforeCurrent + 1
+                         + linesInCurrentFileBeforeCursor
   where
-    fileHeadersBeforeCurrent = length (view pre buffer)
+    fileHeadersBeforeCurrent = length (view filesAbove state)
     linesInFilesBeforeCurrent =
-        (sum . fmap length) (view (pre . traverse . _2 . pre) buffer)
+        (sum . fmap length) (view (filesAbove . traverse . linesAbove) state)
     linesInCurrentFileBeforeCursor =
-        (sum . fmap length) (view (cur . traverse . _2 . pre) buffer)
+        (sum . fmap length) (view (currentFile' . linesAbove) state)
 
 
 drawResultList :: ResultsState -> Image
 drawResultList state =
     fold . Seq.take height
          . Seq.drop pos
-         $  foldMap drawFileResults        (view (files . pre)  state)
-         >< foldMap drawCurrentFileResults (views (files . cur) asSeq state)
-         >< foldMap drawFileResults        (view (files . post) state)
+         $  foldMap drawFileResults (view filesAbove  state)
+         >< foldMap drawFileResults (viewAsSeq (files . cur) state)
+         >< foldMap drawFileResults (view filesBelow state)
   where
     pos    = view scrollPos state
     width  = regionWidth  (view region state)
@@ -158,10 +159,6 @@ drawResultList state =
     drawFileResults results = drawFileHeader results
                            <| drawFileItems results
 
-    drawCurrentFileResults :: FileResults -> Seq Image
-    drawCurrentFileResults results = drawFileHeader results
-                                  <| drawCurrentFileItems results
-
     drawFileHeader :: FileResults -> Image
     drawFileHeader (fileName, _) = string fileHeader fileName
 
@@ -170,11 +167,6 @@ drawResultList state =
         Seq.zipWith (<|>) (drawLineNumbers results)
                           (drawLinePreviews results)
 
-    drawCurrentFileItems :: FileResults -> Seq Image
-    drawCurrentFileItems results =
-        Seq.zipWith (<|>) (drawLineNumbers results)
-                          (drawCurrentFileLinePreviews results)
-
     drawLineNumbers :: FileResults -> Seq Image
     drawLineNumbers  =
         drawItemsIn _1 (string lineNumber . padWithSpace . show)
@@ -182,12 +174,7 @@ drawResultList state =
 
     drawLinePreviews :: FileResults -> Seq Image
     drawLinePreviews = drawItemsIn _2 (string resultLine)
-                                      (string resultLine)
-
-    drawCurrentFileLinePreviews :: FileResults -> Seq Image
-    drawCurrentFileLinePreviews =
-        drawItemsIn _2 (string resultLine)
-                       (string (resultLine <> highlight))
+                                      (string (resultLine <> highlight))
 
     drawItemsIn :: Lens' Line a
                 -> (a -> Image)
@@ -196,7 +183,7 @@ drawResultList state =
                 -> Seq Image
     drawItemsIn lens style highlightStyle (_, items) =
             fmap (style          . view lens) (view pre  items)
-         >< fmap (highlightStyle . view lens) (views cur asSeq items)
+         >< fmap (highlightStyle . view lens) (viewAsSeq cur items)
          >< fmap (style          . view lens) (view post items)
 
     padWithSpace s = ' ' : s ++ " "
@@ -204,5 +191,47 @@ drawResultList state =
 resizeToRegion :: DisplayRegion -> ResultsState -> ResultsState
 resizeToRegion newRegion = updateScrollPos . set region newRegion
 
+---------------------------------------------------------------------------
+-- Lenses and Utilities
+
+viewAsSeq :: Traversable t => Lens' s (t a) -> s -> Seq a
+viewAsSeq traversal = views traversal asSeq
+
 asSeq :: Traversable t => t a -> Seq a
 asSeq = foldr (<|) empty
+
+filesAbove :: Lens' ResultsState (Seq FileResults)
+filesAbove = files . pre
+
+filesBelow :: Lens' ResultsState (Seq FileResults)
+filesBelow = files . post
+
+currentFile :: Lens' ResultsState (Maybe FileResults)
+currentFile = files . cur
+
+currentFile' :: Traversal' ResultsState FileResults
+currentFile' = files . cur . _Just
+
+fileName :: Lens' FileResults String
+fileName = _1
+
+lines :: Lens' FileResults (Buffer Line)
+lines = _2
+
+linesAbove :: Lens' FileResults (Seq Line)
+linesAbove = _2 . pre
+
+linesBelow :: Lens' FileResults (Seq Line)
+linesBelow = _2 . post
+
+currentLine :: Lens' FileResults (Maybe Line)
+currentLine = _2 . cur
+
+currentLine' :: Traversal' FileResults Line
+currentLine' = _2 . cur . _Just
+
+lineNumber :: Lens' Line LineNumber
+lineNumber = _1
+
+text :: Lens' Line String
+text = _2
