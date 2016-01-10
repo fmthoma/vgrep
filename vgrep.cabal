@@ -27,6 +27,7 @@ executable vgrep
   build-depends:       base
                      , containers
                      , lens
+                     , mtl
                      , unix
                      , vgrep
                      , vty >= 5.4.0

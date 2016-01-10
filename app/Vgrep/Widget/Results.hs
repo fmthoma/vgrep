@@ -1,14 +1,16 @@
-{-# LANGUAGE Rank2Types, TemplateHaskell, DisambiguateRecordFields, MultiWayIf #-}
+{-# LANGUAGE LambdaCase, Rank2Types, TemplateHaskell, DisambiguateRecordFields, MultiWayIf #-}
 module Vgrep.Widget.Results ( ResultsState()
                             , ResultsWidget
                             , resultsWidget
                             ) where
 
 import Control.Lens ( Lens', Traversal', Getter
-                    , over, set, view, views, preview
+                    , over     , set,    view, views, preview
+                    , modifying, assign, use,  uses,  preuse
                     , _1, _2, _Just
                     , (&), to )
 import Control.Lens.TH
+import Control.Monad.State
 import Data.Foldable
 import Data.Maybe
 import Data.Monoid
@@ -49,7 +51,7 @@ resultsWidget :: DisplayRegion
 resultsWidget dimensions files =
     Widget { _state       = initState files dimensions
            , _dimensions  = dimensions
-           , _resize      = resizeToRegion
+           , _resize      = \newRegion -> execState (resizeToRegion newRegion)
            , _draw        = drawResultList
            , _handleEvent = handleResultListEvent }
 
@@ -71,73 +73,73 @@ initState files dimensions =
 
 
 handleResultListEvent :: EventHandler ResultsState
-handleResultListEvent = handleKey KUp   [] previousLine
-                     <> handleKey KDown [] nextLine
+handleResultListEvent = handleKey KUp   [] (execState previousLine)
+                     <> handleKey KDown [] (execState nextLine)
 
-previousLine :: ResultsState -> ResultsState
-previousLine state = case preview (currentFile' . linesAbove . viewR) state of
-    Nothing        -> state
-    Just EmptyR    -> previousFile state
-    Just (ls :> l) -> state & set  (currentFile' . linesAbove) ls
-                            & set  (currentFile' . currentLine) (Just l)
-                            & over (currentFile' . linesBelow)
-                                   (views (currentFile' . currentLine) asSeq state ><)
-                            & updateScrollPos
+previousLine :: State ResultsState ()
+previousLine = preuse (currentFile' . linesAbove . viewR) >>= \case
+    Nothing          -> return ()
+    Just EmptyR      -> previousFile
+    Just (pls :> pl) -> do cl <- uses (currentFile' . currentLine) asSeq
+                           assign    (currentFile' . linesAbove) pls
+                           assign    (currentFile' . currentLine) (Just pl)
+                           modifying (currentFile' . linesBelow) (cl ><)
+                           updateScrollPos
 
-previousFile :: ResultsState -> ResultsState
-previousFile state = case preview (filesAbove . viewR) state of
-    Nothing        -> state
-    Just EmptyR    -> state
-    Just (fs :> f) -> state & set  filesAbove fs
-                            & set  currentFile (Just f)
-                            & over filesBelow
-                                   (viewAsSeq currentFile state ><)
-                            & updateScrollPos
+previousFile :: State ResultsState ()
+previousFile = preuse (filesAbove . viewR) >>= \case
+    Nothing        -> return ()
+    Just EmptyR    -> return ()
+    Just (pfs :> pf) -> do cf <- uses currentFile asSeq
+                           assign filesAbove pfs
+                           assign currentFile (Just pf)
+                           modifying filesBelow (cf ><)
+                           updateScrollPos
 
-nextLine :: ResultsState -> ResultsState
-nextLine state = case preview (currentFile' . linesBelow . viewL) state of
-    Nothing        -> state
-    Just EmptyL    -> nextFile state
-    Just (l :< ls) -> state & over (currentFile' . linesAbove)
-                                   (>< views (currentFile' . currentLine) asSeq state)
-                            & set  (currentFile' . currentLine) (Just l)
-                            & set  (currentFile' . linesBelow) ls
-                            & updateScrollPos
+nextLine :: State ResultsState ()
+nextLine = preuse (currentFile' . linesBelow . viewL) >>= \case
+    Nothing        -> return ()
+    Just EmptyL    -> nextFile
+    Just (nl :< nls) -> do cl <- uses (currentFile' . currentLine) asSeq
+                           modifying (currentFile' . linesAbove) (>< cl)
+                           assign    (currentFile' . currentLine) (Just nl)
+                           assign    (currentFile' . linesBelow) nls
+                           updateScrollPos
 
-nextFile :: ResultsState -> ResultsState
-nextFile state = case preview (filesBelow . viewL) state of
-    Nothing        -> state
-    Just EmptyL    -> state
-    Just (f :< fs) -> state & over filesAbove
-                                   (>< viewAsSeq currentFile state)
-                            & set  currentFile (Just f)
-                            & set  filesBelow fs
-                            & updateScrollPos
+nextFile :: State ResultsState ()
+nextFile = preuse (filesBelow . viewL) >>= \case
+    Nothing        -> return ()
+    Just EmptyL    -> return ()
+    Just (nf :< nfs) -> do cf <- uses currentFile asSeq
+                           modifying filesAbove (>< cf)
+                           assign currentFile (Just nf)
+                           assign filesBelow nfs
+                           updateScrollPos
 
 
-updateScrollPos :: ResultsState -> ResultsState
-updateScrollPos state =
+updateScrollPos :: State ResultsState ()
+updateScrollPos = do
+    height       <- fmap regionHeight (use region)
+    current      <- computeCurrentItem
+    firstVisible <- use scrollPos
+    let lastVisible = firstVisible + height - 1
     if | current < firstVisible
-         -> state & set scrollPos (if current <= 1 then 0 else current)
+         -> assign scrollPos (if current <= 1 then 0 else current)
        | current > lastVisible
-         -> state & set scrollPos (current - height + 1)
-       | otherwise -> state
+         -> assign scrollPos (current - height + 1)
+       | otherwise -> return ()
   where
-    height       = regionHeight (view region state)
-    current      = computeCurrentItem state
-    firstVisible = view scrollPos state
-    lastVisible  = firstVisible + height - 1
 
-computeCurrentItem :: ResultsState -> Int
-computeCurrentItem state = linesInFilesBeforeCurrent
-                         + 2 * fileHeadersBeforeCurrent + 1
-                         + linesInCurrentFileBeforeCursor
-  where
-    fileHeadersBeforeCurrent = length (view filesAbove state)
-    linesInFilesBeforeCurrent =
-        (sum . fmap length) (view (filesAbove . traverse . linesAbove) state)
-    linesInCurrentFileBeforeCursor =
-        (sum . fmap length) (view (currentFile' . linesAbove) state)
+computeCurrentItem :: State ResultsState Int
+computeCurrentItem = do
+    fileHeadersBeforeCurrent <- fmap length (use filesAbove)
+    linesInFilesBeforeCurrent <-fmap (sum . fmap length)
+                                     (use (filesAbove . traverse . linesAbove))
+    linesInCurrentFileBeforeCursor <- fmap (sum . fmap length)
+                                           (use (currentFile' . linesAbove))
+    return $ linesInFilesBeforeCurrent
+           + 2 * fileHeadersBeforeCurrent + 1
+           + linesInCurrentFileBeforeCursor
 
 
 drawResultList :: ResultsState -> Image
@@ -200,8 +202,8 @@ drawResultList state =
     padWithSpace w s = take w (' ' : s ++ repeat ' ')
     justifyRight w s = replicate (w - length s) ' ' ++ s
 
-resizeToRegion :: DisplayRegion -> ResultsState -> ResultsState
-resizeToRegion newRegion = updateScrollPos . set region newRegion
+resizeToRegion :: DisplayRegion -> State ResultsState ()
+resizeToRegion newRegion = assign region newRegion >> updateScrollPos 
 
 ---------------------------------------------------------------------------
 -- Lenses and Utilities
