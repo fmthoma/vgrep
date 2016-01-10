@@ -119,7 +119,7 @@ nextFile = preuse (filesBelow . viewL) >>= \case
 
 updateScrollPos :: State ResultsState ()
 updateScrollPos = do
-    height       <- fmap regionHeight (use region)
+    height       <- use (region . to regionHeight)
     current      <- computeCurrentItem
     firstVisible <- use scrollPos
     let lastVisible = firstVisible + height - 1
@@ -132,9 +132,9 @@ updateScrollPos = do
 
 computeCurrentItem :: State ResultsState Int
 computeCurrentItem = do
-    fileHeadersBeforeCurrent <- fmap length (use filesAbove)
-    linesInFilesBeforeCurrent <-fmap (sum . fmap length)
-                                     (use (filesAbove . traverse . linesAbove))
+    fileHeadersBeforeCurrent <- use (filesAbove . to length)
+    linesInFilesBeforeCurrent <- fmap (sum . fmap length)
+                                      (use (filesAbove . traverse . linesAbove))
     linesInCurrentFileBeforeCursor <- fmap (sum . fmap length)
                                            (use (currentFile' . linesAbove))
     return $ linesInFilesBeforeCurrent
