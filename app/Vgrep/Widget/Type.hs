@@ -3,13 +3,14 @@ module Vgrep.Widget.Type where
 
 import Control.Lens
 import Control.Lens.TH
+import Control.Monad.State
 import Graphics.Vty hiding (resize)
 
 import Vgrep.Event
 
-data Widget s = Widget { _state       :: s
+data Widget s = Widget { _widgetState :: s
                        , _dimensions  :: DisplayRegion
-                       , _resize      :: DisplayRegion -> s -> s
+                       , _resize      :: DisplayRegion -> State s ()
                        , _draw        :: s -> Image
                        , _handleEvent :: EventHandler s }
 
@@ -18,15 +19,15 @@ makeLenses ''Widget
 passEventsToWidget :: EventHandler (Widget s)
 passEventsToWidget = EventHandler $ \event widget ->
     let eventHandler = view handleEvent widget
-        currentState = view state widget
+        currentState = view widgetState widget
         next = handle eventHandler event currentState
-    in  fmap (\newState -> set state newState widget) next
+    in  fmap (\newState -> set widgetState newState widget) next
   where
 
 drawWidget :: Widget s -> Image
-drawWidget widget = (view draw widget) (view state widget)
+drawWidget widget = (view draw widget) (view widgetState widget)
 
-resizeWidget :: Widget s -> DisplayRegion -> Widget s
-resizeWidget widget newRegion =
-    let resizeTo = view resize widget
-    in  over state (resizeTo newRegion) widget
+resizeWidget :: DisplayRegion -> State (Widget s) ()
+resizeWidget newRegion = do
+    resizeTo <- use resize
+    zoom widgetState (resizeTo newRegion)

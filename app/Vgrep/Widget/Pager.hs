@@ -6,6 +6,7 @@ module Vgrep.Widget.Pager ( PagerState()
 
 import Control.Lens
 import Control.Lens.TH
+import Control.Monad.State
 import Data.Foldable
 import Data.Monoid
 import Graphics.Vty
@@ -26,7 +27,7 @@ type PagerWidget = Widget PagerState
 pagerWidget :: [String]
             -> DisplayRegion
             -> PagerWidget
-pagerWidget items region = Widget { _state       = initialPagerState items region
+pagerWidget items region = Widget { _widgetState = initialPagerState items region
                                   , _dimensions  = region
                                   , _resize      = resizeToRegion
                                   , _draw        = renderPager
@@ -41,14 +42,14 @@ initialPagerState items displayRegion =
                , _showLineNumbers = True }
 
 handlePagerEvents :: EventHandler PagerState
-handlePagerEvents = handleKey KUp   [] (updateScrollPos . scrollUp)
-                 <> handleKey KDown [] (updateScrollPos . scrollDown)
+handlePagerEvents = handleKey KUp   [] (scrollUp   >> updateScrollPos)
+                 <> handleKey KDown [] (scrollDown >> updateScrollPos)
 
-scrollUp :: PagerState -> PagerState
-scrollUp = over scrollPos (subtract 1)
+scrollUp :: State PagerState ()
+scrollUp = modifying scrollPos (subtract 1)
 
-scrollDown :: PagerState -> PagerState
-scrollDown = over scrollPos (+ 1)
+scrollDown :: State PagerState ()
+scrollDown = modifying scrollPos (+ 1)
 
 renderPager :: PagerState -> Image
 renderPager state =
@@ -74,15 +75,15 @@ renderPager state =
 
     padWithSpace s = ' ' : s ++ " "
 
-resizeToRegion :: DisplayRegion -> PagerState -> PagerState
-resizeToRegion newRegion = updateScrollPos . set region newRegion
+resizeToRegion :: DisplayRegion -> State PagerState ()
+resizeToRegion newRegion = assign region newRegion >> updateScrollPos
 
-updateScrollPos :: PagerState -> PagerState
-updateScrollPos state =
-    if | pos < 0                   -> set scrollPos 0 state
-       | linesCount < height       -> set scrollPos 0 state
-       | pos > linesCount - height -> set scrollPos (linesCount - height) state
-       | otherwise                 -> state
-  where pos = view scrollPos state
-        height = regionHeight (view region state)
-        linesCount = length (view buffer state)
+updateScrollPos :: State PagerState ()
+updateScrollPos = do
+    pos        <- use scrollPos
+    height     <- use (region . to regionHeight)
+    linesCount <- use (buffer . to length)
+    if | pos < 0                   -> assign scrollPos 0
+       | linesCount < height       -> assign scrollPos 0
+       | pos > linesCount - height -> assign scrollPos (linesCount - height)
+       | otherwise                 -> return ()

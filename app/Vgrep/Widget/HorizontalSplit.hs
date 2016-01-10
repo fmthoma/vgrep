@@ -6,6 +6,7 @@ module Vgrep.Widget.HorizontalSplit ( HSplitState()
 
 import Control.Lens
 import Control.Lens.TH
+import Control.Monad.State
 import Data.Monoid
 import Graphics.Vty hiding (resize)
 import Graphics.Vty.Prelude
@@ -37,7 +38,7 @@ hSplitWidget :: Widget s
              -> DisplayRegion
              -> HSplitWidget (Widget s) (Widget t)
 hSplitWidget left right ratio region =
-    Widget { _state       = initState left right ratio region
+    Widget { _widgetState = initState left right ratio region
            , _dimensions  = region
            , _resize      = resizeWidgets
            , _draw        = drawWidgets
@@ -49,7 +50,7 @@ initState :: Widget s
           -> Rational
           -> DisplayRegion
           -> HSplitState (Widget s) (Widget t)
-initState left right ratio region = resizeWidgets region $
+initState left right ratio region = execState (resizeWidgets region) $
     State { _widgets = (left, right)
           , _focused = FocusLeft
           , _ratio   = ratio
@@ -57,7 +58,7 @@ initState left right ratio region = resizeWidgets region $
 
 
 switchFocusOn :: Key -> EventHandler (HSplitState s t)
-switchFocusOn key = handleKey key [] $ over focused switch
+switchFocusOn key = handleKey key [] $ modifying focused switch
   where
     switch FocusLeft  = FocusRight
     switch FocusRight = FocusLeft
@@ -81,16 +82,14 @@ liftNext l = lens (view l)
                   (\s -> fmap (\a -> set l a s))
 
 resizeWidgets :: DisplayRegion
-              -> HSplitState (Widget s) (Widget t)
-              -> HSplitState (Widget s) (Widget t)
-resizeWidgets newRegion@(w, h) state =
-    state & set widgets ( resizeWidget (view leftWidget  state) leftRegion
-                        , resizeWidget (view rightWidget state) rightRegion )
-          . set region newRegion
-  where
-    splitRatio  = view ratio state
-    leftRegion  = (ceiling (splitRatio * fromIntegral w), h)
-    rightRegion = (floor ((1 - splitRatio) * fromIntegral w), h)
+              -> State (HSplitState (Widget s) (Widget t)) ()
+resizeWidgets newRegion@(w, h) = do
+    splitRatio  <- use ratio
+    let leftRegion  = (ceiling (splitRatio * fromIntegral w), h)
+        rightRegion = (floor ((1 - splitRatio) * fromIntegral w), h)
+    zoom (widgets . _1) (resizeWidget leftRegion)
+    zoom (widgets . _2) (resizeWidget rightRegion)
+    assign region newRegion
 
 drawWidgets :: HSplitState (Widget s) (Widget t) -> Image
 drawWidgets state = drawWidget (view leftWidget  state)

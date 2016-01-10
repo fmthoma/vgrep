@@ -2,6 +2,7 @@
 module Vgrep.Event where
 
 import Control.Applicative
+import Control.Monad.State
 import Data.Monoid
 import Graphics.Vty as Vty
 
@@ -22,14 +23,14 @@ instance Monoid (Next s) where
     Unchanged `mappend` next = next
     next      `mappend` _    = next
 
-handleKey :: Key -> [Modifier] -> (s -> s) -> EventHandler s
+handleKey :: Key -> [Modifier] -> State s () -> EventHandler s
 handleKey key modifiers action = EventHandler $ \event state -> case event of
-    EvKey k ms | k == key && ms == modifiers -> (Continue . action) state
+    EvKey k ms | k == key && ms == modifiers -> (Continue . execState action) state
     _                                        -> Unchanged
 
-handleResize :: (DisplayRegion -> s -> s) -> EventHandler s
+handleResize :: (DisplayRegion -> State s ()) -> EventHandler s
 handleResize action = EventHandler $ \event state -> case event of
-    EvResize w h -> (Continue . action (w, h)) state
+    EvResize w h -> (Continue . execState (action (w, h))) state
     _            -> Unchanged
 
 exitOn :: Key -> [Modifier] -> EventHandler s

@@ -1,6 +1,7 @@
 {-# LANGUAGE DisambiguateRecordFields #-}
 module Main where
 
+import Control.Monad.State
 import Data.Monoid
 import Data.Ratio
 import Graphics.Vty hiding (resize)
@@ -75,5 +76,5 @@ eventHandler = exitOn (KChar 'q') []
 
 handleResizeEvent :: EventHandler MainWidget
 handleResizeEvent = EventHandler $ \event widget -> case event of
-    EvResize w h -> Continue (resizeWidget widget (w, h))
+    EvResize w h -> Continue (execState (resizeWidget (w, h)) widget)
     _            -> Unchanged

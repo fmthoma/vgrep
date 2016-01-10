@@ -49,9 +49,9 @@ resultsWidget :: DisplayRegion
               -> [(String, [Line])]
               -> ResultsWidget
 resultsWidget dimensions files =
-    Widget { _state       = initState files dimensions
+    Widget { _widgetState = initState files dimensions
            , _dimensions  = dimensions
-           , _resize      = \newRegion -> execState (resizeToRegion newRegion)
+           , _resize      = resizeToRegion
            , _draw        = drawResultList
            , _handleEvent = handleResultListEvent }
 
@@ -73,8 +73,8 @@ initState files dimensions =
 
 
 handleResultListEvent :: EventHandler ResultsState
-handleResultListEvent = handleKey KUp   [] (execState previousLine)
-                     <> handleKey KDown [] (execState nextLine)
+handleResultListEvent = handleKey KUp   [] previousLine
+                     <> handleKey KDown [] nextLine
 
 previousLine :: State ResultsState ()
 previousLine = preuse (currentFile' . linesAbove . viewR) >>= \case
