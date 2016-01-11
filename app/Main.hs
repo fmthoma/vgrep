@@ -2,12 +2,17 @@
 module Main where
 
 import Control.Monad.State
+import Control.Lens
 import Data.Monoid
 import Data.Ratio
+import Data.Text.Lazy (Text)
+import qualified Data.Text.Lazy as T
+import qualified Data.Text.Lazy.IO as T
 import Graphics.Vty hiding (resize)
 
 import Vgrep.App
 import Vgrep.Event
+import Vgrep.Parser
 import Vgrep.Widget as Widget
 import Vgrep.Widget.HorizontalSplit
 import Vgrep.Widget.Pager
@@ -28,46 +33,32 @@ app = App { _initialize  = initSplitView
 
 initSplitView :: Vty -> IO MainWidget
 initSplitView vty = do
-    ls <- fmap lines (getContents)
+    inputLines <- readFromStdIn
     displayRegion <- displayBounds (outputIface vty)
-    let leftPager  = pagerWidget ls displayRegion
-        rightPager = resultsWidget displayRegion
-                     $ [ ("foo.hs", [ (123, "foobar")
-                                    , (32,  "hello world")
-                                    , (456, "bar") ] )
-                       , ("ba1.hs", [ (1,   "bar")
-                                    , (32,  "hello world")
-                                    , (123, "baz") ] )
-                       , ("ba2.hs", [ (1,   "bar")
-                                    , (32,  "hello")
-                                    , (320, "hello world")
-                                    , (100000000,   "bar")
-                                    , (32,  "hello world")
-                                    , (123, "baz") ] )
-                       , ("ba3.hs", [ (1,   "bar")
-                                    , (32,  "hello world")
-                                    , (123, "baz") ] )
-                       , ("ba4.hs", [ (1,   "bar")
-                                    , (32,  "hello")
-                                    , (320, "hello world")
-                                    , (123, "baz") ] )
-                       , ("ba5.hs", [ (1,   "bar")
-                                    , (32,  "hello world")
-                                    , (123, "baz") ] )
-                       , ("ba6.hs", [ (1,   "bar")
-                                    , (32,  "hello world")
-                                    , (123, "baz") ] )
-                       , ("ba7.hs", [ (1,   "bar")
-                                    , (32,  "hello")
-                                    , (320, "hello world")
-                                    , (123, "baz") ] )
-                       , ("ba8.hs", [ (1,   "bar")
-                                    , (32,  "hello world")
-                                    , (123, "baz") ] )
-                       , ("ba9.hs", [ (1,   "bar")
-                                    , (123, "baz") ] ) ]
+    let leftPager  = pagerWidget (replicate 100 "hello world") displayRegion
+        rightPager = resultsWidget displayRegion inputLines
     displayRegion <- displayBounds (outputIface vty)
     return (hSplitWidget leftPager rightPager (1 % 3) displayRegion)
+
+readFromStdIn :: IO [(String, [(Int, String)])]
+readFromStdIn = fmap (foo . groupByFile . parseGrepOutput . T.lines)
+                     T.getContents
+  where
+    -- TODO rewrite widgets in terms of Text
+    foo :: [(Text, [(Maybe Int, Text)])] -> [(String, [(Int, String)])]
+    foo = over (traverse . _1) T.unpack
+        . over (traverse . _2 . traverse . _1) (maybe 0 id)
+        . over (traverse . _2 . traverse . _2) T.unpack
+
+-- | Assumption: Input is already grouped by file. Without this assumption
+-- we would have to strictly traverse the entire input.
+groupByFile :: [(Text, Maybe Int, Text)] -> [(Text, [(Maybe Int, Text)])]
+groupByFile [] = []
+groupByFile input =
+    let (file, _, _) = head input
+        (resultsInSameFile, rest) = span (\(f, _, _) -> f == file) input
+    in  (file, map (\(a,b,c) -> (b,c)) resultsInSameFile) : groupByFile rest
+
 
 eventHandler :: EventHandler MainWidget
 eventHandler = exitOn (KChar 'q') []
