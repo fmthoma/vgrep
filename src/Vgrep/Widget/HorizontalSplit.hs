@@ -57,8 +57,11 @@ initState left right ratio region = execState (resizeWidgets region) $
           , _region  = region }
 
 
-switchFocusOn :: Key -> EventHandler (HSplitState s t)
-switchFocusOn key = handleKey key [] $ modifying focused switch
+switchFocusOn :: Key -> EventHandler (HSplitState (Widget s) (Widget t))
+switchFocusOn key = handleKey key [] $ do
+    modifying focused switch
+    modifying ratio (\r -> 1 - r)
+    use region >>= resizeWidgets
   where
     switch FocusLeft  = FocusRight
     switch FocusRight = FocusLeft
@@ -76,10 +79,8 @@ passEventTo :: Lens' (HSplitState (Widget s) (Widget t)) (Widget u)
 passEventTo selector event =
     over (liftNext selector) (handle passEventsToWidget event)
 
-liftNext :: Lens' s a
-         -> Lens s (Next s) a (Next a)
-liftNext l = lens (view l)
-                  (\s -> fmap (\a -> set l a s))
+liftNext :: Lens' s a -> Lens s (Next s) a (Next a)
+liftNext l = lens (view l) (\s -> fmap (\a -> set l a s))
 
 resizeWidgets :: DisplayRegion
               -> State (HSplitState (Widget s) (Widget t)) ()
