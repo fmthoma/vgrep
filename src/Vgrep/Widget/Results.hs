@@ -2,6 +2,9 @@
 module Vgrep.Widget.Results ( ResultsState()
                             , ResultsWidget
                             , resultsWidget
+
+                            , previousLine
+                            , nextLine
                             ) where
 
 import Control.Lens ( Lens', Traversal', Getter
@@ -54,8 +57,7 @@ resultsWidget dimensions files =
     Widget { _widgetState = initState files dimensions
            , _dimensions  = dimensions
            , _resize      = resizeToRegion
-           , _draw        = drawResultList
-           , _handleEvent = handleResultListEvent }
+           , _draw        = drawResultList }
 
 initBuffer :: [a] -> Buffer a
 initBuffer as = Buffer { _size = length as
@@ -73,10 +75,6 @@ initState files dimensions =
   where
     buffer = (initBuffer . map (over _2 initBuffer)) files
 
-
-handleResultListEvent :: EventHandler ResultsState
-handleResultListEvent = handleKey KUp   [] previousLine
-                     <> handleKey KDown [] nextLine
 
 previousLine :: State ResultsState ()
 previousLine = preuse (currentFile' . linesAbove . viewR) >>= \case

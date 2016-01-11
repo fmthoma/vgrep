@@ -55,8 +55,21 @@ groupByFile input =
 
 eventHandler :: EventHandler MainWidget
 eventHandler = exitOn (KChar 'q') []
-            <> handleResizeEvent
-            <> passEventsToWidget
+    <> handleResizeEvent
+    <> handleKey (KChar '\t') [] keyTab
+    <> handleKey KUp          [] keyUp
+    <> handleKey KDown        [] keyDown
+    <> handleKey KEnter       [] keyEnter
+    <> handleKey KEsc         [] keyEsc
+  where
+    keyTab   = zoom widgetState switchFocus
+    keyUp    = do zoom (currentLeftWidget  . widgetState) previousLine
+                  zoom (currentRightWidget . widgetState) scrollUp
+    keyDown  = do zoom (currentLeftWidget  . widgetState) nextLine
+                  zoom (currentRightWidget . widgetState) scrollDown
+    keyEnter = zoom widgetState focusRight
+    keyEsc   = zoom widgetState focusLeft
+
 
 handleResizeEvent :: EventHandler MainWidget
 handleResizeEvent = EventHandler $ \event widget -> case event of

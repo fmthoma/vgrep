@@ -2,6 +2,15 @@
 module Vgrep.Widget.HorizontalSplit ( HSplitState()
                                     , HSplitWidget
                                     , hSplitWidget
+
+                                    , leftWidget
+                                    , rightWidget
+                                    , currentWidget
+                                    , currentLeftWidget
+                                    , currentRightWidget
+                                    , focusLeft
+                                    , focusRight
+                                    , switchFocus
                                     ) where
 
 import Control.Lens
@@ -20,7 +29,7 @@ data HSplitState s t = State { _widgets :: (s, t)
                              , _ratio   :: Rational
                              , _region  :: DisplayRegion }
 
-data Focus = FocusLeft | FocusRight
+data Focus = FocusLeft | FocusRight deriving (Eq)
 
 makeLenses ''HSplitState
 
@@ -29,6 +38,25 @@ leftWidget = widgets . _1
 
 rightWidget :: Lens' (HSplitState s t) t
 rightWidget = widgets . _2
+
+currentWidget :: Lens' (HSplitWidget s t) (Either s t)
+currentWidget = widgetState . lens getCurrentWidget setCurrentWidget
+  where
+    getCurrentWidget state = case view focused state of
+        FocusLeft  -> Left  (view leftWidget  state)
+        FocusRight -> Right (view rightWidget state)
+
+    setCurrentWidget state newWidget = case (view focused state, newWidget) of
+        (FocusLeft,  Left  widgetL) -> set leftWidget  widgetL state
+        (FocusRight, Right widgetR) -> set rightWidget widgetR state
+        (_         , _      )       -> state
+
+currentLeftWidget :: Traversal' (HSplitWidget s t) s
+currentLeftWidget = currentWidget . _Left
+
+currentRightWidget :: Traversal' (HSplitWidget s t) t
+currentRightWidget = currentWidget . _Right
+
 
 type HSplitWidget s t = Widget (HSplitState s t)
 
@@ -41,9 +69,7 @@ hSplitWidget left right ratio region =
     Widget { _widgetState = initState left right ratio region
            , _dimensions  = region
            , _resize      = resizeWidgets
-           , _draw        = drawWidgets
-           , _handleEvent = switchFocusOn (KChar '\t')
-                         <> passEventToFocusedWidget }
+           , _draw        = drawWidgets }
 
 initState :: Widget s
           -> Widget t
@@ -57,30 +83,22 @@ initState left right ratio region = execState (resizeWidgets region) $
           , _region  = region }
 
 
-switchFocusOn :: Key -> EventHandler (HSplitState (Widget s) (Widget t))
-switchFocusOn key = handleKey key [] $ do
+focusLeft :: State (HSplitState (Widget s) (Widget t)) ()
+focusLeft = do f <- use focused
+               when (f == FocusRight) switchFocus
+
+focusRight :: State (HSplitState (Widget s) (Widget t)) ()
+focusRight = do f <- use focused
+                when (f == FocusLeft) switchFocus
+
+switchFocus :: State (HSplitState (Widget s) (Widget t)) ()
+switchFocus = do
     modifying focused switch
     modifying ratio (\r -> 1 - r)
     use region >>= resizeWidgets
   where
     switch FocusLeft  = FocusRight
     switch FocusRight = FocusLeft
-
-passEventToFocusedWidget :: EventHandler (HSplitState (Widget s) (Widget t))
-passEventToFocusedWidget = EventHandler $ \event state ->
-    case view focused state of
-        FocusLeft  -> passEventTo leftWidget  event state
-        FocusRight -> passEventTo rightWidget event state
-
-passEventTo :: Lens' (HSplitState (Widget s) (Widget t)) (Widget u)
-            -> Event
-            -> HSplitState (Widget s) (Widget t)
-            -> Next (HSplitState (Widget s) (Widget t))
-passEventTo selector event =
-    over (liftNext selector) (handle passEventsToWidget event)
-
-liftNext :: Lens' s a -> Lens s (Next s) a (Next a)
-liftNext l = lens (view l) (\s -> fmap (\a -> set l a s))
 
 resizeWidgets :: DisplayRegion
               -> State (HSplitState (Widget s) (Widget t)) ()

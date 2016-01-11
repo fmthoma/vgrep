@@ -2,6 +2,9 @@
 module Vgrep.Widget.Pager ( PagerState()
                           , PagerWidget
                           , pagerWidget
+
+                          , scrollUp
+                          , scrollDown
                           ) where
 
 import Control.Lens
@@ -32,8 +35,7 @@ pagerWidget :: Text
 pagerWidget items region = Widget { _widgetState = initialPagerState items region
                                   , _dimensions  = region
                                   , _resize      = resizeToRegion
-                                  , _draw        = renderPager
-                                  , _handleEvent = handlePagerEvents }
+                                  , _draw        = renderPager }
 
 
 initialPagerState :: Text -> DisplayRegion-> PagerState
@@ -43,15 +45,12 @@ initialPagerState items displayRegion =
                , _region          = displayRegion
                , _showLineNumbers = True }
 
-handlePagerEvents :: EventHandler PagerState
-handlePagerEvents = handleKey KUp   [] (scrollUp   >> updateScrollPos)
-                 <> handleKey KDown [] (scrollDown >> updateScrollPos)
 
 scrollUp :: State PagerState ()
-scrollUp = modifying scrollPos (subtract 1)
+scrollUp = modifying scrollPos (subtract 1) >> updateScrollPos
 
 scrollDown :: State PagerState ()
-scrollDown = modifying scrollPos (+ 1)
+scrollDown = modifying scrollPos (+ 1) >> updateScrollPos
 
 renderPager :: PagerState -> Image
 renderPager state =
