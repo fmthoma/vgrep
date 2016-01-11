@@ -24,7 +24,7 @@ main = do
     return ()
 
 
-type MainWidget = HSplitWidget PagerWidget ResultsWidget
+type MainWidget = HSplitWidget ResultsWidget PagerWidget
 
 app :: App MainWidget
 app = App { _initialize  = initSplitView
@@ -35,10 +35,10 @@ initSplitView :: Vty -> IO MainWidget
 initSplitView vty = do
     inputLines <- readFromStdIn
     displayRegion <- displayBounds (outputIface vty)
-    let leftPager  = pagerWidget (replicate 100 "hello world") displayRegion
-        rightPager = resultsWidget displayRegion inputLines
+    let leftPager  = resultsWidget displayRegion inputLines
+        rightPager = pagerWidget (replicate 100 "hello world") displayRegion
     displayRegion <- displayBounds (outputIface vty)
-    return (hSplitWidget leftPager rightPager (1 % 3) displayRegion)
+    return (hSplitWidget leftPager rightPager (2 % 3) displayRegion)
 
 readFromStdIn :: IO [(String, [(Int, String)])]
 readFromStdIn = fmap (foo . groupByFile . parseGrepOutput . T.lines)
