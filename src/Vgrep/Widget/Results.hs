@@ -40,7 +40,7 @@ data ResultsState = State { _files     :: Buffer FileResults
 
 type FileResults = (Text, Buffer Line)
 type Line = (LineNumber, Text)
-type LineNumber = Int
+type LineNumber = Maybe Int
 
 makeLenses ''ResultsState
 
@@ -155,9 +155,9 @@ drawResultList state =
     pos    = view scrollPos state
     width  = regionWidth  (view region state)
     height = regionHeight (view region state)
-    lineNumberWidth = maximum $
+    lineNumberWidth = foldr max 0 $
         views (allFiles . traverse . allLines . traverse . lineNumber)
-              ((:[]) . length . show)
+              ((:[]) . maybe 0 (length . show))
               state
 
     fileHeaderStyle = defAttr `withBackColor` green
@@ -199,7 +199,7 @@ drawResultList state =
     drawLineNumber :: Line -> Image
     drawLineNumber = string lineNumberStyle
                    . justifyRight lineNumberWidth
-                   . show . view lineNumber
+                   . (maybe "" show) . view lineNumber
 
     padWithSpace w s = T.justifyLeft (fromIntegral w) ' ' (' ' `T.cons` s)
     justifyRight w s = replicate (w - length s) ' ' ++ s

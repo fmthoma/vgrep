@@ -33,20 +33,15 @@ app = App { _initialize  = initSplitView
 
 initSplitView :: Vty -> IO MainWidget
 initSplitView vty = do
-    inputLines <- readFromStdIn
+    inputLines <- readGrepOutput T.getContents
     displayRegion <- displayBounds (outputIface vty)
     let leftPager  = resultsWidget displayRegion inputLines
         rightPager = pagerWidget (T.replicate 100 (T.pack "hello world\n")) displayRegion
     displayRegion <- displayBounds (outputIface vty)
     return (hSplitWidget leftPager rightPager (2 % 3) displayRegion)
 
-readFromStdIn :: IO [(Text, [(Int, Text)])]
-readFromStdIn = fmap (foo . groupByFile . parseGrepOutput . T.lines)
-                     T.getContents
-  where
-    -- TODO Results list should accept Maybe Int
-    foo :: [(Text, [(Maybe Int, Text)])] -> [(Text, [(Int, Text)])]
-    foo = over (traverse . _2 . traverse . _1) (maybe 0 id)
+readGrepOutput :: Functor f => f Text -> f [(Text, [(Maybe Int, Text)])]
+readGrepOutput = fmap (groupByFile . parseGrepOutput . T.lines)
 
 -- | Assumption: Input is already grouped by file. Without this assumption
 -- we would have to strictly traverse the entire input.
