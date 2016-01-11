@@ -22,7 +22,6 @@ passEventsToWidget = EventHandler $ \event widget ->
         currentState = view widgetState widget
         next = handle eventHandler event currentState
     in  fmap (\newState -> set widgetState newState widget) next
-  where
 
 drawWidget :: Widget s -> Image
 drawWidget widget = (view draw widget) (view widgetState widget)

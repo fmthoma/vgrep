@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Vgrep.App where
 
 import Control.Lens
