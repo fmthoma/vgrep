@@ -145,7 +145,7 @@ computeCurrentItem = do
 
 
 drawResultList :: ResultsState -> Image
-drawResultList state =
+drawResultList state = resizeWidth width $
     fold . Seq.take height
          . Seq.drop pos
          $  foldMap (drawFileResults False) (view      filesAbove  state)
@@ -157,11 +157,12 @@ drawResultList state =
     height = regionHeight (view region state)
     lineNumberWidth = foldr max 0 $
         views (allFiles . traverse . allLines . traverse . lineNumber)
-              ((:[]) . maybe 0 (length . show))
+              ((:[]) . (+ 2) . maybe 0 (length . show))
               state
 
     fileHeaderStyle = defAttr `withBackColor` green
     lineNumberStyle = defAttr `withForeColor` brightBlack
+                              `withBackColor` black
     resultLineStyle = defAttr
     highlightStyle  = defAttr `withStyle` standout
 
@@ -202,7 +203,7 @@ drawResultList state =
                    . (maybe "" show) . view lineNumber
 
     padWithSpace w s = T.justifyLeft (fromIntegral w) ' ' (' ' `T.cons` s)
-    justifyRight w s = replicate (w - length s) ' ' ++ s
+    justifyRight w s = replicate (w - length s - 1) ' ' ++ s ++ " "
 
 resizeToRegion :: DisplayRegion -> State ResultsState ()
 resizeToRegion newRegion = assign region newRegion >> updateScrollPos 
