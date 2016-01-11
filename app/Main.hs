@@ -67,7 +67,9 @@ eventHandler = exitOn (KChar 'q') []
                   zoom (currentRightWidget . widgetState) scrollUp
     keyDown  = do zoom (currentLeftWidget  . widgetState) nextLine
                   zoom (currentRightWidget . widgetState) scrollDown
-    keyEnter = zoom widgetState focusRight
+    keyEnter = do zoom widgetState focusRight
+                  Just lineNumber <- use (widgetState . leftWidget . currentLineNumber)
+                  zoom (currentRightWidget . widgetState) (moveToLine lineNumber)
     keyEsc   = zoom widgetState focusLeft
 
 

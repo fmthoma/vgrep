@@ -5,6 +5,9 @@ module Vgrep.Widget.Results ( ResultsState()
 
                             , previousLine
                             , nextLine
+
+                            , currentFileName
+                            , currentLineNumber
                             ) where
 
 import Control.Lens ( Lens', Traversal', Getter
@@ -12,6 +15,7 @@ import Control.Lens ( Lens', Traversal', Getter
                     , modifying, assign, use,  uses,  preuse
                     , _1, _2, _Just
                     , (&), to )
+import qualified Control.Lens as Lens
 import Control.Lens.TH
 import Control.Monad.State
 import Data.Foldable
@@ -260,3 +264,10 @@ lineNumber = _1
 
 lineText :: Lens' Line Text
 lineText = _2
+
+currentFileName :: Getter ResultsWidget (Maybe Text)
+currentFileName = Lens.pre (widgetState . currentFile' . fileName)
+
+currentLineNumber :: Getter ResultsWidget (Maybe Int)
+currentLineNumber = Lens.pre
+    (widgetState . currentFile' . currentLine' . lineNumber . _Just)

@@ -3,6 +3,7 @@ module Vgrep.Widget.Pager ( PagerState()
                           , PagerWidget
                           , pagerWidget
 
+                          , moveToLine
                           , scrollUp
                           , scrollDown
                           ) where
@@ -45,6 +46,11 @@ initialPagerState items displayRegion =
                , _region          = displayRegion
                , _showLineNumbers = True }
 
+moveToLine :: Int -> State PagerState ()
+moveToLine n = do
+    height <- uses region regionHeight
+    assign scrollPos (n - height `div` 2)
+    updateScrollPos
 
 scrollUp :: State PagerState ()
 scrollUp = modifying scrollPos (subtract 1) >> updateScrollPos
