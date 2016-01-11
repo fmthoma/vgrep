@@ -17,7 +17,9 @@ import Data.Monoid
 import Data.Sequence (Seq, ViewL(..), ViewR(..), (><), (|>), (<|))
 import qualified Data.Sequence as Seq
 import Data.Sequence.Lens
-import Graphics.Vty hiding (text)
+import Data.Text.Lazy (Text)
+import qualified Data.Text.Lazy as T
+import Graphics.Vty
 import Graphics.Vty.Prelude
 import Prelude hiding (lines)
 
@@ -36,8 +38,8 @@ data ResultsState = State { _files     :: Buffer FileResults
                           , _scrollPos :: Int
                           , _region    :: DisplayRegion }
 
-type FileResults = (String, Buffer Line)
-type Line = (LineNumber, String)
+type FileResults = (Text, Buffer Line)
+type Line = (LineNumber, Text)
 type LineNumber = Int
 
 makeLenses ''ResultsState
@@ -46,7 +48,7 @@ makeLenses ''ResultsState
 type ResultsWidget = Widget ResultsState
 
 resultsWidget :: DisplayRegion
-              -> [(String, [Line])]
+              -> [(Text, [Line])]
               -> ResultsWidget
 resultsWidget dimensions files =
     Widget { _widgetState = initState files dimensions
@@ -61,7 +63,7 @@ initBuffer as = Buffer { _size = length as
                        , _cur  = listToMaybe as
                        , _post = Seq.fromList (drop 1 as) }
 
-initState :: [(String, [Line])]
+initState :: [(Text, [Line])]
           -> DisplayRegion
           -> ResultsState
 initState files dimensions =
@@ -168,7 +170,7 @@ drawResultList state =
                                    <| drawFileItems current results
 
     drawFileHeader :: FileResults -> Image
-    drawFileHeader = string fileHeaderStyle . padWithSpace width . view fileName
+    drawFileHeader = text fileHeaderStyle . padWithSpace width . view fileName
 
     drawFileItems :: Bool -> FileResults -> Seq Image
     drawFileItems current results =
@@ -182,9 +184,9 @@ drawResultList state =
         >< fmap (drawLinePreview False)   (view      linesBelow  results)
 
     drawLinePreview :: Bool -> Line -> Image
-    drawLinePreview current = string style
+    drawLinePreview current = text style
                             . padWithSpace (width - lineNumberWidth)
-                            . view text
+                            . view lineText
       where style = if current then resultLineStyle <> highlightStyle
                                else resultLineStyle
 
@@ -199,7 +201,7 @@ drawResultList state =
                    . justifyRight lineNumberWidth
                    . show . view lineNumber
 
-    padWithSpace w s = take w (' ' : s ++ repeat ' ')
+    padWithSpace w s = T.justifyLeft (fromIntegral w) ' ' (' ' `T.cons` s)
     justifyRight w s = replicate (w - length s) ' ' ++ s
 
 resizeToRegion :: DisplayRegion -> State ResultsState ()
@@ -231,7 +233,7 @@ allFiles = to $ \state -> view      filesAbove state
                        >< viewAsSeq currentFile state
                        >< view      filesBelow  state
 
-fileName :: Lens' FileResults String
+fileName :: Lens' FileResults Text
 fileName = _1
 
 lines :: Lens' FileResults (Buffer Line)
@@ -257,5 +259,5 @@ allLines = to $ \results -> view      linesAbove  results
 lineNumber :: Lens' Line LineNumber
 lineNumber = _1
 
-text :: Lens' Line String
-text = _2
+lineText :: Lens' Line Text
+lineText = _2
