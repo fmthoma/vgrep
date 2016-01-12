@@ -1,16 +1,16 @@
 {-# LANGUAGE DeriveFunctor #-}
 module Vgrep.Event ( EventHandler ()
-                   , mkEventHandler
-                   , mkEventHandlerIO
-
-                   , Next(..)
-
-                   , handle
-                   , handleKey
-                   , handleKeyIO
-                   , handleResize
-                   , exitOn
-                   ) where
+  {- CR/quchen -}  , mkEventHandler
+  {- There is  -}  , mkEventHandlerIO
+  {-  so much  -}
+  {-   wasted  -}  , Next(..)
+  {-   space   -}
+  {-  here, I  -}  , handle
+  {- can write -}  , handleKey
+  {-   a full  -}  , handleKeyIO
+  {-  sentence -}  , handleResize
+  {-  into the -}  , exitOn
+  {-    gaps   -}  ) where
 
 import Control.Applicative
 import Control.Monad.State
@@ -23,6 +23,9 @@ newtype EventHandler s = EventHandler
 
 mkEventHandler :: (Event -> s -> Next s) -> EventHandler s
 mkEventHandler = EventHandler . fmap (fmap (fmap pure))
+-- CR/quchen: f(f(f(x))) = (f.f.f) x
+-- But since that's still unreadable, why not not use Reader,
+-- mkEventHandler f = EventHandler (\_e _s -> pure f)
 
 mkEventHandlerIO :: (Event -> s -> Next (IO s)) -> EventHandler s
 mkEventHandlerIO = EventHandler
@@ -31,6 +34,8 @@ instance Monoid (EventHandler s) where
     mempty = EventHandler $ \_ _ -> Unchanged
     h1 `mappend` h2 = EventHandler $ \state event ->
         handle h1 state event <> handle h2 state event
+        -- CR/quchen: Function monoid! :-)
+        --            (f <> g) x = f x <> g x
 
 data Next s = Continue s
             | Halt s
@@ -54,15 +59,21 @@ handleKey key modifiers action =
 _handleKey :: Key -> [Modifier] -> StateT s IO () -> Event -> s -> Next (IO s)
 _handleKey key modifiers action event state = case event of
     EvKey k ms | k == key && ms == modifiers
-        -> (Continue . execStateT action) state
+               -- CR/quchen: Sometimes I find comparing tuples more readable
+               --            if multiple (==) are involved,
+               --            (k,ms) == (key, modifiers)
+        -> (Continue . execStateT action) state -- CR/quchen: (f . g) x = f (g x)
     _   -> Unchanged
+    -- CR/quchen: name the fallthrough patterns
 
 handleResize :: (DisplayRegion -> State s ()) -> EventHandler s
 handleResize action = mkEventHandler $ \event state -> case event of
-    EvResize w h -> (Continue . execState (action (w, h))) state
+    EvResize w h -> (Continue . execState (action (w, h))) state -- CR/quchen: (f . g) x = f (g x)
     _            -> Unchanged
+    -- CR/quchen: name the fallthrough patterns
 
 exitOn :: Key -> [Modifier] -> EventHandler s
 exitOn key modifiers = mkEventHandler $ \event state -> case event of
     EvKey k ms | k == key && ms == modifiers -> Halt state
     _                                        -> Unchanged
+    -- CR/quchen: name the fallthrough patterns

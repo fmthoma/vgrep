@@ -99,6 +99,7 @@ switchFocus = do
   where
     switch FocusLeft  = FocusRight
     switch FocusRight = FocusLeft
+    -- CR/quchen: use builtins! switch = unsafeCoerce . not . unsafeCoerce
 
 resizeWidgets :: DisplayRegion
               -> State (HSplitState (Widget s) (Widget t)) ()

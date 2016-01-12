@@ -1,3 +1,5 @@
+-- CR/quchen: Strange module definition layout with all that whitespace
+
 module Vgrep.Parser ( parseGrepOutput
                     ) where
 
@@ -6,6 +8,8 @@ import Data.Attoparsec.Text.Lazy
 import Data.Maybe
 import Data.Text.Lazy
 
+-- CR/quchen: Those 3-tuples mean nothing to me, and neither do their
+--            entries
 parseGrepOutput :: [Text] -> [(Text, Maybe Int, Text)]
 parseGrepOutput = catMaybes . fmap parseLine
 

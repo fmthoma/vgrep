@@ -35,8 +35,8 @@ pagerWidget :: Text
             -> DisplayRegion
             -> PagerWidget
 pagerWidget items region = Widget { _widgetState = initialPagerState items region
-                                  , _dimensions  = region
-                                  , _resize      = resizeToRegion
+       {- CR/quchen: -}           , _dimensions  = region
+    {- Whitespaaaaaaaace -}       , _resize      = resizeToRegion
                                   , _draw        = renderPager }
 
 
@@ -54,18 +54,22 @@ replaceBufferContents lines = do assign buffer lines
 moveToLine :: Int -> State PagerState ()
 moveToLine n = do
     height <- uses region regionHeight
-    assign scrollPos (n - height `div` 2)
-    updateScrollPos
+    assign scrollPos (n - height `div` 2) -- CR/quchen: `quot` is faster, I'd
+    updateScrollPos                       --            use it over `div`
+                                          --            habitually
+
 
 scrollUp :: State PagerState ()
 scrollUp = modifying scrollPos (subtract 1) >> updateScrollPos
 
 scrollDown :: State PagerState ()
 scrollDown = modifying scrollPos (+ 1) >> updateScrollPos
+-- CR/quchen: Maybe fuse with scrollUp?
+--            scroll n = modifying scrollPos (+n) >> updateScrollPos
 
 renderPager :: PagerState -> Image
 renderPager state =
-    resizeWidth width $ (lineNumbers <|> textLines)
+    resizeWidth width $ (lineNumbers <|> textLines) -- CR/quchen: redundant ($)
   where
     width  = regionWidth  (view region state)
     height = regionHeight (view region state)
