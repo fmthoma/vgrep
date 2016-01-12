@@ -64,10 +64,10 @@ eventHandler = exitOn (KChar 'q') []
     <> handleKey   KEsc         [] keyEsc
   where
     keyTab   = zoom widgetState switchFocus
-    keyUp    = do zoom (currentLeftWidget  . widgetState) previousLine
-                  zoom (currentRightWidget . widgetState) scrollUp
-    keyDown  = do zoom (currentLeftWidget  . widgetState) nextLine
-                  zoom (currentRightWidget . widgetState) scrollDown
+    keyUp    = do zoom (leftWidgetFocused  . widgetState) previousLine
+                  zoom (rightWidgetFocused . widgetState) scrollUp
+    keyDown  = do zoom (leftWidgetFocused  . widgetState) nextLine
+                  zoom (rightWidgetFocused . widgetState) scrollDown
     keyEnter = do loadSelectedFileToPager
                   liftState moveToSelectedLineNumber
                   liftState (zoom widgetState focusRight)

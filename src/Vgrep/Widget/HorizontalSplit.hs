@@ -6,8 +6,8 @@ module Vgrep.Widget.HorizontalSplit ( HSplitState()
                                     , leftWidget
                                     , rightWidget
                                     , currentWidget
-                                    , currentLeftWidget
-                                    , currentRightWidget
+                                    , leftWidgetFocused
+                                    , rightWidgetFocused
                                     , focusLeft
                                     , focusRight
                                     , switchFocus
@@ -51,11 +51,11 @@ currentWidget = widgetState . lens getCurrentWidget setCurrentWidget
         (FocusRight, Right widgetR) -> set rightWidget widgetR state
         (_         , _      )       -> state
 
-currentLeftWidget :: Traversal' (HSplitWidget s t) s
-currentLeftWidget = currentWidget . _Left
+leftWidgetFocused :: Traversal' (HSplitWidget s t) s
+leftWidgetFocused = currentWidget . _Left
 
-currentRightWidget :: Traversal' (HSplitWidget s t) t
-currentRightWidget = currentWidget . _Right
+rightWidgetFocused :: Traversal' (HSplitWidget s t) t
+rightWidgetFocused = currentWidget . _Right
 
 
 type HSplitWidget s t = Widget (HSplitState s t)
