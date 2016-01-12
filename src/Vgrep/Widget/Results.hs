@@ -2,7 +2,7 @@
 module Vgrep.Widget.Results ( ResultsState()
                             , ResultsWidget
                             , resultsWidget
-
+    -- CR/quchen: SPAAACE
                             , previousLine
                             , nextLine
 
@@ -88,6 +88,8 @@ previousLine = preuse (currentFile' . linesAbove . viewR) >>= \case
                            assign    (currentFile' . linesAbove) pls
                            assign    (currentFile' . currentLine) (Just pl)
                            modifying (currentFile' . linesBelow) (cl ><)
+                           -- CR/quchen: HNNNNNNG alignment           ^
+                                     -- CR/quchen: >< = <> for Seq ---+
                            updateScrollPos
 
 previousFile :: State ResultsState ()
@@ -108,6 +110,7 @@ nextLine = preuse (currentFile' . linesBelow . viewL) >>= \case
                            modifying (currentFile' . linesAbove) (>< cl)
                            assign    (currentFile' . currentLine) (Just nl)
                            assign    (currentFile' . linesBelow) nls
+                           -- CR/quchen: HNNNNNNG alignment
                            updateScrollPos
 
 nextFile :: State ResultsState ()
@@ -126,11 +129,11 @@ updateScrollPos = do
     height       <- use (region . to regionHeight)
     current      <- computeCurrentItem
     firstVisible <- use scrollPos
-    let lastVisible = firstVisible + height - 1
+    let lastVisible = firstVisible + height - 1 -- CR/quchen: Non-obvious numbers
     if | current < firstVisible
-         -> assign scrollPos (if current <= 1 then 0 else current)
+         -> assign scrollPos (if current <= 1 then 0 else current) -- CR/quchen: Non-obvious numbers
        | current > lastVisible
-         -> assign scrollPos (current - height + 1)
+         -> assign scrollPos (current - height + 1) -- CR/quchen: Non-obvious numbers
        | otherwise -> return ()
   where
 
@@ -142,7 +145,7 @@ computeCurrentItem = do
     linesInCurrentFileBeforeCursor <- fmap (sum . fmap length)
                                            (use (currentFile' . linesAbove))
     return $ linesInFilesBeforeCurrent
-           + 2 * fileHeadersBeforeCurrent + 1
+           + 2 * fileHeadersBeforeCurrent + 1 -- CR/quchen: Non-obvious numbers
            + linesInCurrentFileBeforeCursor
 
 
@@ -157,9 +160,9 @@ drawResultList state = resizeWidth width $
     pos    = view scrollPos state
     width  = regionWidth  (view region state)
     height = regionHeight (view region state)
-    lineNumberWidth = foldr max 0 $
+    lineNumberWidth = foldr max 0 $ -- CR/quchen: foldl' !!!!!
         views (allFiles . traverse . allLines . traverse . lineNumber)
-              ((:[]) . (+ 2) . maybe 0 (length . show))
+              ((:[]) . (+ 2) . maybe 0 (length . show)) -- CR/quchen: Non-obvious numbers
               state
 
     fileHeaderStyle = defAttr `withBackColor` green
@@ -185,6 +188,7 @@ drawResultList state = resizeWidth width $
            fmap (drawLinePreview False)   (view      linesAbove  results)
         >< fmap (drawLinePreview current) (viewAsSeq currentLine results)
         >< fmap (drawLinePreview False)   (view      linesBelow  results)
+        -- CR/quchen: <> instead of ><
 
     drawLinePreview :: Bool -> Line -> Image
     drawLinePreview current = text style
@@ -198,17 +202,19 @@ drawResultList state = resizeWidth width $
         $  view      linesAbove  results
         >< viewAsSeq currentLine results
         >< view      linesBelow  results
+        -- CR/quchen: <> instead of ><
 
     drawLineNumber :: Line -> Image
     drawLineNumber = string lineNumberStyle
                    . justifyRight lineNumberWidth
                    . (maybe "" show) . view lineNumber
 
-    padWithSpace w s = T.justifyLeft (fromIntegral w) ' ' (' ' `T.cons` s)
+    padWithSpace w s = T.justifyLeft (fromIntegral w) ' ' (' ' `T.cons` s) -- CR/quchen: Not sure infix helps here
     justifyRight w s = replicate (w - length s - 1) ' ' ++ s ++ " "
+                            -- CR/quchen: Non-obvious numbers
 
 resizeToRegion :: DisplayRegion -> State ResultsState ()
-resizeToRegion newRegion = assign region newRegion >> updateScrollPos 
+resizeToRegion newRegion = assign region newRegion >> updateScrollPos
 
 ---------------------------------------------------------------------------
 -- Lenses and Utilities
@@ -217,7 +223,7 @@ viewAsSeq :: Traversable t => Lens' s (t a) -> s -> Seq a
 viewAsSeq traversal = views traversal asSeq
 
 asSeq :: Traversable t => t a -> Seq a
-asSeq = foldr (<|) empty
+asSeq = foldr (<|) empty -- CR/quchen: = fold?
 
 filesAbove :: Lens' ResultsState (Seq FileResults)
 filesAbove = files . pre

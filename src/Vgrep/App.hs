@@ -19,13 +19,20 @@ runApp app = do
     vty <- initVty
     initialState <- (view initialize app) vty
     finalState <- eventLoop vty app initialState
-    shutdown vty
-    return finalState
+    shutdown vty -- CR/quchen: Is the shutdown necessary? If yes, consider
+                 --            bracket and friends
+    return finalState -- CR/quchen: Just my opinion, but I don't write
+                      --            return ever anymore, now that we have
+                      --            pure. return is misleading to non-
+                      --            Haskellers, and pure is a much better name
+                      --            anyway: `pure x` has exactly the semantics
+                      --            of `x` and nothing more in the lifted
+                      --            context.
 
 initVty :: IO Vty
 initVty = do
     cfg <- standardIOConfig
-    ttyIn  <- openFd "/dev/tty" ReadOnly  Nothing defaultFileFlags
+    ttyIn  <- openFd "/dev/tty" ReadOnly  Nothing defaultFileFlags -- CR/quchen: What's the Nothing for?
     ttyOut <- openFd "/dev/tty" WriteOnly Nothing defaultFileFlags
     mkVty (cfg { inputFd = Just ttyIn , outputFd = Just ttyOut })
 
@@ -34,6 +41,7 @@ eventLoop vty app initialState = do
     refresh initialState
     runLoop initialState
   where
+    -- CR/quchen: mostly simply called `loop`
     runLoop currentState = do
         event <- nextEvent vty
         let next = handle (view handleEvent app) event currentState

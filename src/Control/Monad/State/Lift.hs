@@ -1,3 +1,6 @@
+-- CR/quchen: Related blogpost about adding stuff to third-party modules:
+--            https://jaspervdj.be/posts/2015-01-20-haskell-design-patterns-extended-modules.html
+
 module Control.Monad.State.Lift where
 
 import Control.Monad.Morph
