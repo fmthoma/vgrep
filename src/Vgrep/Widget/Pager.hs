@@ -5,8 +5,7 @@ module Vgrep.Widget.Pager
     , pagerWidget
 
     , moveToLine
-    , scrollUp
-    , scrollDown
+    , scroll
     , replaceBufferContents
     ) where
 
@@ -54,11 +53,8 @@ moveToLine n = do
     assign scrollPos (n - height `div` 2)
     updateScrollPos
 
-scrollUp :: State PagerState ()
-scrollUp = modifying scrollPos (subtract 1) >> updateScrollPos
-
-scrollDown :: State PagerState ()
-scrollDown = modifying scrollPos (+ 1) >> updateScrollPos
+scroll :: Int -> State PagerState ()
+scroll n = modifying scrollPos (+ n) >> updateScrollPos
 
 renderPager :: PagerState -> Image
 renderPager state =

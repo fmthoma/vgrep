@@ -68,11 +68,11 @@ eventHandler = mconcat
     keyUp    = do modifyWhen (has resultsFocused)
                              (zoom (results . widgetState) previousLine)
                   modifyWhen (has pagerFocused)
-                             (zoom (pager . widgetState) scrollUp)
+                             (zoom (pager . widgetState) (scroll (-1)))
     keyDown  = do modifyWhen (has resultsFocused)
                              (zoom (results . widgetState) nextLine)
                   modifyWhen (has pagerFocused)
-                             (zoom (pager . widgetState) scrollDown)
+                             (zoom (pager . widgetState) (scroll 1))
     keyEnter = modifyWhen (has resultsFocused) $ do
                   loadSelectedFileToPager
                   liftState moveToSelectedLineNumber
