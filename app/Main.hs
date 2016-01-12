@@ -68,17 +68,23 @@ eventHandler = exitOn (KChar 'q') []
                   zoom (currentRightWidget . widgetState) scrollUp
     keyDown  = do zoom (currentLeftWidget  . widgetState) nextLine
                   zoom (currentRightWidget . widgetState) scrollDown
-    keyEnter :: StateT MainWidget IO ()
-    keyEnter = do
-        Just fileName <- liftState (use (widgetState . leftWidget . currentFileName))
-        fileContent <- liftIO (T.readFile (T.unpack fileName))
-        liftState $ do
-            zoom widgetState focusRight
-            Just lineNumber <- use (widgetState . leftWidget . currentLineNumber)
-            zoom (currentRightWidget . widgetState) $ do
-                replaceBufferContents fileContent
-                moveToLine lineNumber
+    keyEnter = do loadSelectedFileToPager
+                  liftState moveToSelectedLineNumber
+                  liftState (zoom widgetState focusRight)
     keyEsc   = zoom widgetState focusLeft
+
+loadSelectedFileToPager :: StateT MainWidget IO ()
+loadSelectedFileToPager = zoom widgetState $ do
+    Just fileName <- liftState (use (leftWidget . currentFileName))
+    fileContent <- liftIO (T.readFile (T.unpack fileName))
+    liftState $ zoom (rightWidget . widgetState)
+                     (replaceBufferContents fileContent)
+
+moveToSelectedLineNumber :: State MainWidget ()
+moveToSelectedLineNumber = zoom widgetState $ do
+    Just lineNumber <- use (leftWidget . currentLineNumber)
+    zoom (rightWidget . widgetState) (moveToLine lineNumber)
+
 
 handleResizeEvent :: EventHandler MainWidget
 handleResizeEvent = mkEventHandler $ \event widget -> case event of
