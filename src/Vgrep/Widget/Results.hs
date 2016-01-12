@@ -14,6 +14,7 @@ module Vgrep.Widget.Results
 import Control.Lens ( Lens', Traversal', Getter
                     , over, view, views, to
                     , modifying, assign, use, uses, preuse
+                    , maximumOf
                     , _1, _2, _Just )
 import qualified Control.Lens as Lens
 import Control.Lens.TH
@@ -124,12 +125,11 @@ updateScrollPos = do
     current      <- computeCurrentItem
     firstVisible <- use scrollPos
     let lastVisible = firstVisible + height - 1
-    if | current < firstVisible
-         -> assign scrollPos (if current <= 1 then 0 else current)
-       | current > lastVisible
-         -> assign scrollPos (current - height + 1)
-       | otherwise -> return ()
-  where
+         -- show first file header even if it can't be selected
+    if | current <= 1           -> assign scrollPos 0
+       | current < firstVisible -> assign scrollPos current
+       | current > lastVisible  -> assign scrollPos (current - height + 1)
+       | otherwise              -> return ()
 
 computeCurrentItem :: State ResultsState Int
 computeCurrentItem = do
@@ -139,8 +139,9 @@ computeCurrentItem = do
     linesInCurrentFileBeforeCursor <- fmap (sum . fmap length)
                                            (use (currentFile' . linesAbove))
     return $ linesInFilesBeforeCurrent
-           + fileHeadersBeforeCurrent + 1
+           + fileHeadersBeforeCurrent + theHeaderOfTheCurrentFile
            + linesInCurrentFileBeforeCursor
+  where theHeaderOfTheCurrentFile = 1 :: Int
 
 
 drawResultList :: ResultsState -> Image
@@ -154,10 +155,14 @@ drawResultList state = resizeWidth width $
     pos    = view scrollPos state
     width  = regionWidth  (view region state)
     height = regionHeight (view region state)
-    lineNumberWidth = foldr max 0 $
-        views (allFiles . traverse . allLines . traverse . lineNumber)
-              ((:[]) . (+ 2) . maybe 0 (length . show))
-              state
+
+    lineNumberWidth = case bareWidth of Just w  -> w + twoExtraSpaces
+                                        Nothing -> 0
+      where
+        bareWidth = maximumOf ( allFiles . traverse . allLines . traverse
+                              . lineNumber . _Just . charCount ) state
+        charCount = to (length . show)
+        twoExtraSpaces = 2 :: Int
 
     fileHeaderStyle = defAttr `withBackColor` green
     lineNumberStyle = defAttr `withForeColor` brightBlack
