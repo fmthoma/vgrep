@@ -28,7 +28,6 @@ library
                      , attoparsec
                      , containers
                      , lens
-                     , mmorph
                      , mtl
                      , text
                      , unix
@@ -41,7 +40,6 @@ executable vgrep
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   build-depends:       base
                      , lens
-                     , mmorph
                      , mtl
                      , text
                      , unix
