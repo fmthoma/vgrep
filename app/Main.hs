@@ -2,6 +2,7 @@
 module Main where
 
 import Control.Monad.State
+import Control.Monad.State.Lift
 import Control.Lens
 import Data.Monoid
 import Data.Ratio
@@ -36,7 +37,7 @@ initSplitView vty = do
     inputLines <- readGrepOutput T.getContents
     displayRegion <- displayBounds (outputIface vty)
     let leftPager  = resultsWidget displayRegion inputLines
-        rightPager = pagerWidget (T.replicate 100 (T.pack "hello world\n")) displayRegion
+        rightPager = pagerWidget T.empty displayRegion
     displayRegion <- displayBounds (outputIface vty)
     return (hSplitWidget leftPager rightPager (2 % 3) displayRegion)
 
@@ -56,22 +57,28 @@ groupByFile input =
 eventHandler :: EventHandler MainWidget
 eventHandler = exitOn (KChar 'q') []
     <> handleResizeEvent
-    <> handleKey (KChar '\t') [] keyTab
-    <> handleKey KUp          [] keyUp
-    <> handleKey KDown        [] keyDown
-    <> handleKey KEnter       [] keyEnter
-    <> handleKey KEsc         [] keyEsc
+    <> handleKey   (KChar '\t') [] keyTab
+    <> handleKey   KUp          [] keyUp
+    <> handleKey   KDown        [] keyDown
+    <> handleKeyIO KEnter       [] keyEnter
+    <> handleKey   KEsc         [] keyEsc
   where
     keyTab   = zoom widgetState switchFocus
     keyUp    = do zoom (currentLeftWidget  . widgetState) previousLine
                   zoom (currentRightWidget . widgetState) scrollUp
     keyDown  = do zoom (currentLeftWidget  . widgetState) nextLine
                   zoom (currentRightWidget . widgetState) scrollDown
-    keyEnter = do zoom widgetState focusRight
-                  Just lineNumber <- use (widgetState . leftWidget . currentLineNumber)
-                  zoom (currentRightWidget . widgetState) (moveToLine lineNumber)
+    keyEnter :: StateT MainWidget IO ()
+    keyEnter = do
+        Just fileName <- liftState (use (widgetState . leftWidget . currentFileName))
+        fileContent <- liftIO (T.readFile (T.unpack fileName))
+        liftState $ do
+            zoom widgetState focusRight
+            Just lineNumber <- use (widgetState . leftWidget . currentLineNumber)
+            zoom (currentRightWidget . widgetState) $ do
+                replaceBufferContents fileContent
+                moveToLine lineNumber
     keyEsc   = zoom widgetState focusLeft
-
 
 handleResizeEvent :: EventHandler MainWidget
 handleResizeEvent = mkEventHandler $ \event widget -> case event of

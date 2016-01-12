@@ -6,6 +6,7 @@ module Vgrep.Widget.Pager ( PagerState()
                           , moveToLine
                           , scrollUp
                           , scrollDown
+                          , replaceBufferContents
                           ) where
 
 import Control.Lens
@@ -40,11 +41,15 @@ pagerWidget items region = Widget { _widgetState = initialPagerState items regio
 
 
 initialPagerState :: Text -> DisplayRegion-> PagerState
-initialPagerState items displayRegion =
-    PagerState { _buffer          = items
+initialPagerState lines displayRegion =
+    PagerState { _buffer          = lines
                , _scrollPos       = 0
                , _region          = displayRegion
                , _showLineNumbers = True }
+
+replaceBufferContents :: Text -> State PagerState ()
+replaceBufferContents lines = do assign buffer lines
+                                 assign scrollPos 0
 
 moveToLine :: Int -> State PagerState ()
 moveToLine n = do

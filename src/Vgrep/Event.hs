@@ -14,6 +14,7 @@ module Vgrep.Event ( EventHandler ()
 
 import Control.Applicative
 import Control.Monad.State
+import Control.Monad.State.Lift
 import Data.Monoid
 import Graphics.Vty as Vty
 
@@ -42,18 +43,18 @@ instance Monoid (Next s) where
     next      `mappend` _    = next
 
 
-handleKeyIO :: Key -> [Modifier] -> State s (IO ()) -> EventHandler s
+handleKeyIO :: Key -> [Modifier] -> StateT s IO () -> EventHandler s
 handleKeyIO key modifiers action =
     mkEventHandlerIO (_handleKey key modifiers action)
 
 handleKey :: Key -> [Modifier] -> State s () -> EventHandler s
 handleKey key modifiers action =
-    mkEventHandlerIO (_handleKey key modifiers (fmap pure action))
+    mkEventHandlerIO (_handleKey key modifiers (liftState action))
 
-_handleKey :: Key -> [Modifier] -> State s (IO ()) -> Event -> s -> Next (IO s)
+_handleKey :: Key -> [Modifier] -> StateT s IO () -> Event -> s -> Next (IO s)
 _handleKey key modifiers action event state = case event of
     EvKey k ms | k == key && ms == modifiers
-        -> (Continue . pure . execState action) state
+        -> (Continue . execStateT action) state
     _   -> Unchanged
 
 handleResize :: (DisplayRegion -> State s ()) -> EventHandler s
