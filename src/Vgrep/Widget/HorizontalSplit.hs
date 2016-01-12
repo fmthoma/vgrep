@@ -14,13 +14,10 @@ module Vgrep.Widget.HorizontalSplit ( HSplitState()
                                     ) where
 
 import Control.Lens
-import Control.Lens.TH
-import Control.Monad.State
-import Data.Monoid
-import Graphics.Vty hiding (resize)
-import Graphics.Vty.Prelude
+import Control.Monad
+import Control.Monad.State (State, execState)
+import Graphics.Vty (Image, DisplayRegion, (<|>))
 
-import Vgrep.Event
 import Vgrep.Widget.Type
 
 
@@ -65,9 +62,9 @@ hSplitWidget :: Widget s
              -> Rational
              -> DisplayRegion
              -> HSplitWidget (Widget s) (Widget t)
-hSplitWidget left right ratio region =
-    Widget { _widgetState = initState left right ratio region
-           , _dimensions  = region
+hSplitWidget left right initialRatio initialRegion =
+    Widget { _widgetState = initState left right initialRatio initialRegion
+           , _dimensions  = initialRegion
            , _resize      = resizeWidgets
            , _draw        = drawWidgets }
 
@@ -76,11 +73,12 @@ initState :: Widget s
           -> Rational
           -> DisplayRegion
           -> HSplitState (Widget s) (Widget t)
-initState left right ratio region = execState (resizeWidgets region) $
-    State { _widgets = (left, right)
-          , _focused = FocusLeft
-          , _ratio   = ratio
-          , _region  = region }
+initState left right initialRatio initialRegion =
+    execState (resizeWidgets initialRegion) $
+        State { _widgets = (left, right)
+              , _focused = FocusLeft
+              , _ratio   = initialRatio
+              , _region  = initialRegion }
 
 
 focusLeft :: State (HSplitState (Widget s) (Widget t)) ()

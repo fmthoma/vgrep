@@ -11,30 +11,27 @@ module Vgrep.Widget.Results ( ResultsState()
                             ) where
 
 import Control.Lens ( Lens', Traversal', Getter
-                    , over     , set,    view, views, preview
-                    , modifying, assign, use,  uses,  preuse
-                    , _1, _2, _Just
-                    , (&), to )
+                    , over, view, views, to
+                    , modifying, assign, use, uses, preuse
+                    , _1, _2, _Just )
 import qualified Control.Lens as Lens
 import Control.Lens.TH
-import Control.Monad.State
+import Control.Monad.State (State)
 import Data.Foldable
 import Data.Maybe
 import Data.Monoid
-import Data.Sequence (Seq, ViewL(..), ViewR(..), (><), (|>), (<|))
+import Data.Sequence (Seq, ViewL(..), ViewR(..), (<|))
 import qualified Data.Sequence as Seq
 import Data.Sequence.Lens
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 import Graphics.Vty
 import Graphics.Vty.Prelude
-import Prelude hiding (lines)
+import Prelude
 
 import Vgrep.Widget.Type
-import Vgrep.Event
 
-data Buffer a = Buffer { _size :: !Int
-                       , _pre  :: !(Seq a)
+data Buffer a = Buffer { _pre  :: !(Seq a)
                        , _cur  :: !(Maybe a)
                        , _post :: !(Seq a) }
 
@@ -57,27 +54,26 @@ type ResultsWidget = Widget ResultsState
 resultsWidget :: DisplayRegion
               -> [(Text, [Line])]
               -> ResultsWidget
-resultsWidget dimensions files =
-    Widget { _widgetState = initState files dimensions
-           , _dimensions  = dimensions
+resultsWidget initialDimensions fileResults =
+    Widget { _widgetState = initState fileResults initialDimensions
+           , _dimensions  = initialDimensions
            , _resize      = resizeToRegion
            , _draw        = drawResultList }
 
 initBuffer :: [a] -> Buffer a
-initBuffer as = Buffer { _size = length as
-                       , _pre  = Seq.empty
+initBuffer as = Buffer { _pre  = Seq.empty
                        , _cur  = listToMaybe as
                        , _post = Seq.fromList (drop 1 as) }
 
 initState :: [(Text, [Line])]
           -> DisplayRegion
           -> ResultsState
-initState files dimensions =
+initState fileResults initialDimensions =
     State { _files     = buffer
           , _scrollPos = 0
-          , _region    = dimensions }
+          , _region    = initialDimensions }
   where
-    buffer = (initBuffer . map (over _2 initBuffer)) files
+    buffer = (initBuffer . map (over _2 initBuffer)) fileResults
 
 
 previousLine :: State ResultsState ()
@@ -87,7 +83,7 @@ previousLine = preuse (currentFile' . linesAbove . viewR) >>= \case
     Just (pls :> pl) -> do cl <- uses (currentFile' . currentLine) asSeq
                            assign    (currentFile' . linesAbove) pls
                            assign    (currentFile' . currentLine) (Just pl)
-                           modifying (currentFile' . linesBelow) (cl ><)
+                           modifying (currentFile' . linesBelow) (cl <>)
                            updateScrollPos
 
 previousFile :: State ResultsState ()
@@ -97,7 +93,7 @@ previousFile = preuse (filesAbove . viewR) >>= \case
     Just (pfs :> pf) -> do cf <- uses currentFile asSeq
                            assign filesAbove pfs
                            assign currentFile (Just pf)
-                           modifying filesBelow (cf ><)
+                           modifying filesBelow (cf <>)
                            updateScrollPos
 
 nextLine :: State ResultsState ()
@@ -105,7 +101,7 @@ nextLine = preuse (currentFile' . linesBelow . viewL) >>= \case
     Nothing        -> return ()
     Just EmptyL    -> nextFile
     Just (nl :< nls) -> do cl <- uses (currentFile' . currentLine) asSeq
-                           modifying (currentFile' . linesAbove) (>< cl)
+                           modifying (currentFile' . linesAbove) (<> cl)
                            assign    (currentFile' . currentLine) (Just nl)
                            assign    (currentFile' . linesBelow) nls
                            updateScrollPos
@@ -115,7 +111,7 @@ nextFile = preuse (filesBelow . viewL) >>= \case
     Nothing        -> return ()
     Just EmptyL    -> return ()
     Just (nf :< nfs) -> do cf <- uses currentFile asSeq
-                           modifying filesAbove (>< cf)
+                           modifying filesAbove (<> cf)
                            assign currentFile (Just nf)
                            assign filesBelow nfs
                            updateScrollPos
@@ -151,8 +147,8 @@ drawResultList state = resizeWidth width $
     fold . Seq.take height
          . Seq.drop pos
          $  foldMap (drawFileResults False) (view      filesAbove  state)
-         >< foldMap (drawFileResults True)  (viewAsSeq currentFile state)
-         >< foldMap (drawFileResults False) (view      filesBelow  state)
+         <> foldMap (drawFileResults True)  (viewAsSeq currentFile state)
+         <> foldMap (drawFileResults False) (view      filesBelow  state)
   where
     pos    = view scrollPos state
     width  = regionWidth  (view region state)
@@ -183,8 +179,8 @@ drawResultList state = resizeWidth width $
     drawLinePreviews :: Bool -> FileResults -> Seq Image
     drawLinePreviews current results =
            fmap (drawLinePreview False)   (view      linesAbove  results)
-        >< fmap (drawLinePreview current) (viewAsSeq currentLine results)
-        >< fmap (drawLinePreview False)   (view      linesBelow  results)
+        <> fmap (drawLinePreview current) (viewAsSeq currentLine results)
+        <> fmap (drawLinePreview False)   (view      linesBelow  results)
 
     drawLinePreview :: Bool -> Line -> Image
     drawLinePreview current = text style
@@ -196,8 +192,8 @@ drawResultList state = resizeWidth width $
     drawLineNumbers :: FileResults -> Seq Image
     drawLineNumbers results = fmap drawLineNumber
         $  view      linesAbove  results
-        >< viewAsSeq currentLine results
-        >< view      linesBelow  results
+        <> viewAsSeq currentLine results
+        <> view      linesBelow  results
 
     drawLineNumber :: Line -> Image
     drawLineNumber = string lineNumberStyle
@@ -233,14 +229,11 @@ currentFile' = files . cur . _Just
 
 allFiles :: Getter ResultsState (Seq FileResults)
 allFiles = to $ \state -> view      filesAbove state
-                       >< viewAsSeq currentFile state
-                       >< view      filesBelow  state
+                       <> viewAsSeq currentFile state
+                       <> view      filesBelow  state
 
 fileName :: Lens' FileResults Text
 fileName = _1
-
-lines :: Lens' FileResults (Buffer Line)
-lines = _2
 
 linesAbove :: Lens' FileResults (Seq Line)
 linesAbove = _2 . pre
@@ -256,8 +249,8 @@ currentLine' = _2 . cur . _Just
 
 allLines :: Getter FileResults (Seq Line)
 allLines = to $ \results -> view      linesAbove  results
-                         >< viewAsSeq currentLine results
-                         >< view      linesBelow  results
+                         <> viewAsSeq currentLine results
+                         <> view      linesBelow  results
 
 lineNumber :: Lens' Line LineNumber
 lineNumber = _1

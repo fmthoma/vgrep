@@ -4,7 +4,6 @@ module Main where
 import Control.Monad.State
 import Control.Monad.State.Lift
 import Control.Lens
-import Control.Lens.Extras
 import Data.Monoid
 import Data.Ratio
 import Data.Text.Lazy (Text)
@@ -36,11 +35,10 @@ app = App { _initialize  = initSplitView
 initSplitView :: Vty -> IO MainWidget
 initSplitView vty = do
     inputLines <- readGrepOutput T.getContents
-    displayRegion <- displayBounds (outputIface vty)
-    let leftPager  = resultsWidget displayRegion inputLines
-        rightPager = pagerWidget T.empty displayRegion
-    displayRegion <- displayBounds (outputIface vty)
-    return (hSplitWidget leftPager rightPager (2 % 3) displayRegion)
+    bounds <- displayBounds (outputIface vty)
+    let leftPager  = resultsWidget bounds inputLines
+        rightPager = pagerWidget T.empty bounds
+    return (hSplitWidget leftPager rightPager (2 % 3) bounds)
 
 readGrepOutput :: Functor f => f Text -> f [(Text, [(Maybe Int, Text)])]
 readGrepOutput = fmap (groupByFile . parseGrepOutput . T.lines)
@@ -52,7 +50,7 @@ groupByFile [] = []
 groupByFile input =
     let (file, _, _) = head input
         (resultsInSameFile, rest) = span (\(f, _, _) -> f == file) input
-    in  (file, map (\(a,b,c) -> (b,c)) resultsInSameFile) : groupByFile rest
+    in  (file, map (\(_a,b,c) -> (b,c)) resultsInSameFile) : groupByFile rest
 
 
 ---------------------------------------------------------------------------

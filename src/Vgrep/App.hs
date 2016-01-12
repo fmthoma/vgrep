@@ -2,8 +2,8 @@
 module Vgrep.App where
 
 import Control.Lens
-import Control.Lens.TH
-import Graphics.Vty as Vty
+import Graphics.Vty (Vty, Config(..))
+import qualified Graphics.Vty as Vty
 import System.Posix
 
 import Vgrep.Event
@@ -19,15 +19,15 @@ runApp app = do
     vty <- initVty
     initialState <- (view initialize app) vty
     finalState <- eventLoop vty app initialState
-    shutdown vty
+    Vty.shutdown vty
     return finalState
 
 initVty :: IO Vty
 initVty = do
-    cfg <- standardIOConfig
+    cfg <- Vty.standardIOConfig
     ttyIn  <- openFd "/dev/tty" ReadOnly  Nothing defaultFileFlags
     ttyOut <- openFd "/dev/tty" WriteOnly Nothing defaultFileFlags
-    mkVty (cfg { inputFd = Just ttyIn , outputFd = Just ttyOut })
+    Vty.mkVty (cfg { inputFd = Just ttyIn , outputFd = Just ttyOut })
 
 eventLoop :: Vty -> App s -> s -> IO s
 eventLoop vty app initialState = do
@@ -35,13 +35,13 @@ eventLoop vty app initialState = do
     runLoop initialState
   where
     runLoop currentState = do
-        event <- nextEvent vty
-        let next = handle (view handleEvent app) event currentState
+        event <- Vty.nextEvent vty
+        let next = handle handleAppEvent event currentState
         case next of
             Unchanged         -> runLoop currentState
             Halt     newState -> newState
             Continue newState -> do refresh =<< newState
                                     runLoop =<< newState
-    refresh currentState = update vty (renderApp currentState)
+    refresh currentState = Vty.update vty (renderApp currentState)
     renderApp = view render app
     handleAppEvent = view handleEvent app

@@ -12,8 +12,7 @@ module Vgrep.Event ( EventHandler ()
                    , exitOn
                    ) where
 
-import Control.Applicative
-import Control.Monad.State
+import Control.Monad.State (State, StateT, execState, execStateT)
 import Control.Monad.State.Lift
 import Data.Monoid
 import Graphics.Vty as Vty

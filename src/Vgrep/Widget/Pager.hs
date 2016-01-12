@@ -10,22 +10,18 @@ module Vgrep.Widget.Pager ( PagerState()
                           ) where
 
 import Control.Lens
-import Control.Lens.TH
-import Control.Monad.State
+import Control.Monad.State (State)
 import Data.Foldable
-import Data.Monoid
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 import Graphics.Vty
 import Graphics.Vty.Prelude
 
-import Vgrep.Event
 import Vgrep.Widget.Type
 
 data PagerState = PagerState { _buffer          :: Text
                              , _scrollPos       :: Int
-                             , _region          :: DisplayRegion
-                             , _showLineNumbers :: Bool }
+                             , _region          :: DisplayRegion }
 
 makeLenses ''PagerState
 
@@ -34,22 +30,22 @@ type PagerWidget = Widget PagerState
 pagerWidget :: Text
             -> DisplayRegion
             -> PagerWidget
-pagerWidget items region = Widget { _widgetState = initialPagerState items region
-                                  , _dimensions  = region
-                                  , _resize      = resizeToRegion
-                                  , _draw        = renderPager }
+pagerWidget items initialRegion =
+    Widget { _widgetState = initialPagerState items initialRegion
+           , _dimensions  = initialRegion
+           , _resize      = resizeToRegion
+           , _draw        = renderPager }
 
 
 initialPagerState :: Text -> DisplayRegion-> PagerState
-initialPagerState lines displayRegion =
-    PagerState { _buffer          = lines
+initialPagerState initialLines initialRegion =
+    PagerState { _buffer          = initialLines
                , _scrollPos       = 0
-               , _region          = displayRegion
-               , _showLineNumbers = True }
+               , _region          = initialRegion }
 
 replaceBufferContents :: Text -> State PagerState ()
-replaceBufferContents lines = do assign buffer lines
-                                 assign scrollPos 0
+replaceBufferContents newContent = do assign buffer newContent
+                                      assign scrollPos 0
 
 moveToLine :: Int -> State PagerState ()
 moveToLine n = do
@@ -85,7 +81,7 @@ renderPager state =
                        . take (min height (linesCount - currentPosition))
                        . drop currentPosition
                        . fmap (padWithSpace . show)
-                       $ [1..]
+                       $ [1 :: Int ..]
 
     padWithSpace s = ' ' : s ++ " "
 

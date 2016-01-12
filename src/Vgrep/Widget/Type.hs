@@ -2,7 +2,6 @@
 module Vgrep.Widget.Type where
 
 import Control.Lens
-import Control.Lens.TH
 import Control.Monad.State
 import Graphics.Vty hiding (resize)
 
