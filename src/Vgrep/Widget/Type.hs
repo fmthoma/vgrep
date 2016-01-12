@@ -22,3 +22,8 @@ resizeWidget :: DisplayRegion -> State (Widget s) ()
 resizeWidget newRegion = do
     resizeTo <- use resize
     zoom widgetState (resizeTo newRegion)
+
+handleResizeEvent :: EventHandler (Widget s)
+handleResizeEvent = mkEventHandler $ \event widget -> case event of
+    EvResize w h -> Continue (execState (resizeWidget (w, h)) widget)
+    _            -> Unchanged

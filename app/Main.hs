@@ -4,6 +4,7 @@ module Main where
 import Control.Monad.State
 import Control.Monad.State.Lift
 import Control.Lens
+import Control.Lens.Extras
 import Data.Monoid
 import Data.Ratio
 import Data.Text.Lazy (Text)
@@ -54,6 +55,9 @@ groupByFile input =
     in  (file, map (\(a,b,c) -> (b,c)) resultsInSameFile) : groupByFile rest
 
 
+---------------------------------------------------------------------------
+-- Events
+
 eventHandler :: EventHandler MainWidget
 eventHandler = exitOn (KChar 'q') []
     <> handleResizeEvent
@@ -64,14 +68,20 @@ eventHandler = exitOn (KChar 'q') []
     <> handleKey   KEsc         [] keyEsc
   where
     keyTab   = zoom widgetState switchFocus
-    keyUp    = do zoom (leftWidgetFocused  . widgetState) previousLine
-                  zoom (rightWidgetFocused . widgetState) scrollUp
-    keyDown  = do zoom (leftWidgetFocused  . widgetState) nextLine
-                  zoom (rightWidgetFocused . widgetState) scrollDown
-    keyEnter = do loadSelectedFileToPager
+    keyUp    = do modifyWhen (has resultsFocused)
+                             (zoom (results . widgetState) previousLine)
+                  modifyWhen (has pagerFocused)
+                             (zoom (pager . widgetState) scrollUp)
+    keyDown  = do modifyWhen (has resultsFocused)
+                             (zoom (results . widgetState) nextLine)
+                  modifyWhen (has pagerFocused)
+                             (zoom (pager . widgetState) scrollDown)
+    keyEnter = modifyWhen (has resultsFocused) $ do
+                  loadSelectedFileToPager
                   liftState moveToSelectedLineNumber
                   liftState (zoom widgetState focusRight)
-    keyEsc   = zoom widgetState focusLeft
+    keyEsc   = modifyWhen (has pagerFocused)
+                  (zoom widgetState focusLeft)
 
 loadSelectedFileToPager :: StateT MainWidget IO ()
 loadSelectedFileToPager = zoom widgetState $ do
@@ -85,8 +95,25 @@ moveToSelectedLineNumber = zoom widgetState $ do
     Just lineNumber <- use (leftWidget . currentLineNumber)
     zoom (rightWidget . widgetState) (moveToLine lineNumber)
 
+modifyWhen :: MonadState s m => (s -> Bool) -> m () -> m ()
+modifyWhen predicate action = do
+    condition <- fmap predicate get
+    when condition action
 
-handleResizeEvent :: EventHandler MainWidget
-handleResizeEvent = mkEventHandler $ \event widget -> case event of
-    EvResize w h -> Continue (execState (resizeWidget (w, h)) widget)
-    _            -> Unchanged
+
+---------------------------------------------------------------------------
+-- Lenses
+
+results :: Lens' MainWidget ResultsWidget
+results = widgetState . leftWidget
+
+pager :: Lens' MainWidget PagerWidget
+pager = widgetState . rightWidget
+
+
+
+resultsFocused :: Traversal' MainWidget ResultsWidget
+resultsFocused = leftWidgetFocused
+
+pagerFocused :: Traversal' MainWidget PagerWidget
+pagerFocused = rightWidgetFocused
