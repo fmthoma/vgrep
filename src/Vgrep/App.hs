@@ -39,8 +39,9 @@ eventLoop vty app initialState = do
         let next = handle (view handleEvent app) event currentState
         case next of
             Unchanged         -> runLoop currentState
-            Halt     newState -> return newState
-            Continue newState -> refresh newState >> runLoop newState
+            Halt     newState -> newState
+            Continue newState -> do refresh =<< newState
+                                    runLoop =<< newState
     refresh currentState = update vty (renderApp currentState)
     renderApp = view render app
     handleAppEvent = view handleEvent app
