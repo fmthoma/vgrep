@@ -61,7 +61,7 @@ scrollDown = modifying scrollPos (+ 1) >> updateScrollPos
 
 renderPager :: PagerState -> Image
 renderPager state =
-    resizeWidth width $ (lineNumbers <|> textLines)
+    resizeWidth width (lineNumbers <|> textLines)
   where
     width  = regionWidth  (view region state)
     height = regionHeight (view region state)

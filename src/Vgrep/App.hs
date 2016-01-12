@@ -1,6 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Vgrep.App where
 
+import Control.Exception (bracket)
 import Control.Lens
 import Graphics.Vty (Vty, Config(..))
 import qualified Graphics.Vty as Vty
@@ -15,12 +16,9 @@ data App s = App { _initialize  :: Vty -> IO s
 makeLenses ''App
 
 runApp :: App s -> IO s
-runApp app = do
-    vty <- initVty
+runApp app = bracket initVty Vty.shutdown $ \vty -> do
     initialState <- (view initialize app) vty
-    finalState <- eventLoop vty app initialState
-    Vty.shutdown vty
-    return finalState
+    eventLoop vty app initialState
 
 initVty :: IO Vty
 initVty = do
@@ -32,16 +30,16 @@ initVty = do
 eventLoop :: Vty -> App s -> s -> IO s
 eventLoop vty app initialState = do
     refresh initialState
-    runLoop initialState
+    loop initialState
   where
-    runLoop currentState = do
+    loop currentState = do
         event <- Vty.nextEvent vty
         let next = handle handleAppEvent event currentState
         case next of
-            Unchanged         -> runLoop currentState
+            Unchanged         -> loop currentState
             Halt     newState -> newState
             Continue newState -> do refresh =<< newState
-                                    runLoop =<< newState
+                                    loop =<< newState
     refresh currentState = Vty.update vty (renderApp currentState)
     renderApp = view render app
     handleAppEvent = view handleEvent app

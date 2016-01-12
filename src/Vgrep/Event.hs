@@ -21,15 +21,14 @@ newtype EventHandler s = EventHandler
                          { handle :: Event -> s -> Next (IO s) }
 
 mkEventHandler :: (Event -> s -> Next s) -> EventHandler s
-mkEventHandler = EventHandler . fmap (fmap (fmap pure))
+mkEventHandler f = EventHandler $ \e s -> fmap pure (f e s)
 
 mkEventHandlerIO :: (Event -> s -> Next (IO s)) -> EventHandler s
 mkEventHandlerIO = EventHandler
 
 instance Monoid (EventHandler s) where
     mempty = EventHandler $ \_ _ -> Unchanged
-    h1 `mappend` h2 = EventHandler $ \state event ->
-        handle h1 state event <> handle h2 state event
+    h1 `mappend` h2 = EventHandler (handle h1 <> handle h2)
 
 data Next s = Continue s
             | Halt s
@@ -52,16 +51,16 @@ handleKey key modifiers action =
 
 _handleKey :: Key -> [Modifier] -> StateT s IO () -> Event -> s -> Next (IO s)
 _handleKey key modifiers action event state = case event of
-    EvKey k ms | k == key && ms == modifiers
-        -> (Continue . execStateT action) state
-    _   -> Unchanged
+    EvKey k ms | (k, ms) == (key, modifiers)
+                -> (Continue . execStateT action) state
+    _otherwise  -> Unchanged
 
 handleResize :: (DisplayRegion -> State s ()) -> EventHandler s
 handleResize action = mkEventHandler $ \event state -> case event of
-    EvResize w h -> (Continue . execState (action (w, h))) state
-    _            -> Unchanged
+    EvResize w h -> Continue (execState (action (w, h)) state)
+    _otherwise   -> Unchanged
 
 exitOn :: Key -> [Modifier] -> EventHandler s
 exitOn key modifiers = mkEventHandler $ \event state -> case event of
     EvKey k ms | k == key && ms == modifiers -> Halt state
-    _                                        -> Unchanged
+    _otherwise                               -> Unchanged

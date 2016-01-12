@@ -204,7 +204,7 @@ drawResultList state = resizeWidth width $
     justifyRight w s = replicate (w - length s - 1) ' ' ++ s ++ " "
 
 resizeToRegion :: DisplayRegion -> State ResultsState ()
-resizeToRegion newRegion = assign region newRegion >> updateScrollPos 
+resizeToRegion newRegion = assign region newRegion >> updateScrollPos
 
 ---------------------------------------------------------------------------
 -- Lenses and Utilities

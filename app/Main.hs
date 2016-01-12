@@ -1,10 +1,9 @@
 {-# LANGUAGE DisambiguateRecordFields #-}
-module Main where
+module Main (main) where
 
 import Control.Monad.State
 import Control.Monad.State.Lift
 import Control.Lens
-import Data.Monoid
 import Data.Ratio
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
@@ -19,10 +18,8 @@ import Vgrep.Widget.HorizontalSplit
 import Vgrep.Widget.Pager
 import Vgrep.Widget.Results
 
-main :: IO ()
-main = do
-    _finalState <- runApp app
-    return ()
+main :: IO MainWidget
+main = runApp app
 
 
 type MainWidget = HSplitWidget ResultsWidget PagerWidget
@@ -43,7 +40,7 @@ initSplitView vty = do
 readGrepOutput :: Functor f => f Text -> f [(Text, [(Maybe Int, Text)])]
 readGrepOutput = fmap (groupByFile . parseGrepOutput . T.lines)
 
--- | Assumption: Input is already grouped by file. Without this assumption
+-- | Input should already be grouped by file. Without this assumption
 -- we would have to strictly traverse the entire input.
 groupByFile :: [(Text, Maybe Int, Text)] -> [(Text, [(Maybe Int, Text)])]
 groupByFile [] = []
@@ -57,15 +54,16 @@ groupByFile input =
 -- Events
 
 eventHandler :: EventHandler MainWidget
-eventHandler = exitOn (KChar 'q') []
-    <> handleResizeEvent
-    <> handleKey   (KChar '\t') [] keyTab
-    <> handleKey   KUp          [] keyUp
-    <> handleKey   (KChar 'k')  [] keyUp
-    <> handleKey   KDown        [] keyDown
-    <> handleKey   (KChar 'j')  [] keyDown
-    <> handleKeyIO KEnter       [] keyEnter
-    <> handleKey   KEsc         [] keyEsc
+eventHandler = mconcat
+    [ exitOn (KChar 'q') []
+    , handleResizeEvent
+    , handleKey   (KChar '\t') [] keyTab
+    , handleKey   KUp          [] keyUp
+    , handleKey   (KChar 'k')  [] keyUp
+    , handleKey   KDown        [] keyDown
+    , handleKey   (KChar 'j')  [] keyDown
+    , handleKeyIO KEnter       [] keyEnter
+    , handleKey   KEsc         [] keyEsc ]
   where
     keyTab   = zoom widgetState switchFocus
     keyUp    = do modifyWhen (has resultsFocused)
@@ -92,8 +90,8 @@ loadSelectedFileToPager = zoom widgetState $ do
 
 moveToSelectedLineNumber :: State MainWidget ()
 moveToSelectedLineNumber = zoom widgetState $ do
-    Just lineNumber <- use (leftWidget . currentLineNumber)
-    zoom (rightWidget . widgetState) (moveToLine lineNumber)
+    lineNumber <- use (leftWidget . currentLineNumber)
+    zoom (rightWidget . widgetState) (moveToLine (maybe 0 id lineNumber))
 
 modifyWhen :: MonadState s m => (s -> Bool) -> m () -> m ()
 modifyWhen predicate action = do
