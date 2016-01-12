@@ -13,8 +13,9 @@ module Vgrep.Event
     , exitOn
     ) where
 
-import Control.Monad.State (State, StateT, execState, execStateT)
-import Control.Monad.State.Lift
+import Control.Monad.State.Extended ( State, StateT
+                                    , execState, execStateT
+                                    , liftState )
 import Data.Monoid
 import Graphics.Vty as Vty
 

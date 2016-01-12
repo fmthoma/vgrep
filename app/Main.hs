@@ -1,7 +1,6 @@
 module Main (main) where
 
-import Control.Monad.State
-import Control.Monad.State.Lift
+import Control.Monad.State.Extended
 import Control.Lens
 import Data.Ratio
 import Data.Text.Lazy (Text)

@@ -1,4 +1,7 @@
-module Control.Monad.State.Lift where
+module Control.Monad.State.Extended
+    ( module Control.Monad.State
+    , liftState
+    ) where
 
 import Control.Monad.State
 

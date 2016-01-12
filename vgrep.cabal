@@ -16,7 +16,7 @@ cabal-version:       >=1.10
 library
   hs-source-dirs:      src
   ghc-options:         -Wall
-  exposed-Modules:     Control.Monad.State.Lift
+  exposed-Modules:     Control.Monad.State.Extended
                      , Vgrep.App
                      , Vgrep.Event
                      , Vgrep.Parser
