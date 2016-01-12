@@ -6,6 +6,7 @@ module Vgrep.Widget.Pager
 
     , moveToLine
     , scroll
+    , scrollPage
     , replaceBufferContents
     ) where
 
@@ -55,6 +56,11 @@ moveToLine n = do
 
 scroll :: Int -> State PagerState ()
 scroll n = modifying scrollPos (+ n) >> updateScrollPos
+
+scrollPage :: Int -> State PagerState ()
+scrollPage n = do height <- uses region regionHeight
+                  scroll (n * (height - 1))
+                -- gracefully leave one ^ line on the screen
 
 renderPager :: PagerState -> Image
 renderPager state =
