@@ -14,11 +14,11 @@ module Vgrep.Widget.Results
 import Control.Lens ( Lens', Traversal', Getter
                     , over, view, views, to
                     , modifying, assign, use, uses, preuse
-                    , maximumOf
+                    , maximumOf, lengthOf
                     , _1, _2, _Just )
 import qualified Control.Lens as Lens
 import Control.Lens.TH
-import Control.Monad.State (State)
+import Control.Monad.State (State, gets)
 import Data.Foldable
 import Data.Maybe
 import Data.Monoid
@@ -134,10 +134,10 @@ updateScrollPos = do
 computeCurrentItem :: State ResultsState Int
 computeCurrentItem = do
     fileHeadersBeforeCurrent <- use (filesAbove . to length)
-    linesInFilesBeforeCurrent <- fmap (sum . fmap length)
-                                      (use (filesAbove . traverse . allLines))
-    linesInCurrentFileBeforeCursor <- fmap (sum . fmap length)
-                                           (use (currentFile' . linesAbove))
+    linesInFilesBeforeCurrent
+        <- gets (lengthOf (filesAbove . traverse . allLines . traverse))
+    linesInCurrentFileBeforeCursor
+        <- gets (lengthOf (currentFile' . linesAbove . traverse))
     return $ linesInFilesBeforeCurrent
            + fileHeadersBeforeCurrent + theHeaderOfTheCurrentFile
            + linesInCurrentFileBeforeCursor
