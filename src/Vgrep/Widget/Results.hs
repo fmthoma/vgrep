@@ -135,11 +135,11 @@ computeCurrentItem :: State ResultsState Int
 computeCurrentItem = do
     fileHeadersBeforeCurrent <- use (filesAbove . to length)
     linesInFilesBeforeCurrent <- fmap (sum . fmap length)
-                                      (use (filesAbove . traverse . linesAbove))
+                                      (use (filesAbove . traverse . allLines))
     linesInCurrentFileBeforeCursor <- fmap (sum . fmap length)
                                            (use (currentFile' . linesAbove))
     return $ linesInFilesBeforeCurrent
-           + 2 * fileHeadersBeforeCurrent + 1
+           + fileHeadersBeforeCurrent + 1
            + linesInCurrentFileBeforeCursor
 
 
