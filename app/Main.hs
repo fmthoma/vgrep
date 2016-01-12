@@ -63,7 +63,9 @@ eventHandler = exitOn (KChar 'q') []
     <> handleResizeEvent
     <> handleKey   (KChar '\t') [] keyTab
     <> handleKey   KUp          [] keyUp
+    <> handleKey   (KChar 'k')  [] keyUp
     <> handleKey   KDown        [] keyDown
+    <> handleKey   (KChar 'j')  [] keyDown
     <> handleKeyIO KEnter       [] keyEnter
     <> handleKey   KEsc         [] keyEsc
   where
