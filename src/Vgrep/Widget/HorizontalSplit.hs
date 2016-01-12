@@ -1,17 +1,18 @@
 {-# LANGUAGE Rank2Types, TemplateHaskell #-}
-module Vgrep.Widget.HorizontalSplit ( HSplitState()
-                                    , HSplitWidget
-                                    , hSplitWidget
+module Vgrep.Widget.HorizontalSplit
+    ( HSplitState ()
+    , HSplitWidget
+    , hSplitWidget
 
-                                    , leftWidget
-                                    , rightWidget
-                                    , currentWidget
-                                    , leftWidgetFocused
-                                    , rightWidgetFocused
-                                    , focusLeft
-                                    , focusRight
-                                    , switchFocus
-                                    ) where
+    , leftWidget
+    , rightWidget
+    , currentWidget
+    , leftWidgetFocused
+    , rightWidgetFocused
+    , focusLeft
+    , focusRight
+    , switchFocus
+    ) where
 
 import Control.Lens
 import Control.Monad

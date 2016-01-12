@@ -1,4 +1,3 @@
-{-# LANGUAGE DisambiguateRecordFields #-}
 module Main (main) where
 
 import Control.Monad.State

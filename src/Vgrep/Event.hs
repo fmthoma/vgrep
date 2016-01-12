@@ -1,16 +1,17 @@
 {-# LANGUAGE DeriveFunctor #-}
-module Vgrep.Event ( EventHandler ()
-                   , mkEventHandler
-                   , mkEventHandlerIO
+module Vgrep.Event
+    ( EventHandler ()
+    , mkEventHandler
+    , mkEventHandlerIO
 
-                   , Next(..)
+    , Next(..)
 
-                   , handle
-                   , handleKey
-                   , handleKeyIO
-                   , handleResize
-                   , exitOn
-                   ) where
+    , handle
+    , handleKey
+    , handleKeyIO
+    , handleResize
+    , exitOn
+    ) where
 
 import Control.Monad.State (State, StateT, execState, execStateT)
 import Control.Monad.State.Lift

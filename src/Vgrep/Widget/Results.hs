@@ -1,14 +1,15 @@
-{-# LANGUAGE LambdaCase, Rank2Types, TemplateHaskell, DisambiguateRecordFields, MultiWayIf #-}
-module Vgrep.Widget.Results ( ResultsState()
-                            , ResultsWidget
-                            , resultsWidget
+{-# LANGUAGE LambdaCase, Rank2Types, TemplateHaskell, MultiWayIf #-}
+module Vgrep.Widget.Results
+    ( ResultsState ()
+    , ResultsWidget
+    , resultsWidget
 
-                            , previousLine
-                            , nextLine
+    , previousLine
+    , nextLine
 
-                            , currentFileName
-                            , currentLineNumber
-                            ) where
+    , currentFileName
+    , currentLineNumber
+    ) where
 
 import Control.Lens ( Lens', Traversal', Getter
                     , over, view, views, to

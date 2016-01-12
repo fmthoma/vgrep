@@ -1,5 +1,6 @@
-module Vgrep.Parser ( parseGrepOutput
-                    ) where
+module Vgrep.Parser
+    ( parseGrepOutput
+    ) where
 
 import Control.Applicative
 import Data.Attoparsec.Text.Lazy

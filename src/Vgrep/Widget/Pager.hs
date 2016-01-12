@@ -1,13 +1,14 @@
 {-# LANGUAGE MultiWayIf, TemplateHaskell #-}
-module Vgrep.Widget.Pager ( PagerState()
-                          , PagerWidget
-                          , pagerWidget
+module Vgrep.Widget.Pager
+    ( PagerState ()
+    , PagerWidget
+    , pagerWidget
 
-                          , moveToLine
-                          , scrollUp
-                          , scrollDown
-                          , replaceBufferContents
-                          ) where
+    , moveToLine
+    , scrollUp
+    , scrollDown
+    , replaceBufferContents
+    ) where
 
 import Control.Lens
 import Control.Monad.State (State)
