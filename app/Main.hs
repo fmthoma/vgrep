@@ -57,23 +57,23 @@ eventHandler = mconcat
     , handleKey   KEsc         [] keyEsc ]
   where
     keyTab   = zoom widgetState switchFocus
-    keyUp    = do modifyWhen (has resultsFocused)
-                             (zoom (results . widgetState) prevLine)
-                  modifyWhen (has pagerFocused)
-                             (zoom (pager . widgetState) (scroll (-1)))
-    keyDown  = do modifyWhen (has resultsFocused)
-                             (zoom (results . widgetState) nextLine)
-                  modifyWhen (has pagerFocused)
-                             (zoom (pager . widgetState) (scroll 1))
-    keyPgUp  = modifyWhen (has pagerFocused)
+    keyUp    = do whenS (has resultsFocused)
+                        (zoom (results . widgetState) prevLine)
+                  whenS (has pagerFocused)
+                        (zoom (pager . widgetState) (scroll (-1)))
+    keyDown  = do whenS (has resultsFocused)
+                        (zoom (results . widgetState) nextLine)
+                  whenS (has pagerFocused)
+                        (zoom (pager . widgetState) (scroll 1))
+    keyPgUp  = whenS (has pagerFocused)
                   (zoom (pager . widgetState) (scrollPage (-1)))
-    keyPgDn  = modifyWhen (has pagerFocused)
+    keyPgDn  = whenS (has pagerFocused)
                   (zoom (pager . widgetState) (scrollPage 1))
-    keyEnter = modifyWhen (has resultsFocused) $ do
+    keyEnter = whenS (has resultsFocused) $ do
                   loadSelectedFileToPager
                   liftState moveToSelectedLineNumber
                   liftState (zoom widgetState focusRight)
-    keyEsc   = modifyWhen (has pagerFocused)
+    keyEsc   = whenS (has pagerFocused)
                   (zoom widgetState focusLeft)
 
 loadSelectedFileToPager :: StateT MainWidget IO ()
@@ -87,11 +87,6 @@ moveToSelectedLineNumber :: State MainWidget ()
 moveToSelectedLineNumber = zoom widgetState $ do
     lineNumber <- use (leftWidget . currentLineNumber)
     zoom (rightWidget . widgetState) (moveToLine (maybe 0 id lineNumber))
-
-modifyWhen :: MonadState s m => (s -> Bool) -> m () -> m ()
-modifyWhen predicate action = do
-    condition <- fmap predicate get
-    when condition action
 
 
 ---------------------------------------------------------------------------
