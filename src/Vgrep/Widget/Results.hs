@@ -27,7 +27,7 @@ import Data.Maybe
 import Data.Monoid
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
-import Graphics.Vty
+import Graphics.Vty hiding ((<|>))
 import Graphics.Vty.Prelude
 import Prelude
 
@@ -78,11 +78,11 @@ drawLines width ls = foldMap (drawLine (width, lineNumberWidth)) ls
 
 drawLine :: (Int, Int) -> DisplayLine -> Image
 drawLine (width, lineNumberWidth) = \case
-    FileHeader file             -> drawFileHeader file
-    Line         (lineNumber, lineText) -> drawLineNumber lineNumber
-                                       <|> drawLineText False lineText
-    SelectedLine (lineNumber, lineText) -> drawLineNumber lineNumber
-                                       <|> drawLineText True lineText
+    FileHeader file                     -> drawFileHeader file
+    Line         (lineNumber, lineText) ->
+        horizCat [drawLineNumber lineNumber, drawLineText False lineText]
+    SelectedLine (lineNumber, lineText) ->
+        horizCat [drawLineNumber lineNumber, drawLineText True lineText]
   where
     fileHeaderStyle = defAttr `withBackColor` green
     lineNumberStyle = defAttr `withForeColor` brightBlack

@@ -65,7 +65,7 @@ moveUp :: Buffer -> Maybe Buffer
 moveUp = fmap reverse . moveDown . reverse
 
 resize :: Int -> Buffer -> Buffer
-resize height buf
+resize height buf -- FIXME might run into infinite loop
     | visibleHeight buf < height
     = maybe buf (resize height) (showNext buf)
 
@@ -79,19 +79,24 @@ visibleHeight :: Buffer -> Int
 visibleHeight = length . toLines
 
 toLines :: Buffer -> [DisplayLine]
-toLines (_, bs, c, ds, _) = case viewl bs of
-    EmptyL -> header c <> selected c <> go ds
-    b :< _ | fst b == fst c
-           -> go (S.reverse bs) <> selected c <> go ds
-           | otherwise
-           -> go (S.reverse bs) <> header c <> selected c <> go ds
+toLines (_, bs, c, ds, _) = linesBefore <> selected c <> linesAfter
+
   where
-    go :: Seq FileLineReference -> [DisplayLine]
+    linesBefore = case viewl bs of
+        b :< _ | b `pointsToSameFile` c -> go (S.reverse bs)
+        _otherwise                      -> go (S.reverse bs) <> header c
+
+    linesAfter = case viewl ds of
+        d :< _ | c `pointsToSameFile` d -> drop 1 (go ds)
+        _otherwise                      -> go ds
+
     go refs = do
-        fileResults <- groupBy ((==) `on` fst) (toList refs)
+        fileResults <- groupBy pointsToSameFile (toList refs)
         header (head fileResults) <> fmap (Line . snd) fileResults
+
     header   = pure . FileHeader   . fst
     selected = pure . SelectedLine . snd
+    pointsToSameFile = (==) `on` fst
 
 
 current :: Buffer -> FileLineReference
