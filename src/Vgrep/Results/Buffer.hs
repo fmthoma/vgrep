@@ -72,7 +72,7 @@ resize height buf
                                      -- loop, but this leaves some nasty
                                      -- artifacts when scrolling over the
                                      -- last line.
-    = maybe buf (resize height) (showNext buf)
+    = maybe buf (resize height) (showNext buf <|> showPrev buf)
 
     | visibleHeight buf > height
     = maybe buf (resize height) (hidePrev buf <|> hideNext buf)

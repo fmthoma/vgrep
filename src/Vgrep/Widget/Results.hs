@@ -6,6 +6,8 @@ module Vgrep.Widget.Results
 
     , prevLine
     , nextLine
+    , pageUp
+    , pageDown
 
     , currentFileName
     , currentLineNumber
@@ -15,7 +17,7 @@ module Vgrep.Widget.Results
 
 import Control.Applicative
 import Control.Lens
-import Control.Monad.State (State, modify)
+import Control.Monad.State.Extended
 import Data.Foldable
 import Data.Maybe
 import Data.Text.Lazy (Text)
@@ -54,6 +56,22 @@ initState fileResults initialDimensions =
     in  State { _files  = Buffer.resize (regionHeight initialDimensions) foo
               , _region = initialDimensions }
 
+pageUp, pageDown :: State ResultsState ()
+pageUp = do
+    unlessS (isJust . moveUp . view files) $ do
+        modifying files (repeatedly (hideNext >=> showPrev))
+        resizeToWindow
+    modifying files (repeatedly moveUp)
+pageDown = do
+    unlessS (isJust . moveDown . view files) $ do
+        modifying files (repeatedly hidePrev)
+        resizeToWindow
+    modifying files (repeatedly moveDown)
+
+repeatedly :: (a -> Maybe a) -> a -> a
+repeatedly f a = case f a of Just a' -> repeatedly f a'
+                             Nothing -> a
+
 
 prevLine, nextLine :: State ResultsState ()
 prevLine = zoom files (maybeModify tryPrevLine) >> resizeToWindow
@@ -68,8 +86,8 @@ maybeModify f = modify (\a -> fromMaybe a (f a))
 
 
 drawResultList :: ResultsState -> Image
-drawResultList state = drawLines width (toLines (view files state))
-  where width = regionWidth (view region state)
+drawResultList s = drawLines width (toLines (view files s))
+  where width = regionWidth (view region s)
 
 drawLines :: Int -> [DisplayLine] -> Image
 drawLines width ls = foldMap (drawLine (width, lineNumberWidth)) ls
