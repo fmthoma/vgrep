@@ -57,22 +57,14 @@ eventHandler = mconcat
     , handleKey   KEsc         [] keyEsc ]
   where
     keyTab   = zoom widgetState switchFocus
-    keyUp    = do whenS (has resultsFocused)
-                        (zoom (results . widgetState) prevLine)
-                  whenS (has pagerFocused)
-                        (zoom (pager . widgetState) (scroll (-1)))
-    keyDown  = do whenS (has resultsFocused)
-                        (zoom (results . widgetState) nextLine)
-                  whenS (has pagerFocused)
-                        (zoom (pager . widgetState) (scroll 1))
-    keyPgUp  = do whenS (has resultsFocused)
-                        (zoom (results . widgetState) pageUp)
-                  whenS (has pagerFocused)
-                        (zoom (pager . widgetState) (scrollPage (-1)))
-    keyPgDn  = do whenS (has resultsFocused)
-                        (zoom (results . widgetState) pageDown)
-                  whenS (has pagerFocused)
-                        (zoom (pager . widgetState) (scrollPage 1))
+    keyUp    = do whenS (has resultsFocused) (zoom results prevLine)
+                  whenS (has pagerFocused)   (zoom pager   (scroll (-1)))
+    keyDown  = do whenS (has resultsFocused) (zoom results nextLine)
+                  whenS (has pagerFocused)   (zoom pager   (scroll 1))
+    keyPgUp  = do whenS (has resultsFocused) (zoom results pageUp)
+                  whenS (has pagerFocused)   (zoom pager   (scrollPage (-1)))
+    keyPgDn  = do whenS (has resultsFocused) (zoom results pageDown)
+                  whenS (has pagerFocused)   (zoom pager   (scrollPage 1))
     keyEnter = whenS (has resultsFocused) $ do
                   loadSelectedFileToPager
                   liftState moveToSelectedLineNumber
@@ -96,11 +88,11 @@ moveToSelectedLineNumber = zoom widgetState $ do
 ---------------------------------------------------------------------------
 -- Lenses
 
-results :: Lens' MainWidget ResultsWidget
-results = widgetState . leftWidget
+results :: Lens' MainWidget ResultsState
+results = widgetState . leftWidget . widgetState
 
-pager :: Lens' MainWidget PagerWidget
-pager = widgetState . rightWidget
+pager :: Lens' MainWidget PagerState
+pager = widgetState . rightWidget . widgetState
 
 
 
