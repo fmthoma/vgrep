@@ -1,7 +1,5 @@
-module Vgrep.Widget.Results.Buffer
-    ( File(..)
-    , LineReference
-    , FileLineReference
+module Vgrep.Results.Buffer
+    ( module Vgrep.Results
     , DisplayLine(..)
     , Buffer
     , buffer
@@ -22,13 +20,10 @@ import           Data.Foldable
 import           Data.Function
 import           Data.List (groupBy)
 import           Data.Monoid
-import           Data.Text.Lazy (Text)
 import           Prelude hiding (reverse)
 
+import Vgrep.Results
 
-newtype File = File { getFileName :: Text } deriving (Eq)
-type LineReference = (Maybe Int, Text)
-type FileLineReference = (File, LineReference)
 
 type Buffer = ( [FileLineReference]    -- above screen (reversed)
               , Seq FileLineReference  -- top of screen (reversed)

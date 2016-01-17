@@ -7,7 +7,7 @@ import Data.Attoparsec.Text.Lazy
 import Data.Maybe
 import Data.Text.Lazy
 
-import Vgrep.Widget.Results.Buffer (File(..), FileLineReference)
+import Vgrep.Results
 
 parseGrepOutput :: [Text] -> [FileLineReference]
 parseGrepOutput = catMaybes . fmap parseLine

@@ -32,7 +32,7 @@ import Graphics.Vty.Prelude
 import Prelude
 
 import Vgrep.Widget.Type
-import Vgrep.Widget.Results.Buffer as Buffer
+import Vgrep.Results.Buffer as Buffer
 
 
 data ResultsState = State { _files     :: Buffer
