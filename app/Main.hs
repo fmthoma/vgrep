@@ -58,7 +58,7 @@ eventHandler = mconcat
   where
     keyTab   = zoom widgetState switchFocus
     keyUp    = do modifyWhen (has resultsFocused)
-                             (zoom (results . widgetState) previousLine)
+                             (zoom (results . widgetState) prevLine)
                   modifyWhen (has pagerFocused)
                              (zoom (pager . widgetState) (scroll (-1)))
     keyDown  = do modifyWhen (has resultsFocused)

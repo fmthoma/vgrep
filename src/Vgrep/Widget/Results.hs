@@ -4,24 +4,22 @@ module Vgrep.Widget.Results
     , ResultsWidget
     , resultsWidget
 
-    , previousLine
+    , prevLine
     , nextLine
 
     , currentFileName
     , currentLineNumber
 
-    -- Re-exports from Vgrep.Widget.Results.Buffer
-    , File(..)
-    , LineReference
-    , FileLineReference
+    , module Vgrep.Results
     ) where
 
+import Control.Applicative
 import Control.Lens ( Getter
                     , view, to
-                    , modifying, assign
+                    , modifying, assign, uses, zoom
                     , _1, _2 )
 import Control.Lens.TH
-import Control.Monad.State (State)
+import Control.Monad.State (State, modify)
 import Data.Foldable
 import Data.Maybe
 import Data.Monoid
@@ -32,6 +30,7 @@ import Graphics.Vty.Prelude
 import Prelude
 
 import Vgrep.Widget.Type
+import Vgrep.Results
 import Vgrep.Results.Buffer as Buffer
 
 
@@ -61,11 +60,22 @@ initState fileResults initialDimensions =
               , _region = initialDimensions }
 
 
-previousLine :: State ResultsState ()
-previousLine = modifying files (\fs -> fromMaybe fs (moveUp fs))
+prevLine :: State ResultsState ()
+prevLine = do zoom files (maybeModify tryPrevLine)
+              resizeToWindow
 
 nextLine :: State ResultsState ()
-nextLine = modifying files (\fs -> fromMaybe fs (moveUp fs))
+nextLine = do zoom files (maybeModify tryNextLine)
+              resizeToWindow
+
+tryPrevLine :: Buffer -> Maybe Buffer
+tryPrevLine buf = moveUp buf <|> (showPrev buf >>= tryPrevLine)
+
+tryNextLine :: Buffer -> Maybe Buffer
+tryNextLine buf = moveDown buf <|> (showNext buf >>= tryNextLine)
+
+maybeModify :: (a -> Maybe a) -> State a ()
+maybeModify f = modify (\a -> fromMaybe a (f a))
 
 
 drawResultList :: ResultsState -> Image
@@ -113,7 +123,12 @@ drawLine (width, lineNumberWidth) = \case
 resizeToRegion :: DisplayRegion -> State ResultsState ()
 resizeToRegion newRegion = do
     assign region newRegion
-    modifying files (Buffer.resize (regionHeight newRegion))
+    resizeToWindow
+
+resizeToWindow :: State ResultsState ()
+resizeToWindow = do
+    height <- uses region regionHeight
+    modifying files (Buffer.resize height)
 
 
 currentFileName :: Getter ResultsWidget Text

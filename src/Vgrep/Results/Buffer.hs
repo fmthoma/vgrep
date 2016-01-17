@@ -65,8 +65,12 @@ moveUp :: Buffer -> Maybe Buffer
 moveUp = fmap reverse . moveDown . reverse
 
 resize :: Int -> Buffer -> Buffer
-resize height buf -- FIXME might run into infinite loop
-    | visibleHeight buf < height
+resize height buf
+    | visibleHeight buf < height - 1 -- FIXME we need some kind of bias
+                                     -- to avoid running into an infinite
+                                     -- loop, but this leaves some nasty
+                                     -- artifacts when scrolling over the
+                                     -- last line.
     = maybe buf (resize height) (showNext buf)
 
     | visibleHeight buf > height
