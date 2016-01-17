@@ -9,6 +9,7 @@ module Vgrep.Results.Buffer
     , resize
     , toLines
     , current
+    , lineNumber
     ) where
 
 import           Control.Applicative
@@ -105,3 +106,8 @@ toLines (_, bs, c, ds, _) = linesBefore <> selected c <> linesAfter
 
 current :: Buffer -> FileLineReference
 current (_, _, c, _, _) = c
+
+lineNumber :: DisplayLine -> Maybe Int
+lineNumber (FileHeader _)        = Nothing
+lineNumber (Line         (n, _)) = n
+lineNumber (SelectedLine (n, _)) = n

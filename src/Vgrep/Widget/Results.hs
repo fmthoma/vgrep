@@ -73,15 +73,17 @@ drawResultList state = drawLines width (toLines (view files state))
 
 drawLines :: Int -> [DisplayLine] -> Image
 drawLines width ls = foldMap (drawLine (width, lineNumberWidth)) ls
-  where lineNumberWidth = 5 -- FIXME
+  where lineNumberWidth = foldr max 0
+                        . map (twoExtraSpaces . length . show)
+                        . catMaybes
+                        $ map lineNumber ls
+        twoExtraSpaces = (+ 2)
 
 drawLine :: (Int, Int) -> DisplayLine -> Image
 drawLine (width, lineNumberWidth) = \case
-    FileHeader file                     -> drawFileHeader file
-    Line         (lineNumber, lineText) ->
-        horizCat [drawLineNumber lineNumber, drawLineText lineText]
-    SelectedLine (lineNumber, lineText) ->
-        horizCat [drawLineNumber lineNumber, drawSelectedLineText lineText]
+    FileHeader file     -> drawFileHeader file
+    Line         (n, t) -> horizCat [drawLineNumber n, drawLineText t]
+    SelectedLine (n, t) -> horizCat [drawLineNumber n, drawSelectedLineText t]
   where
     fileHeaderStyle = defAttr `withBackColor` green
     lineNumberStyle = defAttr `withForeColor` brightBlack
