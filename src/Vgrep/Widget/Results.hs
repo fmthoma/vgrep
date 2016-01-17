@@ -14,15 +14,10 @@ module Vgrep.Widget.Results
     ) where
 
 import Control.Applicative
-import Control.Lens ( Getter
-                    , view, to
-                    , modifying, assign, uses, zoom
-                    , _1, _2 )
-import Control.Lens.TH
+import Control.Lens
 import Control.Monad.State (State, modify)
 import Data.Foldable
 import Data.Maybe
-import Data.Monoid
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 import Graphics.Vty hiding ((<|>))
@@ -60,18 +55,12 @@ initState fileResults initialDimensions =
               , _region = initialDimensions }
 
 
-prevLine :: State ResultsState ()
-prevLine = do zoom files (maybeModify tryPrevLine)
-              resizeToWindow
+prevLine, nextLine :: State ResultsState ()
+prevLine = zoom files (maybeModify tryPrevLine) >> resizeToWindow
+nextLine = zoom files (maybeModify tryNextLine) >> resizeToWindow
 
-nextLine :: State ResultsState ()
-nextLine = do zoom files (maybeModify tryNextLine)
-              resizeToWindow
-
-tryPrevLine :: Buffer -> Maybe Buffer
-tryPrevLine buf = moveUp buf <|> (showPrev buf >>= tryPrevLine)
-
-tryNextLine :: Buffer -> Maybe Buffer
+tryPrevLine, tryNextLine :: Buffer -> Maybe Buffer
+tryPrevLine buf = moveUp   buf <|> (showPrev buf >>= tryPrevLine)
 tryNextLine buf = moveDown buf <|> (showNext buf >>= tryNextLine)
 
 maybeModify :: (a -> Maybe a) -> State a ()
@@ -90,9 +79,9 @@ drawLine :: (Int, Int) -> DisplayLine -> Image
 drawLine (width, lineNumberWidth) = \case
     FileHeader file                     -> drawFileHeader file
     Line         (lineNumber, lineText) ->
-        horizCat [drawLineNumber lineNumber, drawLineText False lineText]
+        horizCat [drawLineNumber lineNumber, drawLineText lineText]
     SelectedLine (lineNumber, lineText) ->
-        horizCat [drawLineNumber lineNumber, drawLineText True lineText]
+        horizCat [drawLineNumber lineNumber, drawSelectedLineText lineText]
   where
     fileHeaderStyle = defAttr `withBackColor` green
     lineNumberStyle = defAttr `withForeColor` brightBlack
@@ -113,11 +102,13 @@ drawLine (width, lineNumberWidth) = \case
                    . justifyRight lineNumberWidth
                    . maybe "" show
 
-    drawLineText :: Bool -> Text -> Image
-    drawLineText isCurrent = text style
+    drawSelectedLineText :: Text -> Image
+    drawSelectedLineText = text highlightStyle
                          . padWithSpace (width - lineNumberWidth)
-      where style = if isCurrent then resultLineStyle <> highlightStyle
-                                 else resultLineStyle
+
+    drawLineText :: Text -> Image
+    drawLineText = text resultLineStyle
+                 . padWithSpace (width - lineNumberWidth)
 
 
 resizeToRegion :: DisplayRegion -> State ResultsState ()
