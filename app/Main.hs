@@ -35,17 +35,8 @@ initSplitView vty = do
         rightPager = pagerWidget T.empty bounds
     return (hSplitWidget leftPager rightPager (2 % 3) bounds)
 
-readGrepOutput :: Functor f => f Text -> f [(Text, [(Maybe Int, Text)])]
-readGrepOutput = fmap (groupByFile . parseGrepOutput . T.lines)
-
--- | Input should already be grouped by file. Without this assumption
--- we would have to strictly traverse the entire input.
-groupByFile :: [(Text, Maybe Int, Text)] -> [(Text, [(Maybe Int, Text)])]
-groupByFile [] = []
-groupByFile input =
-    let (file, _, _) = head input
-        (resultsInSameFile, rest) = span (\(f, _, _) -> f == file) input
-    in  (file, map (\(_a,b,c) -> (b,c)) resultsInSameFile) : groupByFile rest
+readGrepOutput :: Functor f => f Text -> f [FileLineReference]
+readGrepOutput = fmap (parseGrepOutput . T.lines)
 
 
 ---------------------------------------------------------------------------
@@ -87,7 +78,7 @@ eventHandler = mconcat
 
 loadSelectedFileToPager :: StateT MainWidget IO ()
 loadSelectedFileToPager = zoom widgetState $ do
-    Just fileName <- liftState (use (leftWidget . currentFileName))
+    fileName <- liftState (use (leftWidget . currentFileName))
     fileContent <- liftIO (T.readFile (T.unpack fileName))
     liftState $ zoom (rightWidget . widgetState)
                      (replaceBufferContents fileContent)

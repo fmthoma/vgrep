@@ -7,15 +7,17 @@ import Data.Attoparsec.Text.Lazy
 import Data.Maybe
 import Data.Text.Lazy
 
-parseGrepOutput :: [Text] -> [(Text, Maybe Int, Text)]
+import Vgrep.Widget.Results.Buffer (File(..), FileLineReference)
+
+parseGrepOutput :: [Text] -> [FileLineReference]
 parseGrepOutput = catMaybes . fmap parseLine
 
-parseLine :: Text -> Maybe (Text, Maybe Int, Text)
+parseLine :: Text -> Maybe FileLineReference
 parseLine line = maybeResult (parse lineParser line)
 
-lineParser :: Parser (Text, Maybe Int, Text)
+lineParser :: Parser FileLineReference
 lineParser = do
     file       <- many (notChar ':') <* char ':'
     lineNumber <- optional (decimal <* char ':')
     result     <- takeLazyText
-    return (pack file, lineNumber, result)
+    return (File (pack file), (lineNumber, result))

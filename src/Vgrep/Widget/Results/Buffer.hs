@@ -2,22 +2,27 @@ module Vgrep.Widget.Results.Buffer
     ( File(..)
     , LineReference
     , FileLineReference
+    , DisplayLine(..)
     , Buffer
     , buffer
     , showPrev, showNext
     , hidePrev, hideNext
     , moveUp, moveDown
     , resize
+    , toLines
+    , current
     ) where
 
 import           Control.Applicative
 import           Data.Sequence ( Seq , (<|), (|>)
                                , ViewL(..), ViewR(..)
                                , viewl, viewr )
+import qualified Data.Sequence as S
 import           Data.Foldable
-import           Data.List (nub)
+import           Data.Function
+import           Data.List (groupBy)
 import           Data.Monoid
-import           Data.Text (Text)
+import           Data.Text.Lazy (Text)
 import           Prelude hiding (reverse)
 
 
@@ -30,6 +35,12 @@ type Buffer = ( [FileLineReference]    -- above screen (reversed)
               , FileLineReference      -- currently selected
               , Seq FileLineReference  -- bottom of screen
               , [FileLineReference] )  -- below screen
+
+data DisplayLine = FileHeader   File
+                 | Line         LineReference
+                 | SelectedLine LineReference
+                 deriving (Eq)
+
 
 buffer :: [FileLineReference] -> Maybe Buffer
 buffer (ref : refs) = Just ([], empty, ref, empty, refs)
@@ -70,13 +81,23 @@ resize height buf
     = buf
 
 visibleHeight :: Buffer -> Int
-visibleHeight buf = length . toLines
+visibleHeight = length . toLines
 
-toLines :: Buffer -> [Either File LineReference]
-toLines buffer = go . toList . visibleLineReferences
-  where go refs = do
-    fileResults <- groupBy ((==) `on` fst) refs
-    Left (fst (head fileResults)) : fmap (Right . snd) fileResults
+toLines :: Buffer -> [DisplayLine]
+toLines (_, bs, c, ds, _) = case viewl bs of
+    EmptyL -> header c <> selected c <> go ds
+    b :< _ | fst b == fst c
+           -> go (S.reverse bs) <> selected c <> go ds
+           | otherwise
+           -> go (S.reverse bs) <> header c <> selected c <> go ds
+  where
+    go :: Seq FileLineReference -> [DisplayLine]
+    go refs = do
+        fileResults <- groupBy ((==) `on` fst) (toList refs)
+        header (head fileResults) <> fmap (Line . snd) fileResults
+    header   = pure . FileHeader   . fst
+    selected = pure . SelectedLine . snd
 
-visibleLineReferences :: Buffer -> Seq LineReference
-visibleLineReferences (_, bs, c, ds, _) = bs <> (c <| ds)
+
+current :: Buffer -> FileLineReference
+current (_, _, c, _, _) = c
