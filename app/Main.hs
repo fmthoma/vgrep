@@ -7,6 +7,8 @@ import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as T
 import Graphics.Vty hiding (resize)
+import System.IO
+import System.Exit
 
 import Vgrep.App
 import Vgrep.Event
@@ -16,9 +18,24 @@ import Vgrep.Widget.HorizontalSplit
 import Vgrep.Widget.Pager
 import Vgrep.Widget.Results
 
-main :: IO MainWidget
-main = runApp app
+main :: IO ()
+main = do
+    inputFromTerminal <- hIsTerminalDevice stdin
+    outputToTerminal <- hIsTerminalDevice stdout
+    case (inputFromTerminal, outputToTerminal) of
+        (True,  False) -> dieNoStdin
+        (True,  True)  -> printUsage >> dieNoStdin
+        (False, False) -> interact id
+        (False, True)  -> runApp app >> return ()
 
+printUsage :: IO ()
+printUsage = putStrLn $ unlines
+    [ "Usage:"
+    , "    grep -rn PATTERN | vgrep"
+    , "    grep -rn PATTERN | vgrep | COMMAND" ]
+
+dieNoStdin :: IO ()
+dieNoStdin = die "No stdin connected. Aborting."
 
 type MainWidget = HSplitWidget ResultsWidget PagerWidget
 
