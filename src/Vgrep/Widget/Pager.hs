@@ -20,9 +20,11 @@ import Graphics.Vty.Prelude
 
 import Vgrep.Widget.Type
 
-data PagerState = PagerState { _buffer          :: Text
-                             , _scrollPos       :: Int
-                             , _region          :: DisplayRegion }
+
+type Buffer = (Int, [Text], [Text])
+
+data PagerState = PagerState { _buffer :: Buffer
+                             , _region :: DisplayRegion }
 
 makeLenses ''PagerState
 
@@ -39,23 +41,32 @@ pagerWidget items initialRegion =
 
 
 initialPagerState :: Text -> DisplayRegion-> PagerState
-initialPagerState initialLines initialRegion =
-    PagerState { _buffer          = initialLines
-               , _scrollPos       = 0
+initialPagerState initialContent initialRegion =
+    PagerState { _buffer          = (1, [], T.lines initialContent)
                , _region          = initialRegion }
 
 replaceBufferContents :: Text -> State PagerState ()
-replaceBufferContents newContent = do assign buffer newContent
-                                      assign scrollPos 0
+replaceBufferContents content = assign buffer (1, [], T.lines content)
 
 moveToLine :: Int -> State PagerState ()
 moveToLine n = do
-    height <- uses region regionHeight
-    assign scrollPos (n - height `div` 2)
-    updateScrollPos
+    height <- use (region . to regionHeight)
+    pos    <- use (buffer . _1)
+    scroll (n - height `div` 2 - pos)
 
 scroll :: Int -> State PagerState ()
-scroll n = modifying scrollPos (+ n) >> updateScrollPos
+scroll n = do
+    height <- uses region regionHeight
+    linesVisible <- uses (buffer . _3) (length . take (height + 1))
+    if | n > 0 && linesVisible > height
+                   -> modifying buffer goDown >> scroll (n - 1)
+       | n < 0     -> modifying buffer goUp   >> scroll (n + 1)
+       | otherwise -> pure ()
+  where
+    goDown (l, as, b:bs) = (l + 1, b:as, bs)
+    goDown (l, as, [])   = (l,     as,   [])
+    goUp   (l, a:as, bs) = (l - 1, as, a:bs)
+    goUp   (l, [],   bs) = (l,     [], bs)
 
 scrollPage :: Int -> State PagerState ()
 scrollPage n = do height <- uses region regionHeight
@@ -66,40 +77,23 @@ renderPager :: PagerState -> Image
 renderPager state =
     resizeWidth width (lineNumbers <|> textLines)
   where
-    width  = regionWidth  (view region state)
-    height = regionHeight (view region state)
-    linesCount = view bufferLength state
-    currentPosition = view scrollPos state
+    (width, height) = view region state
+    (currentPosition, _, bufferLines) = view buffer state
+    visibleLines = take height bufferLines
 
     textLines = fold . fmap (string defAttr)
                      . take height
-                     . drop currentPosition
                      . fmap padWithSpace
                      . fmap T.unpack
-                     . T.lines
-                     $ view buffer state
+                     $ visibleLines
 
     lineNumbers = fold . fmap (string (defAttr `withForeColor` brightBlack
                                                `withBackColor` black))
-                       . take (min height (linesCount - currentPosition))
-                       . drop currentPosition
+                       . take (length visibleLines)
                        . fmap (padWithSpace . show)
-                       $ [1 :: Int ..]
+                       $ [currentPosition ..]
 
     padWithSpace s = ' ' : s ++ " "
 
 resizeToRegion :: DisplayRegion -> State PagerState ()
-resizeToRegion newRegion = assign region newRegion >> updateScrollPos
-
-updateScrollPos :: State PagerState ()
-updateScrollPos = do
-    pos        <- use scrollPos
-    height     <- use (region . to regionHeight)
-    linesCount <- use (buffer . to T.lines . to length)
-    if | pos < 0                   -> assign scrollPos 0
-       | linesCount < height       -> assign scrollPos 0
-       | pos > linesCount - height -> assign scrollPos (linesCount - height)
-       | otherwise                 -> return ()
-
-bufferLength :: Getter PagerState Int
-bufferLength = buffer . to T.lines . to length
+resizeToRegion newRegion = assign region newRegion
