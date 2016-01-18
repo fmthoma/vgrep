@@ -1,6 +1,6 @@
 name:                vgrep
 version:             0.1.0.0
-synopsis:            Initial project template from stack
+synopsis:            A pager for grep
 description:         Please see README.md
 homepage:            http://github.com/fmthoma/vgrep#readme
 license:             BSD3
