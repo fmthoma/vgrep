@@ -1,7 +1,9 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Main (main) where
 
 import Control.Monad.State.Extended
 import Control.Lens
+import Data.Maybe
 import Data.Ratio
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
@@ -9,6 +11,8 @@ import qualified Data.Text.Lazy.IO as T
 import Graphics.Vty hiding (resize)
 import System.IO
 import System.Exit
+import System.Posix
+import System.Process
 
 import Vgrep.App
 import Vgrep.Event
@@ -71,6 +75,7 @@ eventHandler = mconcat
     , handleKey   KPageUp      [] keyPgUp
     , handleKey   KPageDown    [] keyPgDn
     , handleKeyIO KEnter       [] keyEnter
+    , handleKeyIO (KChar 'e')  [] keyEdit
     , handleKey   KEsc         [] keyEsc ]
   where
     keyTab   = zoom widgetState switchFocus
@@ -86,12 +91,17 @@ eventHandler = mconcat
                   loadSelectedFileToPager
                   liftState moveToSelectedLineNumber
                   liftState (zoom widgetState focusRight)
+    keyEdit  = zoom (widgetState . leftWidget) $ do
+                   fileName <- uses currentFileName T.unpack
+                   lineNumber <- uses currentLineNumber (fromMaybe 0)
+                   invokeEditor fileName lineNumber
+
     keyEsc   = whenS (has pagerFocused)
                   (zoom widgetState focusLeft)
 
 loadSelectedFileToPager :: StateT MainWidget IO ()
 loadSelectedFileToPager = zoom widgetState $ do
-    fileName <- liftState (use (leftWidget . currentFileName))
+    fileName <- use (leftWidget . currentFileName)
     fileContent <- liftIO (T.readFile (T.unpack fileName))
     liftState $ zoom (rightWidget . widgetState)
                      (replaceBufferContents fileContent)
@@ -99,8 +109,18 @@ loadSelectedFileToPager = zoom widgetState $ do
 moveToSelectedLineNumber :: State MainWidget ()
 moveToSelectedLineNumber = zoom widgetState $ do
     lineNumber <- use (leftWidget . currentLineNumber)
-    zoom (rightWidget . widgetState) (moveToLine (maybe 0 id lineNumber))
+    zoom (rightWidget . widgetState) (moveToLine (fromMaybe 0 lineNumber))
 
+invokeEditor :: MonadIO io => FilePath -> Int -> io ()
+invokeEditor file lineNumber = liftIO $ do
+    Just editor <- getEnv "EDITOR"
+    ttyIn  <- fdToHandle =<< openFd "/dev/tty" ReadOnly  Nothing defaultFileFlags
+    ttyOut <- fdToHandle =<< openFd "/dev/tty" WriteOnly Nothing defaultFileFlags
+    (_,_,_,h) <- createProcess $ (proc editor [file, '+' : show lineNumber])
+        { std_in  = UseHandle ttyIn
+        , std_out = UseHandle ttyOut }
+    _ <- waitForProcess h
+    return ()
 
 ---------------------------------------------------------------------------
 -- Lenses
