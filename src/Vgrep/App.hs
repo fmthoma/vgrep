@@ -1,5 +1,10 @@
 {-# LANGUAGE TemplateHaskell, LambdaCase #-}
-module Vgrep.App where
+module Vgrep.App
+    ( App(..)
+    , runApp
+    , ttyIn
+    , ttyOut
+    ) where
 
 import Control.Exception (bracket)
 import Control.Lens
@@ -55,6 +60,10 @@ withVty = bracket initVty Vty.shutdown
 initVty :: IO Vty
 initVty = do
     cfg <- Vty.standardIOConfig
-    ttyIn  <- openFd "/dev/tty" ReadOnly  Nothing defaultFileFlags
-    ttyOut <- openFd "/dev/tty" WriteOnly Nothing defaultFileFlags
-    Vty.mkVty (cfg { inputFd = Just ttyIn , outputFd = Just ttyOut })
+    fdIn  <- ttyIn
+    fdOut <- ttyOut
+    Vty.mkVty (cfg { inputFd = Just fdIn , outputFd = Just fdOut })
+
+ttyIn, ttyOut :: IO Fd
+ttyIn  = openFd "/dev/tty" ReadOnly  Nothing defaultFileFlags
+ttyOut = openFd "/dev/tty" WriteOnly Nothing defaultFileFlags

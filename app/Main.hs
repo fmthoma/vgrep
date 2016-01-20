@@ -113,12 +113,18 @@ moveToSelectedLineNumber = zoom widgetState $ do
 
 invokeEditor :: MonadIO io => FilePath -> Int -> io ()
 invokeEditor file lineNumber = liftIO $ do
-    Just editor <- getEnv "EDITOR"
-    ttyIn  <- fdToHandle =<< openFd "/dev/tty" ReadOnly  Nothing defaultFileFlags
-    ttyOut <- fdToHandle =<< openFd "/dev/tty" WriteOnly Nothing defaultFileFlags
-    (_,_,_,h) <- createProcess $ (proc editor [file, '+' : show lineNumber])
-        { std_in  = UseHandle ttyIn
-        , std_out = UseHandle ttyOut }
+    maybeEditor <- getEnv "EDITOR"
+    case maybeEditor of
+            Just editor -> exec editor [file, '+' : show lineNumber]
+            Nothing -> error "Environment variable $EDITOR not defined"
+
+exec :: MonadIO io => FilePath -> [String] -> io ()
+exec command args = liftIO $ do
+    inHandle  <- fdToHandle =<< ttyIn
+    outHandle <- fdToHandle =<< ttyOut
+    (_,_,_,h) <- createProcess $ (proc command args)
+        { std_in  = UseHandle inHandle
+        , std_out = UseHandle outHandle }
     _ <- waitForProcess h
     return ()
 
