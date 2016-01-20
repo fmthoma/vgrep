@@ -23,7 +23,7 @@ runApp app = do
     suspendAndResumeLoop next
   where
     suspendAndResumeLoop = \case
-        Halt finalAction    -> finalAction
+        Halt finalState     -> pure finalState
         Resume continuation -> do
             newState <- continuation
             next <- bracket initVty Vty.shutdown $ \vty ->
@@ -39,20 +39,19 @@ initVty = do
     ttyOut <- openFd "/dev/tty" WriteOnly Nothing defaultFileFlags
     Vty.mkVty (cfg { inputFd = Just ttyIn , outputFd = Just ttyOut })
 
-eventLoop :: Vty -> App s -> s -> IO (Next (IO s))
+eventLoop :: Vty -> App s -> s -> IO (Next s)
 eventLoop vty app initialState = do
     refresh initialState
     loop initialState
   where
     loop currentState = do
         event <- Vty.nextEvent vty
-        let next = handle handleAppEvent event currentState
+        next <- handle handleAppEvent event currentState
         case next of
             Unchanged         -> loop currentState
-            Continue action   -> do newState <- action
-                                    refresh newState
+            Continue newState -> do refresh newState
                                     loop newState
-            other             -> return other
+            other             -> pure other
     refresh currentState = Vty.update vty (renderApp currentState)
     renderApp = view render app
     handleAppEvent = view handleEvent app

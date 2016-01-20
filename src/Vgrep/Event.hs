@@ -14,27 +14,28 @@ module Vgrep.Event
     , exitOn
     ) where
 
+import Control.Applicative
 import Control.Monad.State.Extended ( State, StateT
                                     , execState, execStateT
                                     , liftState )
-import Data.Monoid
 import Graphics.Vty as Vty
 
 newtype EventHandler s = EventHandler
-                         { handle :: Event -> s -> Next (IO s) }
+                         { handle :: Event -> s -> IO (Next s) }
 
 mkEventHandler :: (Event -> s -> Next s) -> EventHandler s
-mkEventHandler f = EventHandler $ \e s -> fmap pure (f e s)
+mkEventHandler f = EventHandler $ \e s -> pure (f e s)
 
-mkEventHandlerIO :: (Event -> s -> Next (IO s)) -> EventHandler s
+mkEventHandlerIO :: (Event -> s -> IO (Next s)) -> EventHandler s
 mkEventHandlerIO = EventHandler
 
 instance Monoid (EventHandler s) where
-    mempty = EventHandler $ \_ _ -> Unchanged
-    h1 `mappend` h2 = EventHandler (handle h1 <> handle h2)
+    mempty = EventHandler $ \_ _ -> pure Unchanged
+    h1 `mappend` h2 = EventHandler $ \ev s ->
+        liftA2 mappend (handle h1 ev s) (handle h2 ev s)
 
 data Next s = Continue s
-            | Resume s
+            | Resume (IO s)
             | Halt s
             | Unchanged
             deriving (Functor)
@@ -53,21 +54,21 @@ handleKey :: Key -> [Modifier] -> State s () -> EventHandler s
 handleKey key modifiers action =
     mkEventHandlerIO (_handleKey key modifiers (liftState action))
 
-_handleKey :: Key -> [Modifier] -> StateT s IO () -> Event -> s -> Next (IO s)
+_handleKey :: Key -> [Modifier] -> StateT s IO () -> Event -> s -> IO (Next s)
 _handleKey key modifiers action event state = case event of
     EvKey k ms | (k, ms) == (key, modifiers)
-                -> (Continue . execStateT action) state
-    _otherwise  -> Unchanged
+                -> (fmap Continue . execStateT action) state
+    _otherwise  -> pure Unchanged
 
 handleKeySuspend :: Key -> [Modifier] -> StateT s IO () -> EventHandler s
 handleKeySuspend key modifiers action =
     mkEventHandlerIO (_handleKeySuspend key modifiers action)
 
-_handleKeySuspend :: Key -> [Modifier] -> StateT s IO () -> Event -> s -> Next (IO s)
+_handleKeySuspend :: Key -> [Modifier] -> StateT s IO () -> Event -> s -> IO (Next s)
 _handleKeySuspend key modifiers action event state = case event of
     EvKey k ms | (k, ms) == (key, modifiers)
-                -> (Resume . execStateT action) state
-    _otherwise  -> Unchanged
+                -> (pure . Resume . execStateT action) state
+    _otherwise  -> pure Unchanged
 
 handleResize :: (DisplayRegion -> State s ()) -> EventHandler s
 handleResize action = mkEventHandler $ \event state -> case event of
