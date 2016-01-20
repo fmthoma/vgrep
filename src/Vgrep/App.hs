@@ -38,8 +38,9 @@ eventLoop vty app initialState = do
         case next of
             Unchanged         -> loop currentState
             Halt     newState -> newState
-            Continue newState -> do refresh =<< newState
-                                    loop =<< newState
+            Continue action   -> do newState <- action
+                                    refresh newState
+                                    loop newState
     refresh currentState = Vty.update vty (renderApp currentState)
     renderApp = view render app
     handleAppEvent = view handleEvent app
