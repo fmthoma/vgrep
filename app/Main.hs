@@ -65,18 +65,18 @@ readGrepOutput = fmap (parseGrepOutput . T.lines)
 
 eventHandler :: EventHandler MainWidget
 eventHandler = mconcat
-    [ exitOn (KChar 'q') []
+    [ handle (keyCharEvent 'q'   []) halt
     , handleResizeEvent
-    , handleKey   (KChar '\t') [] keyTab
-    , handleKey   KUp          [] keyUp
-    , handleKey   (KChar 'k')  [] keyUp
-    , handleKey   KDown        [] keyDown
-    , handleKey   (KChar 'j')  [] keyDown
-    , handleKey   KPageUp      [] keyPgUp
-    , handleKey   KPageDown    [] keyPgDn
-    , handleKeyIO KEnter       [] keyEnter
-    , handleKeySuspend (KChar 'e')  [] keyEdit
-    , handleKey   KEsc         [] keyEsc ]
+    , handle (keyCharEvent '\t'  []) (continue keyTab)
+    , handle (keyEvent KUp       []) (continue keyUp)
+    , handle (keyEvent KDown     []) (continue keyDown)
+    , handle (keyCharEvent 'k'   []) (continue keyUp)
+    , handle (keyCharEvent 'j'   []) (continue keyDown)
+    , handle (keyEvent KPageUp   []) (continue keyPgUp)
+    , handle (keyEvent KPageDown []) (continue keyPgDn)
+    , handle (keyEvent KEnter    []) (continueIO keyEnter)
+    , handle (keyCharEvent 'e'   []) (suspend keyEdit)
+    , handle (keyEvent KEsc      []) (continue keyEsc) ]
   where
     keyTab   = zoom widgetState switchFocus
     keyUp    = do whenS (has resultsFocused) (zoom results prevLine)

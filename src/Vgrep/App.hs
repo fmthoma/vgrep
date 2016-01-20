@@ -46,7 +46,7 @@ eventLoop vty app initialState = do
   where
     loop currentState = do
         event <- Vty.nextEvent vty
-        next <- handle handleAppEvent event currentState
+        next <- runEventHandler handleAppEvent event currentState
         case next of
             Unchanged         -> loop currentState
             Continue newState -> do refresh newState
