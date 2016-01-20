@@ -9,6 +9,7 @@ module Vgrep.Event
     , handle
     , handleKey
     , handleKeyIO
+    , handleKeySuspend
     , handleResize
     , exitOn
     ) where
@@ -33,6 +34,7 @@ instance Monoid (EventHandler s) where
     h1 `mappend` h2 = EventHandler (handle h1 <> handle h2)
 
 data Next s = Continue s
+            | Resume s
             | Halt s
             | Unchanged
             deriving (Functor)
@@ -55,6 +57,16 @@ _handleKey :: Key -> [Modifier] -> StateT s IO () -> Event -> s -> Next (IO s)
 _handleKey key modifiers action event state = case event of
     EvKey k ms | (k, ms) == (key, modifiers)
                 -> (Continue . execStateT action) state
+    _otherwise  -> Unchanged
+
+handleKeySuspend :: Key -> [Modifier] -> StateT s IO () -> EventHandler s
+handleKeySuspend key modifiers action =
+    mkEventHandlerIO (_handleKeySuspend key modifiers action)
+
+_handleKeySuspend :: Key -> [Modifier] -> StateT s IO () -> Event -> s -> Next (IO s)
+_handleKeySuspend key modifiers action event state = case event of
+    EvKey k ms | (k, ms) == (key, modifiers)
+                -> (Resume . execStateT action) state
     _otherwise  -> Unchanged
 
 handleResize :: (DisplayRegion -> State s ()) -> EventHandler s

@@ -75,7 +75,7 @@ eventHandler = mconcat
     , handleKey   KPageUp      [] keyPgUp
     , handleKey   KPageDown    [] keyPgDn
     , handleKeyIO KEnter       [] keyEnter
-    , handleKeyIO (KChar 'e')  [] keyEdit
+    , handleKeySuspend (KChar 'e')  [] keyEdit
     , handleKey   KEsc         [] keyEsc ]
   where
     keyTab   = zoom widgetState switchFocus

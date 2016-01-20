@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, LambdaCase #-}
 module Vgrep.App where
 
 import Control.Exception (bracket)
@@ -16,9 +16,21 @@ data App s = App { _initialize  :: Vty -> IO s
 makeLenses ''App
 
 runApp :: App s -> IO s
-runApp app = bracket initVty Vty.shutdown $ \vty -> do
-    initialState <- (view initialize app) vty
-    eventLoop vty app initialState
+runApp app = do
+    next <- bracket initVty Vty.shutdown $ \vty -> do
+        initialState <- (view initialize app) vty
+        eventLoop vty app initialState
+    suspendAndResumeLoop next
+  where
+    suspendAndResumeLoop = \case
+        Halt finalAction    -> finalAction
+        Resume continuation -> do
+            newState <- continuation
+            next <- bracket initVty Vty.shutdown $ \vty ->
+                eventLoop vty app newState
+            suspendAndResumeLoop next
+        _ -> error "Internal error: Unhandled Continuation"
+             -- All others must be handled in eventLoop
 
 initVty :: IO Vty
 initVty = do
@@ -27,7 +39,7 @@ initVty = do
     ttyOut <- openFd "/dev/tty" WriteOnly Nothing defaultFileFlags
     Vty.mkVty (cfg { inputFd = Just ttyIn , outputFd = Just ttyOut })
 
-eventLoop :: Vty -> App s -> s -> IO s
+eventLoop :: Vty -> App s -> s -> IO (Next (IO s))
 eventLoop vty app initialState = do
     refresh initialState
     loop initialState
@@ -37,10 +49,10 @@ eventLoop vty app initialState = do
         let next = handle handleAppEvent event currentState
         case next of
             Unchanged         -> loop currentState
-            Halt     newState -> newState
             Continue action   -> do newState <- action
                                     refresh newState
                                     loop newState
+            other             -> return other
     refresh currentState = Vty.update vty (renderApp currentState)
     renderApp = view render app
     handleAppEvent = view handleEvent app
