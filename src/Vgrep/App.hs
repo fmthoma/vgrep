@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell, LambdaCase #-}
 module Vgrep.App where
 
 import Control.Exception (bracket)
@@ -15,10 +15,42 @@ data App s = App { _initialize  :: Vty -> IO s
 
 makeLenses ''App
 
+
 runApp :: App s -> IO s
-runApp app = bracket initVty Vty.shutdown $ \vty -> do
-    initialState <- (view initialize app) vty
-    eventLoop vty app initialState
+runApp app = startEventLoop >>= suspendAndResume
+  where
+    startEventLoop = withVty $ \vty -> do
+        initialState <- (view initialize app) vty
+        refresh vty initialState
+        eventLoop vty initialState
+
+    continueEventLoop currentState = withVty $ \vty -> do
+        refresh vty currentState
+        eventLoop vty currentState
+
+    eventLoop vty currentState = do
+        event <- Vty.nextEvent vty
+        next <- runEventHandler handleAppEvent event currentState
+        case next of
+            Unchanged         -> eventLoop vty currentState
+            Continue newState -> refresh vty newState >> eventLoop vty newState
+            other             -> pure other
+
+    suspendAndResume = \case
+        Halt finalState      -> pure finalState
+        Resume outsideAction -> outsideAction >>= continueEventLoop >>= suspendAndResume
+        _other               -> cannotHappen_othersAreHandledInEventLoop
+
+    refresh vty = Vty.update vty . renderApp
+    renderApp = view render app
+    handleAppEvent = view handleEvent app
+
+    cannotHappen_othersAreHandledInEventLoop =
+        error "Internal error: Unhandled Continuation"
+
+
+withVty :: (Vty -> IO s) -> IO s
+withVty = bracket initVty Vty.shutdown
 
 initVty :: IO Vty
 initVty = do
@@ -26,21 +58,3 @@ initVty = do
     ttyIn  <- openFd "/dev/tty" ReadOnly  Nothing defaultFileFlags
     ttyOut <- openFd "/dev/tty" WriteOnly Nothing defaultFileFlags
     Vty.mkVty (cfg { inputFd = Just ttyIn , outputFd = Just ttyOut })
-
-eventLoop :: Vty -> App s -> s -> IO s
-eventLoop vty app initialState = do
-    refresh initialState
-    loop initialState
-  where
-    loop currentState = do
-        event <- Vty.nextEvent vty
-        let next = handle handleAppEvent event currentState
-        case next of
-            Unchanged         -> loop currentState
-            Halt     newState -> newState
-            Continue action   -> do newState <- action
-                                    refresh newState
-                                    loop newState
-    refresh currentState = Vty.update vty (renderApp currentState)
-    renderApp = view render app
-    handleAppEvent = view handleEvent app
