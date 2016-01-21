@@ -25,16 +25,17 @@ import Vgrep.Widget.Results
 main :: IO ()
 main = do
     inputFromTerminal <- hIsTerminalDevice stdin
-    outputToTerminal <- hIsTerminalDevice stdout
+    outputToTerminal  <- hIsTerminalDevice stdout
     args <- getArgs
     case (inputFromTerminal, outputToTerminal) of
-        (True,  False) -> grepFiles args >>= T.putStrLn
-        (False, False) -> grepStdin args >>= T.putStrLn
-        (True,  True)  -> app (grepFiles args) >>= runApp_
-        (False, True) | args == [] -> app T.getContents    >>= runApp_
-                      | otherwise  -> app (grepStdin args) >>= runApp_
+        (True,  False)   -> grepFiles args >>= T.putStrLn
+        (False, False)   -> grepStdin args >>= T.putStrLn
+        (False, True)
+            | args == [] -> T.getContents  >>= runApp_ . app
+            | otherwise  -> grepStdin args >>= runApp_ . app
+        (True,  True)    -> grepFiles args >>= runApp_ . app
 
-grepStdin ::[String] -> IO Text
+grepStdin :: [String] -> IO Text
 grepStdin = grep Inherit
 
 grepFiles :: [String] -> IO Text
@@ -50,8 +51,8 @@ grep inputStream args = do
 
 type MainWidget = HSplitWidget ResultsWidget PagerWidget
 
-app :: Functor f => f Text -> f (App MainWidget)
-app = fmap $ \input -> App
+app :: Text -> App MainWidget
+app input = App
     { _initialize  = initSplitView input
     , _handleEvent = eventHandler
     , _render      = picForImage . drawWidget }
