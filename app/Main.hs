@@ -11,6 +11,7 @@ import qualified Data.Text.Lazy.IO as T
 import Graphics.Vty hiding (resize)
 import System.IO
 import System.Environment (getArgs)
+import System.Exit
 import System.Posix
 import System.Process
 
@@ -43,10 +44,11 @@ grepFiles args = grep CreatePipe ("-n" : "-H" : args)
 
 grep :: StdStream -> [String] -> IO Text
 grep inputStream args = do
-    (_, Just out, _, _) <- createProcess $ (proc "grep" args)
-        { std_in  = inputStream
-        , std_out = CreatePipe }
-    T.hGetContents out
+    (_, Just out, _, _) <- createProcess $
+        (proc "grep" args) { std_in  = inputStream , std_out = CreatePipe }
+    grepOutput <- T.hGetContents out
+    when (T.null grepOutput) exitFailure
+    pure grepOutput
 
 
 type MainWidget = HSplitWidget ResultsWidget PagerWidget
@@ -141,7 +143,6 @@ results = widgetState . leftWidget . widgetState
 
 pager :: Lens' MainWidget PagerState
 pager = widgetState . rightWidget . widgetState
-
 
 
 resultsFocused :: Traversal' MainWidget ResultsWidget
