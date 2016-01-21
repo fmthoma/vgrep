@@ -30,7 +30,7 @@ main = do
         (True,  False) -> dieNoStdin
         (True,  True)  -> printUsage >> dieNoStdin
         (False, False) -> interact id
-        (False, True)  -> runApp app >> return ()
+        (False, True)  -> runApp_ app
 
 printUsage :: IO ()
 printUsage = putStrLn $ unlines

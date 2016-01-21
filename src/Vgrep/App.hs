@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell, LambdaCase #-}
 module Vgrep.App
     ( App(..)
-    , runApp
+    , runApp, runApp_
     , ttyIn
     , ttyOut
     ) where
@@ -20,6 +20,9 @@ data App s = App { _initialize  :: Vty -> IO s
 
 makeLenses ''App
 
+
+runApp_ :: App s -> IO ()
+runApp_ app = runApp app >> pure ()
 
 runApp :: App s -> IO s
 runApp app = startEventLoop >>= suspendAndResume
