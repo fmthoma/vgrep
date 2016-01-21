@@ -10,7 +10,7 @@ import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as T
 import Graphics.Vty hiding (resize)
 import System.IO
-import System.Exit
+import System.Environment (getArgs)
 import System.Posix
 import System.Process
 
@@ -26,38 +26,43 @@ main :: IO ()
 main = do
     inputFromTerminal <- hIsTerminalDevice stdin
     outputToTerminal <- hIsTerminalDevice stdout
+    args <- getArgs
     case (inputFromTerminal, outputToTerminal) of
-        (True,  False) -> dieNoStdin
-        (True,  True)  -> printUsage >> dieNoStdin
-        (False, False) -> interact id
-        (False, True)  -> runApp_ app
+        (True,  False) -> grepFiles args >>= T.putStrLn
+        (False, False) -> grepStdin args >>= T.putStrLn
+        (True,  True)  -> app (grepFiles args) >>= runApp_
+        (False, True) | args == [] -> app T.getContents    >>= runApp_
+                      | otherwise  -> app (grepStdin args) >>= runApp_
 
-printUsage :: IO ()
-printUsage = putStrLn $ unlines
-    [ "Usage:"
-    , "    grep -rn PATTERN | vgrep"
-    , "    grep -rn PATTERN | vgrep | COMMAND" ]
+grepStdin ::[String] -> IO Text
+grepStdin = grep Inherit
 
-dieNoStdin :: IO ()
-dieNoStdin = die "No stdin connected. Aborting."
+grepFiles :: [String] -> IO Text
+grepFiles args = grep CreatePipe ("-n" : "-H" : args)
+
+grep :: StdStream -> [String] -> IO Text
+grep inputStream args = do
+    (_, Just out, _, _) <- createProcess $ (proc "grep" args)
+        { std_in  = inputStream
+        , std_out = CreatePipe }
+    T.hGetContents out
+
 
 type MainWidget = HSplitWidget ResultsWidget PagerWidget
 
-app :: App MainWidget
-app = App { _initialize  = initSplitView
-          , _handleEvent = eventHandler
-          , _render      = picForImage . drawWidget }
+app :: Functor f => f Text -> f (App MainWidget)
+app = fmap $ \input -> App
+    { _initialize  = initSplitView input
+    , _handleEvent = eventHandler
+    , _render      = picForImage . drawWidget }
 
-initSplitView :: Vty -> IO MainWidget
-initSplitView vty = do
-    inputLines <- readGrepOutput T.getContents
+initSplitView :: Text -> Vty -> IO MainWidget
+initSplitView input vty = do
+    let inputLines = parseGrepOutput (T.lines input)
     bounds <- displayBounds (outputIface vty)
     let leftPager  = resultsWidget bounds inputLines
         rightPager = pagerWidget T.empty bounds
     return (hSplitWidget leftPager rightPager bounds)
-
-readGrepOutput :: Functor f => f Text -> f [FileLineReference]
-readGrepOutput = fmap (parseGrepOutput . T.lines)
 
 
 ---------------------------------------------------------------------------
