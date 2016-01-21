@@ -115,7 +115,7 @@ invokeEditor :: MonadIO io => FilePath -> Int -> io ()
 invokeEditor file lineNumber = liftIO $ do
     maybeEditor <- getEnv "EDITOR"
     case maybeEditor of
-            Just editor -> exec editor [file, '+' : show lineNumber]
+            Just editor -> exec editor ['+' : show lineNumber, file]
             Nothing -> error "Environment variable $EDITOR not defined"
 
 exec :: MonadIO io => FilePath -> [String] -> io ()
