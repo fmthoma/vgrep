@@ -54,7 +54,7 @@ initSplitView vty = do
     bounds <- displayBounds (outputIface vty)
     let leftPager  = resultsWidget bounds inputLines
         rightPager = pagerWidget T.empty bounds
-    return (hSplitWidget leftPager rightPager (2 % 3) bounds)
+    return (hSplitWidget leftPager rightPager bounds)
 
 readGrepOutput :: Functor f => f Text -> f [FileLineReference]
 readGrepOutput = fmap (parseGrepOutput . T.lines)
@@ -90,14 +90,13 @@ eventHandler = mconcat
     keyEnter = whenS (has resultsFocused) $ do
                   loadSelectedFileToPager
                   liftState moveToSelectedLineNumber
-                  liftState (zoom widgetState focusRight)
+                  liftState (zoom widgetState (splitFocusRight (1 % 3)))
     keyEdit  = zoom (widgetState . leftWidget) $ do
-                   fileName <- uses currentFileName T.unpack
-                   lineNumber <- uses currentLineNumber (fromMaybe 0)
-                   invokeEditor fileName lineNumber
-
+                  fileName <- uses currentFileName T.unpack
+                  lineNumber <- uses currentLineNumber (fromMaybe 0)
+                  invokeEditor fileName lineNumber
     keyEsc   = whenS (has pagerFocused)
-                  (zoom widgetState focusLeft)
+                  (zoom widgetState leftOnly)
 
 loadSelectedFileToPager :: StateT MainWidget IO ()
 loadSelectedFileToPager = zoom widgetState $ do
