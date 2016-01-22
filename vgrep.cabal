@@ -22,6 +22,7 @@ library
                      , Vgrep.Parser
                      , Vgrep.Results
                      , Vgrep.Results.Buffer
+                     , Vgrep.System.Grep
                      , Vgrep.Widget
                      , Vgrep.Widget.HorizontalSplit
                      , Vgrep.Widget.Pager
@@ -32,6 +33,7 @@ library
                      , containers
                      , lens
                      , mtl
+                     , process
                      , text
                      , unix
                      , vty >= 5.4.0
