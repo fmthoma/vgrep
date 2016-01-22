@@ -40,7 +40,11 @@ grepStdin :: [String] -> IO Text
 grepStdin = grep Inherit
 
 grepFiles :: [String] -> IO Text
-grepFiles args = grep CreatePipe ("-n" : "-H" : args)
+grepFiles args = grep CreatePipe
+    ( "-n" -- print line numbers
+    : "-H" -- always print file name
+    : "-I" -- skip binary files
+    : args )
 
 grep :: StdStream -> [String] -> IO Text
 grep inputStream args = do
