@@ -21,7 +21,8 @@ grepStdin = do
     input <- T.getContents
     when (T.null input) exitFailure
     args <- getArgs
-    let args' = case parseLine (head (T.lines input)) of
+    let firstInputLine = head (T.lines input)
+        args' = case parseLine firstInputLine of
             Just _parsedLine -> args
             Nothing          -> withFileName : withLineNumber : args
     (hIn, hOut) <- createGrepProcess args'
