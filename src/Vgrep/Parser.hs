@@ -1,5 +1,7 @@
 module Vgrep.Parser
     ( parseGrepOutput
+    , parseLine
+    , FileLineReference -- reexport from Vgrep.Results
     ) where
 
 import Control.Applicative

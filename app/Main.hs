@@ -1,22 +1,24 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, MultiWayIf #-}
 module Main (main) where
 
-import Control.Monad.State.Extended
 import Control.Lens
+import Control.Monad.State.Extended
 import Data.Maybe
 import Data.Ratio
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as T
 import Graphics.Vty hiding (resize)
+import System.Directory
+import System.Environment (getArgs)
 import System.IO
-import System.Exit
 import System.Posix
 import System.Process
 
 import Vgrep.App
 import Vgrep.Event
 import Vgrep.Parser
+import Vgrep.System.Grep
 import Vgrep.Widget as Widget
 import Vgrep.Widget.HorizontalSplit
 import Vgrep.Widget.Pager
@@ -24,40 +26,35 @@ import Vgrep.Widget.Results
 
 main :: IO ()
 main = do
+    hSetBuffering stdin  LineBuffering
+    hSetBuffering stdout LineBuffering
     inputFromTerminal <- hIsTerminalDevice stdin
-    outputToTerminal <- hIsTerminalDevice stdout
+    outputToTerminal  <- hIsTerminalDevice stdout
+    args <- getArgs
     case (inputFromTerminal, outputToTerminal) of
-        (True,  False) -> dieNoStdin
-        (True,  True)  -> printUsage >> dieNoStdin
-        (False, False) -> interact id
-        (False, True)  -> runApp_ app
+        (True,  False)  -> grepFiles >>= T.putStrLn
+        (False, False)  -> grepStdin >>= T.putStrLn
+        (False, True)
+            | null args -> pipeStdin >>= runApp_ . app
+            | otherwise -> grepStdin >>= runApp_ . app
+        (True,  True)   -> grepFiles >>= runApp_ . app
+  where pipeStdin = T.getContents
 
-printUsage :: IO ()
-printUsage = putStrLn $ unlines
-    [ "Usage:"
-    , "    grep -rn PATTERN | vgrep"
-    , "    grep -rn PATTERN | vgrep | COMMAND" ]
-
-dieNoStdin :: IO ()
-dieNoStdin = die "No stdin connected. Aborting."
 
 type MainWidget = HSplitWidget ResultsWidget PagerWidget
 
-app :: App MainWidget
-app = App { _initialize  = initSplitView
-          , _handleEvent = eventHandler
-          , _render      = picForImage . drawWidget }
+app :: Text -> App MainWidget
+app input = App
+    { _initialize  = initSplitView (parseGrepOutput (T.lines input))
+    , _handleEvent = eventHandler
+    , _render      = picForImage . drawWidget }
 
-initSplitView :: Vty -> IO MainWidget
-initSplitView vty = do
-    inputLines <- readGrepOutput T.getContents
+initSplitView :: [FileLineReference] -> Vty -> IO MainWidget
+initSplitView input vty = do
     bounds <- displayBounds (outputIface vty)
-    let leftPager  = resultsWidget bounds inputLines
+    let leftPager  = resultsWidget bounds input
         rightPager = pagerWidget T.empty bounds
     return (hSplitWidget leftPager rightPager bounds)
-
-readGrepOutput :: Functor f => f Text -> f [FileLineReference]
-readGrepOutput = fmap (parseGrepOutput . T.lines)
 
 
 ---------------------------------------------------------------------------
@@ -100,8 +97,11 @@ eventHandler = mconcat
 
 loadSelectedFileToPager :: StateT MainWidget IO ()
 loadSelectedFileToPager = zoom widgetState $ do
-    fileName <- use (leftWidget . currentFileName)
-    fileContent <- liftIO (T.readFile (T.unpack fileName))
+    fileName <- uses (leftWidget . currentFileName) T.unpack
+    fileExists <- liftIO (doesFileExist fileName)
+    fileContent <- liftIO $ if fileExists
+        then T.readFile fileName
+        else pure (T.pack ("File not found: " ++ show fileName))
     liftState $ zoom (rightWidget . widgetState)
                      (replaceBufferContents fileContent)
 
@@ -112,10 +112,14 @@ moveToSelectedLineNumber = zoom widgetState $ do
 
 invokeEditor :: MonadIO io => FilePath -> Int -> io ()
 invokeEditor file lineNumber = liftIO $ do
+    fileExists <- doesFileExist file
     maybeEditor <- getEnv "EDITOR"
-    case maybeEditor of
-            Just editor -> exec editor ['+' : show lineNumber, file]
-            Nothing -> error "Environment variable $EDITOR not defined"
+    if | not fileExists
+         -> hPutStrLn stderr ("File not found: " ++ show file)
+       | Just editor <- maybeEditor
+         -> exec editor ['+' : show lineNumber, file]
+       | otherwise
+         -> hPutStrLn stderr ("Environment variable $EDITOR not defined")
 
 exec :: MonadIO io => FilePath -> [String] -> io ()
 exec command args = liftIO $ do
@@ -135,7 +139,6 @@ results = widgetState . leftWidget . widgetState
 
 pager :: Lens' MainWidget PagerState
 pager = widgetState . rightWidget . widgetState
-
 
 
 resultsFocused :: Traversal' MainWidget ResultsWidget

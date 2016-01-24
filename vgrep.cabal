@@ -22,6 +22,7 @@ library
                      , Vgrep.Parser
                      , Vgrep.Results
                      , Vgrep.Results.Buffer
+                     , Vgrep.System.Grep
                      , Vgrep.Widget
                      , Vgrep.Widget.HorizontalSplit
                      , Vgrep.Widget.Pager
@@ -32,6 +33,7 @@ library
                      , containers
                      , lens
                      , mtl
+                     , process
                      , text
                      , unix
                      , vty >= 5.4.0
@@ -42,6 +44,7 @@ executable vgrep
   main-is:             Main.hs
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall
   build-depends:       base
+                     , directory
                      , lens
                      , mtl
                      , process
