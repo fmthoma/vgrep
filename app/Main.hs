@@ -1,16 +1,17 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, MultiWayIf #-}
 module Main (main) where
 
-import Control.Monad.State.Extended
 import Control.Lens
+import Control.Monad.State.Extended
 import Data.Maybe
 import Data.Ratio
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as T
 import Graphics.Vty hiding (resize)
-import System.IO
+import System.Directory
 import System.Environment (getArgs)
+import System.IO
 import System.Posix
 import System.Process
 
@@ -96,8 +97,11 @@ eventHandler = mconcat
 
 loadSelectedFileToPager :: StateT MainWidget IO ()
 loadSelectedFileToPager = zoom widgetState $ do
-    fileName <- use (leftWidget . currentFileName)
-    fileContent <- liftIO (T.readFile (T.unpack fileName))
+    fileName <- uses (leftWidget . currentFileName) T.unpack
+    fileExists <- liftIO (doesFileExist fileName)
+    fileContent <- liftIO $ if fileExists
+        then T.readFile fileName
+        else pure (T.pack ("File not found: " ++ show fileName))
     liftState $ zoom (rightWidget . widgetState)
                      (replaceBufferContents fileContent)
 
@@ -108,10 +112,14 @@ moveToSelectedLineNumber = zoom widgetState $ do
 
 invokeEditor :: MonadIO io => FilePath -> Int -> io ()
 invokeEditor file lineNumber = liftIO $ do
+    fileExists <- doesFileExist file
     maybeEditor <- getEnv "EDITOR"
-    case maybeEditor of
-            Just editor -> exec editor ['+' : show lineNumber, file]
-            Nothing -> error "Environment variable $EDITOR not defined"
+    if | not fileExists
+         -> hPutStrLn stderr ("File not found: " ++ show file)
+       | Just editor <- maybeEditor
+         -> exec editor ['+' : show lineNumber, file]
+       | otherwise
+         -> hPutStrLn stderr ("Environment variable $EDITOR not defined")
 
 exec :: MonadIO io => FilePath -> [String] -> io ()
 exec command args = liftIO $ do
