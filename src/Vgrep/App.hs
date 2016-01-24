@@ -6,7 +6,6 @@ module Vgrep.App
     , ttyOut
     ) where
 
-import Control.Exception (bracket)
 import Control.Lens
 import Control.Monad.Reader
 import Graphics.Vty (Vty, Config(..))
@@ -60,8 +59,7 @@ runApp app = startEventLoop >>= suspendAndResume
 
 
 withVty :: (Vty -> Vgrep s) -> Vgrep s
-withVty action = Vgrep . ReaderT $ \r ->
-    bracket initVty Vty.shutdown (\vty -> runReaderT (runVgrep (action vty)) r)
+withVty = bracket initVty Vty.shutdown
 
 initVty :: IO Vty
 initVty = do
