@@ -87,8 +87,7 @@ renderPager state =
                      . fmap T.unpack
                      $ visibleLines
 
-    lineNumbers = fold . fmap (string (defAttr `withForeColor` brightBlack
-                                               `withBackColor` black))
+    lineNumbers = fold . fmap (string (defAttr `withForeColor` blue))
                        . take (length visibleLines)
                        . fmap (padWithSpace . show)
                        $ [currentPosition ..]

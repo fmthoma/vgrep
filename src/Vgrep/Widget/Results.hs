@@ -104,8 +104,7 @@ drawLine (width, lineNumberWidth) = \case
     SelectedLine (n, t) -> horizCat [drawLineNumber n, drawSelectedLineText t]
   where
     fileHeaderStyle = defAttr `withBackColor` green
-    lineNumberStyle = defAttr `withForeColor` brightBlack
-                              `withBackColor` black
+    lineNumberStyle = defAttr `withForeColor` blue
     resultLineStyle = defAttr
     highlightStyle  = defAttr `withStyle` standout
 
