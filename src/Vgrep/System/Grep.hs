@@ -38,11 +38,15 @@ grepStdin = do
 grepFiles :: IO Text
 grepFiles = do
     args <- getArgs
-    grep ( withFileName
-         : withLineNumber
-         : skipBinaryFiles
-         : lineBuffered
-         : args )
+    let grepArgs = withFileName
+                 : withLineNumber
+                 : skipBinaryFiles
+                 : lineBuffered
+                 : args
+    (_hIn, hOut) <- createGrepProcess grepArgs
+    grepOutput <- T.hGetContents hOut
+    when (T.null grepOutput) exitFailure
+    pure grepOutput
 
 withFileName, withLineNumber, skipBinaryFiles, lineBuffered :: String
 withFileName    = "-H"
@@ -50,12 +54,6 @@ withLineNumber  = "-n"
 skipBinaryFiles = "-I"
 lineBuffered    = "--line-buffered"
 
-grep :: [String] -> IO Text
-grep args = do
-    (_in, out) <- createGrepProcess args
-    grepOutput <- T.hGetContents out
-    when (T.null grepOutput) exitFailure
-    pure grepOutput
 
 createGrepProcess :: [String] -> IO (Handle, Handle)
 createGrepProcess args = do
