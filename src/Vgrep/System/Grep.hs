@@ -1,9 +1,10 @@
 module Vgrep.System.Grep
-    ( grepStdin
+    ( grep
     , grepFiles
     ) where
 
 import Control.Monad
+import Control.Monad.IO.Class
 import Control.Concurrent
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
@@ -16,9 +17,8 @@ import Vgrep.Parser
 
 import System.IO
 
-grepStdin :: IO Text
-grepStdin = do
-    input <- T.getContents
+grep :: MonadIO io => Text -> io Text
+grep input = liftIO $ do
     when (T.null input) exitFailure
     args <- getArgs
     let firstInputLine = head (T.lines input)
@@ -35,8 +35,8 @@ grepStdin = do
     when (T.null grepOutput) exitFailure
     pure grepOutput
 
-grepFiles :: IO Text
-grepFiles = do
+grepFiles :: MonadIO io => io Text
+grepFiles = liftIO $ do
     args <- getArgs
     let grepArgs = withFileName
                  : withLineNumber

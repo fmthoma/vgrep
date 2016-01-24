@@ -30,14 +30,14 @@ main = do
     inputFromTerminal <- hIsTerminalDevice stdin
     outputToTerminal  <- hIsTerminalDevice stdout
     args <- getArgs
+    input <- T.getContents
     case (inputFromTerminal, outputToTerminal) of
-        (True,  False)  -> grepFiles >>= T.putStrLn
-        (False, False)  -> grepStdin >>= T.putStrLn
+        (True,  False)  -> grepFiles  >>= T.putStrLn
+        (False, False)  -> grep input >>= T.putStrLn
         (False, True)
-            | null args -> pipeStdin >>= runApp_ . app
-            | otherwise -> grepStdin >>= runApp_ . app
-        (True,  True)   -> grepFiles >>= runApp_ . app
-  where pipeStdin = T.getContents
+            | null args -> pure input >>= runApp_ . app
+            | otherwise -> grep input >>= runApp_ . app
+        (True,  True)   -> grepFiles  >>= runApp_ . app
 
 
 type MainWidget = HSplitWidget ResultsWidget PagerWidget
