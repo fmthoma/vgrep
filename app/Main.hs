@@ -101,9 +101,9 @@ loadSelectedFileToPager :: StateT MainWidget Vgrep ()
 loadSelectedFileToPager = zoom widgetState $ do
     fileName <- uses (leftWidget . currentFileName) T.unpack
     fileExists <- liftIO (doesFileExist fileName)
-    fileContent <- liftIO $ if fileExists
-        then T.readFile fileName
-        else pure (T.pack ("File not found: " ++ show fileName))
+    fileContent <- if fileExists
+        then liftIO (T.readFile fileName)
+        else lift (view input)
     liftState $ zoom (rightWidget . widgetState)
                      (replaceBufferContents fileContent)
 
