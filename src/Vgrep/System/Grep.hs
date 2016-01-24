@@ -1,6 +1,6 @@
 module Vgrep.System.Grep
     ( grep
-    , grepFiles
+    , recursiveGrep
     ) where
 
 import Control.Monad
@@ -35,8 +35,8 @@ grep input = liftIO $ do
     when (T.null grepOutput) exitFailure
     pure grepOutput
 
-grepFiles :: MonadIO io => io Text
-grepFiles = liftIO $ do
+recursiveGrep :: MonadIO io => io Text
+recursiveGrep = liftIO $ do
     args <- getArgs
     let grepArgs = withFileName
                  : withLineNumber

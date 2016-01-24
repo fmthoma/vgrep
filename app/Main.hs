@@ -36,12 +36,12 @@ main = do
     outputToTerminal  <- hIsTerminalDevice stdout
     args <- getArgs
     runVgrep environment $ case (inputFromTerminal, outputToTerminal) of
-        (True,  False)  -> grepFiles           >>= liftIO . T.putStrLn
+        (True,  False)  -> recursiveGrep       >>= liftIO . T.putStrLn
         (False, False)  -> view input >>= grep >>= liftIO . T.putStrLn
         (False, True)
             | null args -> view input          >>= runApp_ . app
             | otherwise -> view input >>= grep >>= runApp_ . app
-        (True,  True)   -> grepFiles           >>= runApp_ . app
+        (True,  True)   -> recursiveGrep       >>= runApp_ . app
 
 type MainWidget = HSplitWidget ResultsWidget PagerWidget
 
