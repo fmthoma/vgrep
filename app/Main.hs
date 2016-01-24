@@ -32,21 +32,16 @@ main = do
     hSetBuffering stdin  LineBuffering
     hSetBuffering stdout LineBuffering
     environment <- Env <$> T.getContents
-    runReaderT (runVgrep vgrepMain) environment
-
-vgrepMain :: Vgrep ()
-vgrepMain = do
-    inputFromTerminal <- liftIO (hIsTerminalDevice stdin)
-    outputToTerminal  <- liftIO (hIsTerminalDevice stdout)
-    args <- liftIO getArgs
-    input' <- view input
-    case (inputFromTerminal, outputToTerminal) of
-        (True,  False)  -> grepFiles  >>= liftIO . T.putStrLn
-        (False, False)  -> grep input' >>= liftIO . T.putStrLn
+    inputFromTerminal <- hIsTerminalDevice stdin
+    outputToTerminal  <- hIsTerminalDevice stdout
+    args <- getArgs
+    runVgrep environment $ case (inputFromTerminal, outputToTerminal) of
+        (True,  False)  -> grepFiles           >>= liftIO . T.putStrLn
+        (False, False)  -> view input >>= grep >>= liftIO . T.putStrLn
         (False, True)
-            | null args -> pure input' >>= runApp_ . app
-            | otherwise -> grep input' >>= runApp_ . app
-        (True,  True)   -> grepFiles  >>= runApp_ . app
+            | null args -> view input          >>= runApp_ . app
+            | otherwise -> view input >>= grep >>= runApp_ . app
+        (True,  True)   -> grepFiles           >>= runApp_ . app
 
 type MainWidget = HSplitWidget ResultsWidget PagerWidget
 
