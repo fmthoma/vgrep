@@ -31,8 +31,8 @@ main :: IO ()
 main = do
     hSetBuffering stdin  LineBuffering
     hSetBuffering stdout LineBuffering
-    input <- T.getContents
-    runReaderT vgrepMain (Env input)
+    environment <- Env <$> T.getContents
+    runReaderT (runVgrep vgrepMain) environment
 
 vgrepMain :: Vgrep ()
 vgrepMain = do
@@ -102,7 +102,7 @@ eventHandler = mconcat
     keyEsc   = whenS (has pagerFocused)
                   (zoom widgetState leftOnly)
 
-loadSelectedFileToPager :: StateT MainWidget IO ()
+loadSelectedFileToPager :: StateT MainWidget Vgrep ()
 loadSelectedFileToPager = zoom widgetState $ do
     fileName <- uses (leftWidget . currentFileName) T.unpack
     fileExists <- liftIO (doesFileExist fileName)

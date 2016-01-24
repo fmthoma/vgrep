@@ -31,15 +31,15 @@ runApp app = startEventLoop >>= suspendAndResume
   where
     startEventLoop = withVty $ \vty -> do
         initialState <- (view initialize app) vty
-        liftIO $ do refresh vty initialState
-                    eventLoop vty initialState
+        refresh vty initialState
+        eventLoop vty initialState
 
-    continueEventLoop currentState = withVty $ \vty -> liftIO $ do
+    continueEventLoop currentState = withVty $ \vty -> do
         refresh vty currentState
         eventLoop vty currentState
 
     eventLoop vty currentState = do
-        event <- Vty.nextEvent vty
+        event <- liftIO (Vty.nextEvent vty)
         next <- runEventHandler handleAppEvent event currentState
         case next of
             Unchanged         -> eventLoop vty currentState
@@ -48,10 +48,10 @@ runApp app = startEventLoop >>= suspendAndResume
 
     suspendAndResume = \case
         Halt finalState      -> pure finalState
-        Resume outsideAction -> liftIO outsideAction >>= continueEventLoop >>= suspendAndResume
+        Resume outsideAction -> outsideAction >>= continueEventLoop >>= suspendAndResume
         _other               -> cannotHappen_othersAreHandledInEventLoop
 
-    refresh vty = Vty.update vty . renderApp
+    refresh vty = liftIO . Vty.update vty . renderApp
     renderApp = view render app
     handleAppEvent = view handleEvent app
 
@@ -60,8 +60,8 @@ runApp app = startEventLoop >>= suspendAndResume
 
 
 withVty :: (Vty -> Vgrep s) -> Vgrep s
-withVty action = ReaderT $ \r ->
-    bracket initVty Vty.shutdown (\vty -> runReaderT (action vty) r)
+withVty action = Vgrep . ReaderT $ \r ->
+    bracket initVty Vty.shutdown (\vty -> runReaderT (runVgrep (action vty)) r)
 
 initVty :: IO Vty
 initVty = do
