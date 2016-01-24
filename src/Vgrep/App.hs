@@ -8,31 +8,33 @@ module Vgrep.App
 
 import Control.Exception (bracket)
 import Control.Lens
+import Control.Monad.Reader
 import Graphics.Vty (Vty, Config(..))
 import qualified Graphics.Vty as Vty
 import System.Posix
 
 import Vgrep.Event
+import Vgrep.Type
 
-data App s = App { _initialize  :: Vty -> IO s
+data App s = App { _initialize  :: Vty -> Vgrep s
                  , _handleEvent :: EventHandler s
                  , _render      :: s -> Vty.Picture }
 
 makeLenses ''App
 
 
-runApp_ :: App s -> IO ()
+runApp_ :: App s -> Vgrep ()
 runApp_ app = runApp app >> pure ()
 
-runApp :: App s -> IO s
+runApp :: App s -> Vgrep s
 runApp app = startEventLoop >>= suspendAndResume
   where
     startEventLoop = withVty $ \vty -> do
         initialState <- (view initialize app) vty
-        refresh vty initialState
-        eventLoop vty initialState
+        liftIO $ do refresh vty initialState
+                    eventLoop vty initialState
 
-    continueEventLoop currentState = withVty $ \vty -> do
+    continueEventLoop currentState = withVty $ \vty -> liftIO $ do
         refresh vty currentState
         eventLoop vty currentState
 
@@ -46,7 +48,7 @@ runApp app = startEventLoop >>= suspendAndResume
 
     suspendAndResume = \case
         Halt finalState      -> pure finalState
-        Resume outsideAction -> outsideAction >>= continueEventLoop >>= suspendAndResume
+        Resume outsideAction -> liftIO outsideAction >>= continueEventLoop >>= suspendAndResume
         _other               -> cannotHappen_othersAreHandledInEventLoop
 
     refresh vty = Vty.update vty . renderApp
@@ -57,8 +59,9 @@ runApp app = startEventLoop >>= suspendAndResume
         error "Internal error: Unhandled Continuation"
 
 
-withVty :: (Vty -> IO s) -> IO s
-withVty = bracket initVty Vty.shutdown
+withVty :: (Vty -> Vgrep s) -> Vgrep s
+withVty action = ReaderT $ \r ->
+    bracket initVty Vty.shutdown (\vty -> runReaderT (action vty) r)
 
 initVty :: IO Vty
 initVty = do

@@ -21,10 +21,12 @@ library
   exposed-Modules:     Control.Monad.State.Extended
                      , Vgrep.App
                      , Vgrep.Event
+                     , Vgrep.Environment
                      , Vgrep.Parser
                      , Vgrep.Results
                      , Vgrep.Results.Buffer
                      , Vgrep.System.Grep
+                     , Vgrep.Type
                      , Vgrep.Widget
                      , Vgrep.Widget.HorizontalSplit
                      , Vgrep.Widget.Pager
@@ -34,6 +36,7 @@ library
                      , attoparsec
                      , containers
                      , lens
+                     , lifted-base
                      , mtl
                      , process
                      , text
