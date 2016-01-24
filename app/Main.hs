@@ -25,6 +25,8 @@ import Vgrep.Widget.Results
 
 main :: IO ()
 main = do
+    hSetBuffering stdin  LineBuffering
+    hSetBuffering stdout LineBuffering
     inputFromTerminal <- hIsTerminalDevice stdin
     outputToTerminal  <- hIsTerminalDevice stdout
     args <- getArgs

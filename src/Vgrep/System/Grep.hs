@@ -22,10 +22,14 @@ grepStdin = do
     when (T.null input) exitFailure
     args <- getArgs
     let firstInputLine = head (T.lines input)
-        args' = case parseLine firstInputLine of
-            Just _parsedLine -> args
-            Nothing          -> withFileName : withLineNumber : args
-    (hIn, hOut) <- createGrepProcess args'
+        grepArgs = case parseLine firstInputLine of
+            Just _parsedLine -> lineBuffered
+                              : args
+            Nothing          -> withFileName
+                              : withLineNumber
+                              : lineBuffered
+                              : args
+    (hIn, hOut) <- createGrepProcess grepArgs
     _threadId <- forkIO (T.hPutStr hIn input)
     grepOutput <- T.hGetContents hOut
     when (T.null grepOutput) exitFailure
@@ -37,12 +41,14 @@ grepFiles = do
     grep ( withFileName
          : withLineNumber
          : skipBinaryFiles
+         : lineBuffered
          : args )
 
-withFileName, withLineNumber, skipBinaryFiles :: String
+withFileName, withLineNumber, skipBinaryFiles, lineBuffered :: String
 withFileName    = "-H"
 withLineNumber  = "-n"
 skipBinaryFiles = "-I"
+lineBuffered    = "--line-buffered"
 
 grep :: [String] -> IO Text
 grep args = do
