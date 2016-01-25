@@ -6,15 +6,16 @@ import Control.Monad.State
 import Graphics.Vty hiding (resize)
 
 import Vgrep.Event
+import Vgrep.Type
 
 data Widget s = Widget { _widgetState :: s
                        , _dimensions  :: DisplayRegion
                        , _resize      :: DisplayRegion -> State s ()
-                       , _draw        :: s -> Image }
+                       , _draw        :: s -> Vgrep Image }
 
 makeLenses ''Widget
 
-drawWidget :: Widget s -> Image
+drawWidget :: Widget s -> Vgrep Image
 drawWidget widget = (view draw widget) (view widgetState widget)
 
 resizeWidget :: DisplayRegion -> State (Widget s) ()

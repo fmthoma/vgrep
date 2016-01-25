@@ -17,7 +17,7 @@ import Vgrep.Type
 
 data App s = App { _initialize  :: Vty -> VgrepT IO s
                  , _handleEvent :: EventHandler s
-                 , _render      :: s -> Vty.Picture }
+                 , _render      :: s -> Vgrep Vty.Picture }
 
 makeLenses ''App
 
@@ -50,7 +50,7 @@ runApp app = startEventLoop >>= suspendAndResume
         Resume outsideAction -> outsideAction >>= continueEventLoop >>= suspendAndResume
         _other               -> cannotHappen_othersAreHandledInEventLoop
 
-    refresh vty = liftIO . Vty.update vty . renderApp
+    refresh vty = liftVgrep . fmap (Vty.update vty) . renderApp
     renderApp = view render app
     handleAppEvent = view handleEvent app
 

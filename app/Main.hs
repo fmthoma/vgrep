@@ -49,7 +49,7 @@ app :: Text -> App MainWidget
 app grepOutput = App
     { _initialize  = initSplitView (parseGrepOutput (T.lines grepOutput))
     , _handleEvent = eventHandler
-    , _render      = picForImage . drawWidget }
+    , _render      = fmap picForImage . drawWidget }
 
 initSplitView :: [FileLineReference] -> Vty -> VgrepT IO MainWidget
 initSplitView grepOutput vty = liftIO $ do

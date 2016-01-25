@@ -28,6 +28,9 @@ mkVgrep = mkVgrepT . fmap Identity
 runVgrep :: Environment -> Vgrep a -> a
 runVgrep env = runIdentity . runVgrepT env
 
+liftVgrep :: Monad m => Vgrep (m a) -> VgrepT m a
+liftVgrep = mkVgrepT . flip runVgrep
+
 bracket :: IO a
         -> (a -> IO c)
         -> (a -> VgrepT IO b)
