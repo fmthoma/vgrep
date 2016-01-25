@@ -1,4 +1,9 @@
-{-# LANGUAGE LambdaCase, Rank2Types, TemplateHaskell, MultiWayIf #-}
+{-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE Rank2Types        #-}
+{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE MultiWayIf        #-}
+{-# LANGUAGE OverloadedStrings #-}
+
 module Vgrep.Widget.Results
     ( ResultsState ()
     , ResultsWidget
@@ -20,6 +25,7 @@ import Control.Lens
 import Control.Monad.State.Extended
 import Data.Foldable
 import Data.Maybe
+import Data.Monoid
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 import Graphics.Vty hiding ((<|>))
@@ -31,8 +37,8 @@ import Vgrep.Results
 import Vgrep.Results.Buffer as Buffer
 
 
-data ResultsState = State { _files     :: Buffer
-                          , _region    :: DisplayRegion }
+data ResultsState = State { _files  :: Buffer
+                          , _region :: DisplayRegion }
 
 makeLenses ''ResultsState
 
@@ -69,8 +75,10 @@ pageDown = do
     modifying files (repeatedly moveDown)
 
 repeatedly :: (a -> Maybe a) -> a -> a
-repeatedly f a = case f a of Just a' -> repeatedly f a'
-                             Nothing -> a
+repeatedly f = go
+  where
+    go x | Just x' <- f x = go x'
+         | otherwise      = x
 
 
 prevLine, nextLine :: State ResultsState ()
@@ -81,8 +89,12 @@ tryPrevLine, tryNextLine :: Buffer -> Maybe Buffer
 tryPrevLine buf = moveUp   buf <|> (showPrev buf >>= tryPrevLine)
 tryNextLine buf = moveDown buf <|> (showNext buf >>= tryNextLine)
 
-maybeModify :: (a -> Maybe a) -> State a ()
-maybeModify f = modify (\a -> fromMaybe a (f a))
+maybeModify :: (s -> Maybe s) -> State s ()
+maybeModify f = do
+    s <- get
+    case f s of
+        Just s' -> put s'
+        Nothing -> pure ()
 
 
 drawResultList :: ResultsState -> Image
@@ -108,18 +120,20 @@ drawLine (width, lineNumberWidth) = \case
     resultLineStyle = defAttr
     highlightStyle  = defAttr `withStyle` standout
 
-    padWithSpace w s = T.take (fromIntegral w)
-                     . T.justifyLeft (fromIntegral w) ' '
-                     $ ' ' `T.cons` s
-    justifyRight w s = replicate (w - length s - 1) ' ' ++ s ++ " "
+    padWithSpace w = T.take (fromIntegral w)
+                   . T.justifyLeft (fromIntegral w) ' '
+                   . T.cons ' '
+    justifyRight w s =
+        let padAmount = fromIntegral w - T.length s - 1
+        in T.replicate padAmount " " <> s <> " "
 
     drawFileHeader :: File -> Image
     drawFileHeader = text fileHeaderStyle . padWithSpace width . getFileName
 
     drawLineNumber :: Maybe Int -> Image
-    drawLineNumber = string lineNumberStyle
+    drawLineNumber = text lineNumberStyle
                    . justifyRight lineNumberWidth
-                   . maybe "" show
+                   . maybe "" (T.pack . show)
 
     drawSelectedLineText :: Text -> Image
     drawSelectedLineText = text highlightStyle
