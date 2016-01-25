@@ -32,6 +32,7 @@ main = do
     hSetBuffering stdin  LineBuffering
     hSetBuffering stdout LineBuffering
     environment <- Env <$> T.getContents
+                       <*> defaultConfig
     inputFromTerminal <- hIsTerminalDevice stdin
     outputToTerminal  <- hIsTerminalDevice stdout
     args <- getArgs
