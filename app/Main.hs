@@ -35,7 +35,7 @@ main = do
     inputFromTerminal <- hIsTerminalDevice stdin
     outputToTerminal  <- hIsTerminalDevice stdout
     args <- getArgs
-    runVgrep environment $ case (inputFromTerminal, outputToTerminal) of
+    runVgrepT environment $ case (inputFromTerminal, outputToTerminal) of
         (True,  False)  -> recursiveGrep       >>= liftIO . T.putStrLn
         (False, False)  -> view input >>= grep >>= liftIO . T.putStrLn
         (False, True)
@@ -51,7 +51,7 @@ app grepOutput = App
     , _handleEvent = eventHandler
     , _render      = picForImage . drawWidget }
 
-initSplitView :: [FileLineReference] -> Vty -> Vgrep MainWidget
+initSplitView :: [FileLineReference] -> Vty -> VgrepT IO MainWidget
 initSplitView grepOutput vty = liftIO $ do
     bounds <- displayBounds (outputIface vty)
     let leftPager  = resultsWidget bounds grepOutput
@@ -97,7 +97,7 @@ eventHandler = mconcat
     keyEsc   = whenS (has pagerFocused)
                   (zoom widgetState leftOnly)
 
-loadSelectedFileToPager :: StateT MainWidget Vgrep ()
+loadSelectedFileToPager :: StateT MainWidget (VgrepT IO) ()
 loadSelectedFileToPager = zoom widgetState $ do
     fileName <- uses (leftWidget . currentFileName) T.unpack
     fileExists <- liftIO (doesFileExist fileName)

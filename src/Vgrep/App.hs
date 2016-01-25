@@ -15,17 +15,17 @@ import System.Posix
 import Vgrep.Event
 import Vgrep.Type
 
-data App s = App { _initialize  :: Vty -> Vgrep s
+data App s = App { _initialize  :: Vty -> VgrepT IO s
                  , _handleEvent :: EventHandler s
                  , _render      :: s -> Vty.Picture }
 
 makeLenses ''App
 
 
-runApp_ :: App s -> Vgrep ()
+runApp_ :: App s -> VgrepT IO ()
 runApp_ app = runApp app >> pure ()
 
-runApp :: App s -> Vgrep s
+runApp :: App s -> VgrepT IO s
 runApp app = startEventLoop >>= suspendAndResume
   where
     startEventLoop = withVty $ \vty -> do
@@ -58,7 +58,7 @@ runApp app = startEventLoop >>= suspendAndResume
         error "Internal error: Unhandled Continuation"
 
 
-withVty :: (Vty -> Vgrep s) -> Vgrep s
+withVty :: (Vty -> VgrepT IO s) -> VgrepT IO s
 withVty = bracket initVty Vty.shutdown
 
 initVty :: IO Vty
