@@ -30,10 +30,11 @@ import Graphics.Vty hiding ((<|>))
 import Graphics.Vty.Prelude
 import Prelude
 
-import Vgrep.Type
-import Vgrep.Widget.Type
+import Vgrep.Environment
 import Vgrep.Results
 import Vgrep.Results.Buffer as Buffer
+import Vgrep.Type
+import Vgrep.Widget.Type
 
 
 data ResultsState = State { _files  :: Buffer
@@ -97,48 +98,52 @@ maybeModify f = do
 
 
 renderResultList :: ResultsState -> Vgrep Image
-renderResultList s = pure (renderLines width (toLines (view files s)))
+renderResultList s = do
+      renderedLines <- renderLines width (toLines (view files s))
+      pure (vertCat renderedLines)
   where width = regionWidth (view region s)
 
-renderLines :: Int -> [DisplayLine] -> Image
-renderLines width ls = foldMap (renderLine (width, lineNumberWidth)) ls
+renderLines :: Int -> [DisplayLine] -> Vgrep [Image]
+renderLines width ls = traverse (renderLine (width, lineNumberWidth)) ls
   where lineNumberWidth = foldl' max 0
                         . map (twoExtraSpaces . length . show)
                         . catMaybes
                         $ map lineNumber ls
         twoExtraSpaces = (+ 2)
 
-renderLine :: (Int, Int) -> DisplayLine -> Image
-renderLine (width, lineNumberWidth) = \case
-    FileHeader file     -> renderFileHeader file
-    Line         (n, t) -> horizCat [renderLineNumber n, renderLineText t]
-    SelectedLine (n, t) -> horizCat [renderLineNumber n, renderSelectedLineText t]
+renderLine :: (Int, Int) -> DisplayLine -> Vgrep Image
+renderLine (width, lineNumberWidth) displayLine = do
+    fileHeaderStyle <- view (config . colors . fileHeaders)
+    lineNumberStyle <- view (config . colors . lineNumbers)
+    resultLineStyle <- view (config . colors . normal)
+    highlightStyle  <- view (config . colors . highlight)
+    pure $ case displayLine of
+        FileHeader file     -> renderFileHeader fileHeaderStyle file
+        Line         (n, t) -> horizCat [ renderLineNumber lineNumberStyle n
+                                        , renderLineText   resultLineStyle t ]
+        SelectedLine (n, t) -> horizCat [ renderLineNumber       lineNumberStyle n
+                                        , renderSelectedLineText highlightStyle  t ]
   where
-    fileHeaderStyle = defAttr `withBackColor` green
-    lineNumberStyle = defAttr `withForeColor` blue
-    resultLineStyle = defAttr
-    highlightStyle  = defAttr `withStyle` standout
-
     padWithSpace w = T.take (fromIntegral w)
                    . T.justifyLeft (fromIntegral w) ' '
                    . T.cons ' '
     justifyRight w s = T.justifyRight (fromIntegral w) ' ' (s <> " ")
 
-    renderFileHeader :: File -> Image
-    renderFileHeader = text fileHeaderStyle . padWithSpace width . getFileName
+    renderFileHeader :: Attr -> File -> Image
+    renderFileHeader attr = text attr . padWithSpace width . getFileName
 
-    renderLineNumber :: Maybe Int -> Image
-    renderLineNumber = text lineNumberStyle
-                   . justifyRight lineNumberWidth
-                   . maybe "" (T.pack . show)
+    renderLineNumber :: Attr -> Maybe Int -> Image
+    renderLineNumber attr = text attr
+                          . justifyRight lineNumberWidth
+                          . maybe "" (T.pack . show)
 
-    renderSelectedLineText :: Text -> Image
-    renderSelectedLineText = text highlightStyle
-                         . padWithSpace (width - lineNumberWidth)
+    renderSelectedLineText :: Attr -> Text -> Image
+    renderSelectedLineText attr = text attr
+                                . padWithSpace (width - lineNumberWidth)
 
-    renderLineText :: Text -> Image
-    renderLineText = text resultLineStyle
-                 . padWithSpace (width - lineNumberWidth)
+    renderLineText :: Attr -> Text -> Image
+    renderLineText attr = text attr
+                        . padWithSpace (width - lineNumberWidth)
 
 
 resizeToRegion :: DisplayRegion -> State ResultsState ()

@@ -18,6 +18,7 @@ import qualified Data.Text.Lazy as T
 import Graphics.Vty
 import Graphics.Vty.Prelude
 
+import Vgrep.Environment
 import Vgrep.Type
 import Vgrep.Widget.Type
 
@@ -75,23 +76,29 @@ scrollPage n = do height <- uses region regionHeight
                 -- gracefully leave one ^ line on the screen
 
 renderPager :: PagerState -> Vgrep Image
-renderPager state =
-    pure (resizeWidth width (lineNumbers <|> textLines))
+renderPager state = do
+    textColor       <- view (config . colors . normal)
+    lineNumberColor <- view (config . colors . lineNumbers)
+    let image = renderLineNumbers lineNumberColor
+            <|> renderTextLines textColor
+    pure (resizeWidth width image)
   where
     (width, height) = view region state
     (currentPosition, _, bufferLines) = view buffer state
     visibleLines = take height bufferLines
 
-    textLines = fold . fmap (string defAttr)
-                     . take height
-                     . fmap padWithSpace
-                     . fmap T.unpack
-                     $ visibleLines
+    renderTextLines attr =
+        fold . fmap (string attr)
+             . take height
+             . fmap padWithSpace
+             . fmap T.unpack
+             $ visibleLines
 
-    lineNumbers = fold . fmap (string (defAttr `withForeColor` blue))
-                       . take (length visibleLines)
-                       . fmap (padWithSpace . show)
-                       $ [currentPosition ..]
+    renderLineNumbers attr =
+        fold . fmap (string attr)
+             . take (length visibleLines)
+             . fmap (padWithSpace . show)
+             $ [currentPosition ..]
 
     padWithSpace s = ' ' : s ++ " "
 
