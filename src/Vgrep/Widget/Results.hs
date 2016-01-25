@@ -51,7 +51,7 @@ resultsWidget initialDimensions fileResults =
     Widget { _widgetState = initState fileResults initialDimensions
            , _dimensions  = initialDimensions
            , _resize      = resizeToRegion
-           , _draw        = drawResultList }
+           , _draw        = renderResultList }
 
 initState :: [FileLineReference]
           -> DisplayRegion
@@ -96,23 +96,23 @@ maybeModify f = do
         Nothing -> pure ()
 
 
-drawResultList :: ResultsState -> Vgrep Image
-drawResultList s = pure (drawLines width (toLines (view files s)))
+renderResultList :: ResultsState -> Vgrep Image
+renderResultList s = pure (renderLines width (toLines (view files s)))
   where width = regionWidth (view region s)
 
-drawLines :: Int -> [DisplayLine] -> Image
-drawLines width ls = foldMap (drawLine (width, lineNumberWidth)) ls
+renderLines :: Int -> [DisplayLine] -> Image
+renderLines width ls = foldMap (renderLine (width, lineNumberWidth)) ls
   where lineNumberWidth = foldl' max 0
                         . map (twoExtraSpaces . length . show)
                         . catMaybes
                         $ map lineNumber ls
         twoExtraSpaces = (+ 2)
 
-drawLine :: (Int, Int) -> DisplayLine -> Image
-drawLine (width, lineNumberWidth) = \case
-    FileHeader file     -> drawFileHeader file
-    Line         (n, t) -> horizCat [drawLineNumber n, drawLineText t]
-    SelectedLine (n, t) -> horizCat [drawLineNumber n, drawSelectedLineText t]
+renderLine :: (Int, Int) -> DisplayLine -> Image
+renderLine (width, lineNumberWidth) = \case
+    FileHeader file     -> renderFileHeader file
+    Line         (n, t) -> horizCat [renderLineNumber n, renderLineText t]
+    SelectedLine (n, t) -> horizCat [renderLineNumber n, renderSelectedLineText t]
   where
     fileHeaderStyle = defAttr `withBackColor` green
     lineNumberStyle = defAttr `withForeColor` blue
@@ -124,20 +124,20 @@ drawLine (width, lineNumberWidth) = \case
                    . T.cons ' '
     justifyRight w s = T.justifyRight (fromIntegral w) ' ' (s <> " ")
 
-    drawFileHeader :: File -> Image
-    drawFileHeader = text fileHeaderStyle . padWithSpace width . getFileName
+    renderFileHeader :: File -> Image
+    renderFileHeader = text fileHeaderStyle . padWithSpace width . getFileName
 
-    drawLineNumber :: Maybe Int -> Image
-    drawLineNumber = text lineNumberStyle
+    renderLineNumber :: Maybe Int -> Image
+    renderLineNumber = text lineNumberStyle
                    . justifyRight lineNumberWidth
                    . maybe "" (T.pack . show)
 
-    drawSelectedLineText :: Text -> Image
-    drawSelectedLineText = text highlightStyle
+    renderSelectedLineText :: Text -> Image
+    renderSelectedLineText = text highlightStyle
                          . padWithSpace (width - lineNumberWidth)
 
-    drawLineText :: Text -> Image
-    drawLineText = text resultLineStyle
+    renderLineText :: Text -> Image
+    renderLineText = text resultLineStyle
                  . padWithSpace (width - lineNumberWidth)
 
 
