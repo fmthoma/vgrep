@@ -91,7 +91,7 @@ drawResultList s = drawLines width (toLines (view files s))
 
 drawLines :: Int -> [DisplayLine] -> Image
 drawLines width ls = foldMap (drawLine (width, lineNumberWidth)) ls
-  where lineNumberWidth = foldr max 0
+  where lineNumberWidth = foldl' max 0
                         . map (twoExtraSpaces . length . show)
                         . catMaybes
                         $ map lineNumber ls
