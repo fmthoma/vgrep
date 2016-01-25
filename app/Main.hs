@@ -114,16 +114,14 @@ moveToSelectedLineNumber = zoom widgetState $ do
     lineNumber <- use (leftWidget . currentLineNumber)
     zoom (rightWidget . widgetState) (moveToLine (fromMaybe 0 lineNumber))
 
-invokeEditor :: MonadIO io => FilePath -> Int -> io ()
-invokeEditor file lineNumber = liftIO $ do
-    fileExists <- doesFileExist file
-    maybeEditor <- getEnv "EDITOR"
-    if | not fileExists
-         -> hPutStrLn stderr ("File not found: " ++ show file)
-       | Just editor <- maybeEditor
-         -> exec editor ['+' : show lineNumber, file]
-       | otherwise
-         -> hPutStrLn stderr ("Environment variable $EDITOR not defined")
+invokeEditor :: FilePath -> Int -> StateT ResultsWidget (VgrepT IO) ()
+invokeEditor file lineNumber = do
+    configuredEditor <- view (config . editor)
+    liftIO $ do
+        fileExists <- doesFileExist file
+        if fileExists
+            then exec configuredEditor ['+' : show lineNumber, file]
+            else hPutStrLn stderr ("File not found: " ++ show file)
 
 exec :: MonadIO io => FilePath -> [String] -> io ()
 exec command args = liftIO $ do
