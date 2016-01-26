@@ -1,8 +1,10 @@
 module Vgrep.System.Grep
-    ( grep
+    ( grepStdin
+    , grepStdinForApp
     , recursiveGrep
     ) where
 
+import Control.Lens
 import Control.Monad
 import Control.Monad.IO.Class
 import Control.Concurrent
@@ -13,23 +15,35 @@ import System.Environment (getArgs)
 import System.Exit
 import System.Process
 
+import Vgrep.Type
+import qualified Vgrep.Environment as Env
 import Vgrep.Parser
 
 import System.IO
 
-grep :: MonadIO io => Text -> io Text
-grep input = liftIO $ do
+grepStdinForApp :: VgrepT IO Text
+grepStdinForApp = do
+    firstInputLine <- preview (Env.input . to T.lines . traverse)
+    case firstInputLine >>= parseLine of
+        Just _line -> grepStdin
+        Nothing    -> grepStdinWithFileAndLineNumber
+
+grepStdinWithFileAndLineNumber :: VgrepT IO Text
+grepStdinWithFileAndLineNumber = do
+    input <- view Env.input
+    args <- liftIO getArgs
+    liftIO (grepText (withFileName : withLineNumber : args) input)
+
+grepStdin :: VgrepT IO Text
+grepStdin = do
+    input <- view Env.input
+    args <- liftIO getArgs
+    liftIO (grepText args input)
+
+grepText :: [String] -> Text -> IO Text
+grepText args input = do
     when (T.null input) exitFailure
-    args <- getArgs
-    let firstInputLine = head (T.lines input)
-        grepArgs = case parseLine firstInputLine of
-            Just _parsedLine -> lineBuffered
-                              : args
-            Nothing          -> withFileName
-                              : withLineNumber
-                              : lineBuffered
-                              : args
-    (hIn, hOut) <- createGrepProcess grepArgs
+    (hIn, hOut) <- createGrepProcess (lineBuffered : args)
     _threadId <- forkIO (T.hPutStr hIn input)
     grepOutput <- T.hGetContents hOut
     when (T.null grepOutput) exitFailure
