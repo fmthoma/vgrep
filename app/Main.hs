@@ -117,11 +117,9 @@ moveToSelectedLineNumber = zoom widgetState $ do
 invokeEditor :: FilePath -> Int -> StateT ResultsWidget (VgrepT IO) ()
 invokeEditor file lineNumber = do
     configuredEditor <- view (config . editor)
-    liftIO $ do
-        fileExists <- doesFileExist file
-        if fileExists
-            then exec configuredEditor ['+' : show lineNumber, file]
-            else hPutStrLn stderr ("File not found: " ++ show file)
+    liftIO $ doesFileExist file >>= \case
+        True  -> exec configuredEditor ['+' : show lineNumber, file]
+        False -> hPutStrLn stderr ("File not found: " ++ show file)
 
 exec :: MonadIO io => FilePath -> [String] -> io ()
 exec command args = liftIO $ do
