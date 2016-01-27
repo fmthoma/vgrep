@@ -30,6 +30,7 @@ import Graphics.Vty hiding ((<|>))
 import Graphics.Vty.Prelude
 import Prelude
 
+import Vgrep.Type
 import Vgrep.Widget.Type
 import Vgrep.Results
 import Vgrep.Results.Buffer as Buffer
@@ -95,8 +96,8 @@ maybeModify f = do
         Nothing -> pure ()
 
 
-drawResultList :: ResultsState -> Image
-drawResultList s = drawLines width (toLines (view files s))
+drawResultList :: ResultsState -> Vgrep Image
+drawResultList s = pure (drawLines width (toLines (view files s)))
   where width = regionWidth (view region s)
 
 drawLines :: Int -> [DisplayLine] -> Image

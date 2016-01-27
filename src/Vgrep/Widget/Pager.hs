@@ -18,6 +18,7 @@ import qualified Data.Text.Lazy as T
 import Graphics.Vty
 import Graphics.Vty.Prelude
 
+import Vgrep.Type
 import Vgrep.Widget.Type
 
 
@@ -73,9 +74,9 @@ scrollPage n = do height <- uses region regionHeight
                   scroll (n * (height - 1))
                 -- gracefully leave one ^ line on the screen
 
-renderPager :: PagerState -> Image
+renderPager :: PagerState -> Vgrep Image
 renderPager state =
-    resizeWidth width (lineNumbers <|> textLines)
+    pure (resizeWidth width (lineNumbers <|> textLines))
   where
     (width, height) = view region state
     (currentPosition, _, bufferLines) = view buffer state

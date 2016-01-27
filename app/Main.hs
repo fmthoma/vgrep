@@ -1,6 +1,7 @@
 module Main (main) where
 
 import Control.Lens
+import Control.Monad.Reader
 import Control.Monad.State.Extended
 import Data.Maybe
 import Data.Ratio
@@ -16,42 +17,45 @@ import System.Process
 
 import Vgrep.App
 import Vgrep.Event
+import Vgrep.Environment
 import Vgrep.Parser
 import Vgrep.System.Grep
+import Vgrep.Type
 import Vgrep.Widget as Widget
 import Vgrep.Widget.HorizontalSplit
 import Vgrep.Widget.Pager
 import Vgrep.Widget.Results
 
+
 main :: IO ()
 main = do
     hSetBuffering stdin  LineBuffering
     hSetBuffering stdout LineBuffering
+    environment <- Env <$> T.getContents
     inputFromTerminal <- hIsTerminalDevice stdin
     outputToTerminal  <- hIsTerminalDevice stdout
     args <- getArgs
-    case (inputFromTerminal, outputToTerminal) of
-        (True,  False)  -> grepFiles >>= T.putStrLn
-        (False, False)  -> grepStdin >>= T.putStrLn
+    runVgrepT environment $ case (inputFromTerminal, outputToTerminal) of
+        (True,  False)  -> recursiveGrep >>= liftIO . T.putStrLn
+        (False, False)  -> grepStdin     >>= liftIO . T.putStrLn
         (False, True)
-            | null args -> pipeStdin >>= runApp_ . app
-            | otherwise -> grepStdin >>= runApp_ . app
-        (True,  True)   -> grepFiles >>= runApp_ . app
-  where pipeStdin = T.getContents
+            | null args -> view input      >>= runApp_ . app
+            | otherwise -> grepStdinForApp >>= runApp_ . app
+        (True,  True)   -> recursiveGrep   >>= runApp_ . app
 
 
 type MainWidget = HSplitWidget ResultsWidget PagerWidget
 
 app :: Text -> App MainWidget
-app input = App
-    { _initialize  = initSplitView (parseGrepOutput (T.lines input))
+app grepOutput = App
+    { _initialize  = initSplitView (parseGrepOutput (T.lines grepOutput))
     , _handleEvent = eventHandler
-    , _render      = picForImage . drawWidget }
+    , _render      = fmap picForImage . drawWidget }
 
-initSplitView :: [FileLineReference] -> Vty -> IO MainWidget
-initSplitView input vty = do
+initSplitView :: [FileLineReference] -> Vty -> VgrepT IO MainWidget
+initSplitView grepOutput vty = liftIO $ do
     bounds <- displayBounds (outputIface vty)
-    let leftPager  = resultsWidget bounds input
+    let leftPager  = resultsWidget bounds grepOutput
         rightPager = pagerWidget T.empty bounds
     return (hSplitWidget leftPager rightPager bounds)
 
@@ -94,13 +98,13 @@ eventHandler = mconcat
     keyEsc   = whenS (has pagerFocused)
                   (zoom widgetState leftOnly)
 
-loadSelectedFileToPager :: StateT MainWidget IO ()
+loadSelectedFileToPager :: StateT MainWidget (VgrepT IO) ()
 loadSelectedFileToPager = zoom widgetState $ do
     fileName <- uses (leftWidget . currentFileName) T.unpack
     fileExists <- liftIO (doesFileExist fileName)
-    fileContent <- liftIO $ if fileExists
-        then T.readFile fileName
-        else pure (T.pack ("File not found: " ++ show fileName))
+    fileContent <- if fileExists
+        then liftIO (T.readFile fileName)
+        else lift (view input)
     liftState $ zoom (rightWidget . widgetState)
                      (replaceBufferContents fileContent)
 

@@ -1,9 +1,12 @@
 module Vgrep.System.Grep
     ( grepStdin
-    , grepFiles
+    , grepStdinForApp
+    , recursiveGrep
     ) where
 
+import Control.Lens
 import Control.Monad
+import Control.Monad.IO.Class
 import Control.Concurrent
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
@@ -12,31 +15,42 @@ import System.Environment (getArgs)
 import System.Exit
 import System.Process
 
+import Vgrep.Type
+import qualified Vgrep.Environment as Env
 import Vgrep.Parser
 
 import System.IO
 
-grepStdin :: IO Text
+grepStdinForApp :: VgrepT IO Text
+grepStdinForApp = do
+    firstInputLine <- preview (Env.input . to T.lines . traverse)
+    case firstInputLine >>= parseLine of
+        Just _line -> grepStdin
+        Nothing    -> grepStdinWithFileAndLineNumber
+
+grepStdinWithFileAndLineNumber :: VgrepT IO Text
+grepStdinWithFileAndLineNumber = do
+    input <- view Env.input
+    args <- liftIO getArgs
+    liftIO (grepText (withFileName : withLineNumber : args) input)
+
+grepStdin :: VgrepT IO Text
 grepStdin = do
-    input <- T.getContents
+    input <- view Env.input
+    args <- liftIO getArgs
+    liftIO (grepText args input)
+
+grepText :: [String] -> Text -> IO Text
+grepText args input = do
     when (T.null input) exitFailure
-    args <- getArgs
-    let firstInputLine = head (T.lines input)
-        grepArgs = case parseLine firstInputLine of
-            Just _parsedLine -> lineBuffered
-                              : args
-            Nothing          -> withFileName
-                              : withLineNumber
-                              : lineBuffered
-                              : args
-    (hIn, hOut) <- createGrepProcess grepArgs
+    (hIn, hOut) <- createGrepProcess (lineBuffered : args)
     _threadId <- forkIO (T.hPutStr hIn input)
     grepOutput <- T.hGetContents hOut
     when (T.null grepOutput) exitFailure
     pure grepOutput
 
-grepFiles :: IO Text
-grepFiles = do
+recursiveGrep :: MonadIO io => io Text
+recursiveGrep = liftIO $ do
     args <- getArgs
     let grepArgs = withFileName
                  : withLineNumber

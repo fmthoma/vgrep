@@ -6,25 +6,26 @@ module Vgrep.App
     , ttyOut
     ) where
 
-import Control.Exception (bracket)
 import Control.Lens
+import Control.Monad.Reader
 import Graphics.Vty (Vty, Config(..))
 import qualified Graphics.Vty as Vty
 import System.Posix
 
 import Vgrep.Event
+import Vgrep.Type
 
-data App s = App { _initialize  :: Vty -> IO s
+data App s = App { _initialize  :: Vty -> VgrepT IO s
                  , _handleEvent :: EventHandler s
-                 , _render      :: s -> Vty.Picture }
+                 , _render      :: s -> Vgrep Vty.Picture }
 
 makeLenses ''App
 
 
-runApp_ :: App s -> IO ()
+runApp_ :: App s -> VgrepT IO ()
 runApp_ app = runApp app >> pure ()
 
-runApp :: App s -> IO s
+runApp :: App s -> VgrepT IO s
 runApp app = startEventLoop >>= suspendAndResume
   where
     startEventLoop = withVty $ \vty -> do
@@ -37,7 +38,7 @@ runApp app = startEventLoop >>= suspendAndResume
         eventLoop vty currentState
 
     eventLoop vty currentState = do
-        event <- Vty.nextEvent vty
+        event <- liftIO (Vty.nextEvent vty)
         next <- runEventHandler handleAppEvent event currentState
         case next of
             Unchanged         -> eventLoop vty currentState
@@ -49,7 +50,7 @@ runApp app = startEventLoop >>= suspendAndResume
         Resume outsideAction -> outsideAction >>= continueEventLoop >>= suspendAndResume
         _other               -> cannotHappen_othersAreHandledInEventLoop
 
-    refresh vty = Vty.update vty . renderApp
+    refresh vty = liftVgrep . fmap (Vty.update vty) . renderApp
     renderApp = view render app
     handleAppEvent = view handleEvent app
 
@@ -57,7 +58,7 @@ runApp app = startEventLoop >>= suspendAndResume
         error "Internal error: Unhandled Continuation"
 
 
-withVty :: (Vty -> IO s) -> IO s
+withVty :: (Vty -> VgrepT IO s) -> VgrepT IO s
 withVty = bracket initVty Vty.shutdown
 
 initVty :: IO Vty

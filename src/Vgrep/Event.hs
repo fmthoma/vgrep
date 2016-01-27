@@ -24,13 +24,15 @@ import Control.Monad.State.Extended ( State, StateT
                                     , liftState )
 import Graphics.Vty as Vty
 
+import Vgrep.Type
+
 newtype EventHandler s = EventHandler
-                         { runEventHandler :: Event -> s -> IO (Next s) }
+                         { runEventHandler :: Event -> s -> VgrepT IO (Next s) }
 
 mkEventHandler :: (Event -> s -> Next s) -> EventHandler s
 mkEventHandler f = EventHandler $ \e s -> pure (f e s)
 
-mkEventHandlerIO :: (Event -> s -> IO (Next s)) -> EventHandler s
+mkEventHandlerIO :: (Event -> s -> VgrepT IO (Next s)) -> EventHandler s
 mkEventHandlerIO = EventHandler
 
 instance Monoid (EventHandler s) where
@@ -39,7 +41,7 @@ instance Monoid (EventHandler s) where
         liftA2 mappend (runEventHandler h1 ev s) (runEventHandler h2 ev s)
 
 data Next s = Continue s
-            | Resume (IO s)
+            | Resume (VgrepT IO s)
             | Halt s
             | Unchanged
             deriving (Functor)
@@ -50,7 +52,7 @@ instance Monoid (Next s) where
     next      `mappend` _    = next
 
 
-handle :: (Event -> Bool) -> (s -> IO (Next s)) -> EventHandler s
+handle :: (Event -> Bool) -> (s -> VgrepT IO (Next s)) -> EventHandler s
 handle doesMatch action = mkEventHandlerIO $ \event state ->
     if doesMatch event then action state else pure Unchanged
 
@@ -69,14 +71,14 @@ keyCharEvent :: Char -> [Modifier] -> Event -> Bool
 keyCharEvent c = keyEvent (KChar c)
 
 
-continueIO :: StateT s IO () -> s -> IO (Next s)
+continueIO :: StateT s (VgrepT IO) () -> s -> VgrepT IO (Next s)
 continueIO action state = (fmap Continue . execStateT action) state
 
-continue :: State s () -> s -> IO (Next s)
+continue :: State s () -> s -> VgrepT IO (Next s)
 continue action = continueIO (liftState action)
 
-suspend :: StateT s IO () -> s -> IO (Next s)
+suspend :: StateT s (VgrepT IO) () -> s -> VgrepT IO (Next s)
 suspend action = pure . Resume . execStateT action
 
-halt :: s -> IO (Next s)
+halt :: s -> VgrepT IO (Next s)
 halt state = pure (Halt state)

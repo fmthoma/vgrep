@@ -16,10 +16,12 @@ module Vgrep.Widget.HorizontalSplit
     , switchFocus
     ) where
 
+import Control.Applicative (liftA2)
 import Control.Lens
 import Control.Monad.State (State, execState)
 import Graphics.Vty (Image, DisplayRegion, (<|>))
 
+import Vgrep.Type
 import Vgrep.Widget.Type
 
 
@@ -121,9 +123,9 @@ resizeWidgets newRegion@(w, h) = do
             zoom (widgets . _1) (resizeWidget leftRegion)
             zoom (widgets . _2) (resizeWidget rightRegion)
 
-drawWidgets :: HSplitState (Widget s) (Widget t) -> Image
+drawWidgets :: HSplitState (Widget s) (Widget t) -> Vgrep Image
 drawWidgets state = case view split state of
     LeftOnly  -> drawWidget (view leftWidget  state)
     RightOnly -> drawWidget (view rightWidget state)
-    Split _   -> drawWidget (view leftWidget  state)
-             <|> drawWidget (view rightWidget state)
+    Split _   -> liftA2 (<|>) (drawWidget (view leftWidget  state))
+                              (drawWidget (view rightWidget state))
