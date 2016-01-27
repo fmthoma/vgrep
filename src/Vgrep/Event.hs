@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveFunctor, LambdaCase #-}
+{-# LANGUAGE DeriveFunctor #-}
 module Vgrep.Event
     ( EventHandler ()
     , runEventHandler

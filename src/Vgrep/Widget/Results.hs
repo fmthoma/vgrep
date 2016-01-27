@@ -1,7 +1,5 @@
-{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE Rank2Types        #-}
 {-# LANGUAGE TemplateHaskell   #-}
-{-# LANGUAGE MultiWayIf        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Vgrep.Widget.Results

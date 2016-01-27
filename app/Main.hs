@@ -1,4 +1,3 @@
-{-# LANGUAGE FlexibleContexts, MultiWayIf #-}
 module Main (main) where
 
 import Control.Lens

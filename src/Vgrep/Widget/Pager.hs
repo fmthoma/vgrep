@@ -1,4 +1,4 @@
-{-# LANGUAGE MultiWayIf, TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Vgrep.Widget.Pager
     ( PagerState ()
     , PagerWidget

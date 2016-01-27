@@ -1,4 +1,4 @@
-{-# LANGUAGE TemplateHaskell, LambdaCase #-}
+{-# LANGUAGE TemplateHaskell #-}
 module Vgrep.App
     ( App(..)
     , runApp, runApp_
