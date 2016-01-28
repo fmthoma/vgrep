@@ -122,9 +122,7 @@ drawLine (width, lineNumberWidth) = \case
     padWithSpace w = T.take (fromIntegral w)
                    . T.justifyLeft (fromIntegral w) ' '
                    . T.cons ' '
-    justifyRight w s =
-        let padAmount = fromIntegral w - T.length s - 1
-        in T.replicate padAmount " " <> s <> " "
+    justifyRight w s = T.justifyRight (fromIntegral w) ' ' (s <> " ")
 
     drawFileHeader :: File -> Image
     drawFileHeader = text fileHeaderStyle . padWithSpace width . getFileName
