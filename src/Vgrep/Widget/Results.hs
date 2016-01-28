@@ -30,10 +30,11 @@ import Graphics.Vty hiding ((<|>))
 import Graphics.Vty.Prelude
 import Prelude
 
-import Vgrep.Type
-import Vgrep.Widget.Type
+import Vgrep.Environment
 import Vgrep.Results
 import Vgrep.Results.Buffer as Buffer
+import Vgrep.Type
+import Vgrep.Widget.Type
 
 
 data ResultsState = State { _files  :: Buffer
@@ -51,7 +52,7 @@ resultsWidget initialDimensions fileResults =
     Widget { _widgetState = initState fileResults initialDimensions
            , _dimensions  = initialDimensions
            , _resize      = resizeToRegion
-           , _draw        = drawResultList }
+           , _draw        = renderResultList }
 
 initState :: [FileLineReference]
           -> DisplayRegion
@@ -96,49 +97,53 @@ maybeModify f = do
         Nothing -> pure ()
 
 
-drawResultList :: ResultsState -> Vgrep Image
-drawResultList s = pure (drawLines width (toLines (view files s)))
+renderResultList :: ResultsState -> Vgrep Image
+renderResultList s = do
+      renderedLines <- renderLines width (toLines (view files s))
+      pure (vertCat renderedLines)
   where width = regionWidth (view region s)
 
-drawLines :: Int -> [DisplayLine] -> Image
-drawLines width ls = foldMap (drawLine (width, lineNumberWidth)) ls
+renderLines :: Int -> [DisplayLine] -> Vgrep [Image]
+renderLines width ls = traverse (renderLine (width, lineNumberWidth)) ls
   where lineNumberWidth = foldl' max 0
                         . map (twoExtraSpaces . length . show)
                         . catMaybes
                         $ map lineNumber ls
         twoExtraSpaces = (+ 2)
 
-drawLine :: (Int, Int) -> DisplayLine -> Image
-drawLine (width, lineNumberWidth) = \case
-    FileHeader file     -> drawFileHeader file
-    Line         (n, t) -> horizCat [drawLineNumber n, drawLineText t]
-    SelectedLine (n, t) -> horizCat [drawLineNumber n, drawSelectedLineText t]
+renderLine :: (Int, Int) -> DisplayLine -> Vgrep Image
+renderLine (width, lineNumberWidth) displayLine = do
+    fileHeaderStyle <- view (config . colors . fileHeaders)
+    lineNumberStyle <- view (config . colors . lineNumbers)
+    resultLineStyle <- view (config . colors . normal)
+    highlightStyle  <- view (config . colors . highlight)
+    pure $ case displayLine of
+        FileHeader file     -> renderFileHeader fileHeaderStyle file
+        Line         (n, t) -> horizCat [ renderLineNumber lineNumberStyle n
+                                        , renderLineText   resultLineStyle t ]
+        SelectedLine (n, t) -> horizCat [ renderLineNumber       lineNumberStyle n
+                                        , renderSelectedLineText highlightStyle  t ]
   where
-    fileHeaderStyle = defAttr `withBackColor` green
-    lineNumberStyle = defAttr `withForeColor` blue
-    resultLineStyle = defAttr
-    highlightStyle  = defAttr `withStyle` standout
-
     padWithSpace w = T.take (fromIntegral w)
                    . T.justifyLeft (fromIntegral w) ' '
                    . T.cons ' '
     justifyRight w s = T.justifyRight (fromIntegral w) ' ' (s <> " ")
 
-    drawFileHeader :: File -> Image
-    drawFileHeader = text fileHeaderStyle . padWithSpace width . getFileName
+    renderFileHeader :: Attr -> File -> Image
+    renderFileHeader attr = text attr . padWithSpace width . getFileName
 
-    drawLineNumber :: Maybe Int -> Image
-    drawLineNumber = text lineNumberStyle
-                   . justifyRight lineNumberWidth
-                   . maybe "" (T.pack . show)
+    renderLineNumber :: Attr -> Maybe Int -> Image
+    renderLineNumber attr = text attr
+                          . justifyRight lineNumberWidth
+                          . maybe "" (T.pack . show)
 
-    drawSelectedLineText :: Text -> Image
-    drawSelectedLineText = text highlightStyle
-                         . padWithSpace (width - lineNumberWidth)
+    renderSelectedLineText :: Attr -> Text -> Image
+    renderSelectedLineText attr = text attr
+                                . padWithSpace (width - lineNumberWidth)
 
-    drawLineText :: Text -> Image
-    drawLineText = text resultLineStyle
-                 . padWithSpace (width - lineNumberWidth)
+    renderLineText :: Attr -> Text -> Image
+    renderLineText attr = text attr
+                        . padWithSpace (width - lineNumberWidth)
 
 
 resizeToRegion :: DisplayRegion -> State ResultsState ()

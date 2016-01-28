@@ -22,6 +22,7 @@ library
                      , Vgrep.App
                      , Vgrep.Event
                      , Vgrep.Environment
+                     , Vgrep.Environment.Config
                      , Vgrep.Parser
                      , Vgrep.Results
                      , Vgrep.Results.Buffer
