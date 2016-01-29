@@ -20,6 +20,7 @@ import Vgrep.Event
 import Vgrep.Environment
 import Vgrep.Parser
 import Vgrep.System.Grep
+import Vgrep.Text
 import Vgrep.Type
 import Vgrep.Widget as Widget
 import Vgrep.Widget.HorizontalSplit
@@ -49,7 +50,7 @@ type MainWidget = HSplitWidget ResultsWidget PagerWidget
 
 app :: Text -> App MainWidget
 app grepOutput = App
-    { _initialize  = initSplitView (parseGrepOutput (T.lines grepOutput))
+    { _initialize  = (initSplitView . parseGrepOutput . map expandForDisplay . T.lines) grepOutput
     , _handleEvent = eventHandler
     , _render      = fmap picForImage . drawWidget }
 
@@ -106,8 +107,8 @@ loadSelectedFileToPager = zoom widgetState $ do
     fileContent <- if fileExists
         then liftIO (T.readFile fileName)
         else lift (view input)
-    liftState $ zoom (rightWidget . widgetState)
-                     (replaceBufferContents fileContent)
+    let displayContent = map expandForDisplay (T.lines fileContent)
+    liftState $ zoom (rightWidget . widgetState) (replaceBufferContents  displayContent)
 
 moveToSelectedLineNumber :: State MainWidget ()
 moveToSelectedLineNumber = zoom widgetState $ do

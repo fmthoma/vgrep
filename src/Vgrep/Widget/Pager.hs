@@ -47,8 +47,8 @@ initialPagerState initialContent initialRegion =
     PagerState { _buffer          = (1, [], T.lines initialContent)
                , _region          = initialRegion }
 
-replaceBufferContents :: Text -> State PagerState ()
-replaceBufferContents content = assign buffer (1, [], T.lines content)
+replaceBufferContents :: [Text] -> State PagerState ()
+replaceBufferContents content = assign buffer (1, [], content)
 
 moveToLine :: Int -> State PagerState ()
 moveToLine n = do

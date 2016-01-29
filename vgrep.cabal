@@ -27,6 +27,7 @@ library
                      , Vgrep.Results
                      , Vgrep.Results.Buffer
                      , Vgrep.System.Grep
+                     , Vgrep.Text
                      , Vgrep.Type
                      , Vgrep.Widget
                      , Vgrep.Widget.HorizontalSplit
