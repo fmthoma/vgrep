@@ -121,8 +121,8 @@ renderLine (width, lineNumberWidth) displayLine = do
         FileHeader file     -> renderFileHeader fileHeaderStyle file
         Line         (n, t) -> horizCat [ renderLineNumber lineNumberStyle n
                                         , renderLineText   resultLineStyle t ]
-        SelectedLine (n, t) -> horizCat [ renderLineNumber       lineNumberStyle n
-                                        , renderSelectedLineText highlightStyle  t ]
+        SelectedLine (n, t) -> horizCat [ renderLineNumber lineNumberStyle n
+                                        , renderLineText   highlightStyle  t ]
   where
     padWithSpace w = T.take (fromIntegral w)
                    . T.justifyLeft (fromIntegral w) ' '
@@ -136,10 +136,6 @@ renderLine (width, lineNumberWidth) displayLine = do
     renderLineNumber attr = text attr
                           . justifyRight lineNumberWidth
                           . maybe "" (T.pack . show)
-
-    renderSelectedLineText :: Attr -> Text -> Image
-    renderSelectedLineText attr = text attr
-                                . padWithSpace (width - lineNumberWidth)
 
     renderLineText :: Attr -> Text -> Image
     renderLineText attr = text attr
