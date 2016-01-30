@@ -7,8 +7,9 @@ import Graphics.Vty.Image
 import System.Environment
 
 data Config = Config
-    { _colors :: Colors
-    , _editor :: String }
+    { _colors  :: Colors
+    , _tabstop :: Int
+    , _editor  :: String }
 
 data Colors = Colors
     { _lineNumbers :: Attr
@@ -28,4 +29,5 @@ defaultConfig = do
             , _fileHeaders = defAttr `withBackColor` green
             , _highlight   = defAttr `withStyle` standout
             , _normal      = defAttr }
+        , _tabstop = 8
         , _editor = fromMaybe "vi" defaultEditor }

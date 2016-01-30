@@ -1,17 +1,23 @@
 module Vgrep.Text ( expandForDisplay ) where
 
+import Control.Lens
 import Data.Char
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 
+import Vgrep.Environment
+import Vgrep.Type
 
-expandForDisplay :: Text -> Text
-expandForDisplay = T.pack . expandSpecialChars . expandTabs . T.unpack
 
-expandTabs :: String -> String
-expandTabs = go 0
+expandForDisplay :: Monad m => Text -> VgrepT m Text
+expandForDisplay line = do
+    tabWidth <- view (config . tabstop)
+    (pure . T.pack . expandSpecialChars . expandTabs tabWidth . T.unpack) line
+
+expandTabs :: Int -> String -> String
+expandTabs tabWidth = go 0
   where go pos (c:cs)
-            | c == '\t' = let shift = 8 - (pos `mod` 8)
+            | c == '\t' = let shift = tabWidth - (pos `mod` tabWidth)
                           in  replicate shift ' ' ++ go (pos + shift) cs
             | otherwise = c : go (pos + 1) cs
         go _ [] = []

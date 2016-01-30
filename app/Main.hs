@@ -50,16 +50,18 @@ type MainWidget = HSplitWidget ResultsWidget PagerWidget
 
 app :: Text -> App MainWidget
 app grepOutput = App
-    { _initialize  = (initSplitView . parseGrepOutput . map expandForDisplay . T.lines) grepOutput
+    { _initialize  = initSplitView
     , _handleEvent = eventHandler
     , _render      = fmap picForImage . drawWidget }
-
-initSplitView :: [FileLineReference] -> Vty -> VgrepT IO MainWidget
-initSplitView grepOutput vty = liftIO $ do
-    bounds <- displayBounds (outputIface vty)
-    let leftPager  = resultsWidget bounds grepOutput
-        rightPager = pagerWidget T.empty bounds
-    return (hSplitWidget leftPager rightPager bounds)
+  where
+    initSplitView vty = do
+        parsedOutput <- do
+            formattedLines <- traverse expandForDisplay (T.lines grepOutput)
+            pure (parseGrepOutput formattedLines)
+        bounds <- liftIO (displayBounds (outputIface vty))
+        let leftPager  = resultsWidget bounds parsedOutput
+            rightPager = pagerWidget T.empty bounds
+        return (hSplitWidget leftPager rightPager bounds)
 
 
 ---------------------------------------------------------------------------
@@ -107,7 +109,7 @@ loadSelectedFileToPager = zoom widgetState $ do
     fileContent <- if fileExists
         then liftIO (T.readFile fileName)
         else lift (view input)
-    let displayContent = map expandForDisplay (T.lines fileContent)
+    displayContent <- lift (traverse expandForDisplay (T.lines fileContent))
     liftState $ zoom (rightWidget . widgetState) (replaceBufferContents  displayContent)
 
 moveToSelectedLineNumber :: State MainWidget ()
