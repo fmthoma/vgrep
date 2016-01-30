@@ -52,7 +52,8 @@ grepText args input = do
 recursiveGrep :: MonadIO io => io Text
 recursiveGrep = liftIO $ do
     args <- getArgs
-    let grepArgs = withFileName
+    let grepArgs = recursive
+                 : withFileName
                  : withLineNumber
                  : skipBinaryFiles
                  : lineBuffered
@@ -62,7 +63,8 @@ recursiveGrep = liftIO $ do
     when (T.null grepOutput) exitFailure
     pure grepOutput
 
-withFileName, withLineNumber, skipBinaryFiles, lineBuffered :: String
+recursive, withFileName, withLineNumber, skipBinaryFiles, lineBuffered :: String
+recursive       = "-r"
 withFileName    = "-H"
 withLineNumber  = "-n"
 skipBinaryFiles = "-I"
