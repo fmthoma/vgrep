@@ -11,7 +11,7 @@ module Vgrep.Widget.Pager
     ) where
 
 import Control.Lens
-import Control.Monad.State (State)
+import Control.Monad.State.Extended (State)
 import Data.Foldable
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T

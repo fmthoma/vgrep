@@ -18,7 +18,7 @@ module Vgrep.Widget.HorizontalSplit
 
 import Control.Applicative (liftA2)
 import Control.Lens
-import Control.Monad.State (State, execState)
+import Control.Monad.State.Extended (State, execState)
 import Graphics.Vty (Image, DisplayRegion, (<|>))
 
 import Vgrep.Type
