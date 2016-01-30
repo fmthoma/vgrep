@@ -56,12 +56,12 @@ app grepOutput = App
   where
     initSplitView vty = do
         parsedOutput <- do
-            formattedLines <- traverse expandForDisplay (T.lines grepOutput)
+            formattedLines <- expandForDisplay (T.lines grepOutput)
             pure (parseGrepOutput formattedLines)
         bounds <- liftIO (displayBounds (outputIface vty))
         let leftPager  = resultsWidget bounds parsedOutput
             rightPager = pagerWidget T.empty bounds
-        return (hSplitWidget leftPager rightPager bounds)
+        liftIO $ return (hSplitWidget leftPager rightPager bounds)
 
 
 ---------------------------------------------------------------------------
@@ -109,7 +109,7 @@ loadSelectedFileToPager = zoom widgetState $ do
     fileContent <- if fileExists
         then liftIO (T.readFile fileName)
         else lift (view input)
-    displayContent <- lift (traverse expandForDisplay (T.lines fileContent))
+    displayContent <- lift (expandForDisplay (T.lines fileContent))
     liftState $ zoom (rightWidget . widgetState) (replaceBufferContents  displayContent)
 
 moveToSelectedLineNumber :: State MainWidget ()

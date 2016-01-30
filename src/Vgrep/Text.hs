@@ -9,10 +9,14 @@ import Vgrep.Environment
 import Vgrep.Type
 
 
-expandForDisplay :: Monad m => Text -> VgrepT m Text
-expandForDisplay line = do
+expandForDisplay :: Monad m => [Text] -> VgrepT m [Text]
+expandForDisplay inputLines = do
     tabWidth <- view (config . tabstop)
-    (pure . T.pack . expandSpecialChars . expandTabs tabWidth . T.unpack) line
+    pure (map (expandLineForDisplay tabWidth) inputLines)
+
+expandLineForDisplay :: Int -> Text -> Text
+expandLineForDisplay tabWidth =
+    (T.pack . expandSpecialChars . expandTabs tabWidth . T.unpack)
 
 expandTabs :: Int -> String -> String
 expandTabs tabWidth = go 0
