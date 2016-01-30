@@ -1,4 +1,6 @@
-{-# LANGUAGE Rank2Types, TemplateHaskell #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE TemplateHaskell #-}
+
 module Vgrep.Widget.HorizontalSplit
     ( HSplitState ()
     , HSplitWidget
