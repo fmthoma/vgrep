@@ -40,6 +40,8 @@ library
                      , lens
                      , lifted-base
                      , mtl
+                     , pipes
+                     , pipes-concurrency
                      , process
                      , text
                      , transformers
@@ -57,6 +59,7 @@ executable vgrep
                      , directory
                      , lens
                      , mtl
+                     , pipes
                      , process
                      , text
                      , unix
