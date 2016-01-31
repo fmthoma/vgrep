@@ -26,4 +26,11 @@ stack install
 ```
 This will install `vgrep` to your `~/.local/bin` directory.
 
+## Known limitations
+* **No streaming**: Currently, `vgrep` will wait for input until it either has
+collected one page of grep output to display, or `stdin` is exhausted.
+For grepping large files or directory structures with few results,
+`vgrep` may block for a while until displaying results at all.
+(See [#18](https://github.com/fmthoma/vgrep/issues/18))
+
 [1]: https://github.com/commercialhaskell/stack/blob/master/doc/install_and_upgrade.md
