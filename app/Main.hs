@@ -40,16 +40,16 @@ main = do
     outputToTerminal  <- hIsTerminalDevice stdout
     args <- getArgs
     runVgrepT environment $ case (inputFromTerminal, outputToTerminal) of
-        (True,  False)  -> recursiveGrep >>= liftIO . T.putStrLn
+        (True,  False)  -> liftIO (runEffect (recursiveGrep  >-> stdoutText))
         (False, False)  -> liftIO (runEffect (grep stdinText >-> stdoutText))
         (False, True)
             | null args -> runEffect ( smurf stdinText
                                    >-> runApp_ (app (T.pack "")) )
             | otherwise -> runEffect ( smurf (grepForApp stdinText)
                                    >-> runApp_ (app (T.pack "")) )  --FIXME Housekeeping
-        (True,  True)   -> recursiveGrep   >>= runApp'
+        (True,  True)   -> runEffect ( smurf recursiveGrep
+                                   >-> runApp_ (app (T.pack "")) )
   where
-    runApp' input = runEffect (P.each (T.lines input) >-> runApp_ (app input))
     stdinText  = P.stdinLn  >-> P.map T.pack
     stdoutText = P.stdoutLn <-< P.map T.unpack
     smurf = hoist (VgrepT . lift)

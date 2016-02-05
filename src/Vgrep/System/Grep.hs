@@ -11,7 +11,6 @@ import Control.Concurrent
 import Data.Maybe
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
-import qualified Data.Text.Lazy.IO as T
 import Pipes as P
 import qualified Pipes.Prelude as P
 import System.Environment (getArgs)
@@ -19,7 +18,6 @@ import System.Exit
 import System.Process
 
 import Vgrep.Parser
-import Vgrep.Type
 
 import System.IO
 
@@ -43,15 +41,15 @@ grep input = do
 
 grepPipe :: [String] -> Producer Text IO () -> Producer Text IO ()
 grepPipe args input = do
-    (hIn, hOut) <- lift (createGrepProcess (lineBuffered : args))
+    (hIn, hOut) <- createGrepProcess (lineBuffered : args)
     _threadId <- liftIO . forkIO . runEffect $ input >-> textToHandle hIn
     (maybeFirstLine, grepOutput) <- peek (textFromHandle hOut)
     when (isNothing maybeFirstLine) (lift exitFailure)
     grepOutput
 
-recursiveGrep :: MonadIO io => io Text
-recursiveGrep = liftIO $ do
-    args <- getArgs
+recursiveGrep :: Producer Text IO ()
+recursiveGrep = do
+    args <- lift getArgs
     let grepArgs = recursive
                  : withFileName
                  : withLineNumber
@@ -59,9 +57,9 @@ recursiveGrep = liftIO $ do
                  : lineBuffered
                  : args
     (_hIn, hOut) <- createGrepProcess grepArgs
-    grepOutput <- T.hGetContents hOut
-    when (T.null grepOutput) exitFailure
-    pure grepOutput
+    (maybeFirstLine, grepOutput) <- peek (textFromHandle hOut)
+    when (isNothing maybeFirstLine) (lift exitFailure)
+    grepOutput
 
 recursive, withFileName, withLineNumber, skipBinaryFiles, lineBuffered :: String
 recursive       = "-r"
@@ -71,8 +69,8 @@ skipBinaryFiles = "-I"
 lineBuffered    = "--line-buffered"
 
 
-createGrepProcess :: [String] -> IO (Handle, Handle)
-createGrepProcess args = do
+createGrepProcess :: MonadIO io => [String] -> io (Handle, Handle)
+createGrepProcess args = liftIO $ do
     (Just hIn, Just hOut, _hErr, _processHandle) <- createProcess
         (proc "grep" args) { std_in  = CreatePipe, std_out = CreatePipe }
     hSetBuffering hIn  LineBuffering
