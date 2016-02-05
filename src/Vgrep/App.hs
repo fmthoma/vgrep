@@ -7,23 +7,27 @@ module Vgrep.App
     ) where
 
 import Control.Monad.Reader
+import Control.Monad.State
+import Data.Text.Lazy
 import Graphics.Vty (Vty, Config(..))
 import qualified Graphics.Vty as Vty
+import Pipes (Consumer)
 import System.Posix
 
 import Vgrep.Event
 import Vgrep.Type
 
-data App s = App { initialize  :: Vty -> VgrepT IO s
-                 , handleEvent :: EventHandler s
-                 , render      :: s -> Vgrep Vty.Picture }
+data App s = App { initialize   :: Vty -> VgrepT IO s
+                 , receiveInput :: Consumer Text (StateT s Vgrep) ()
+                 , handleEvent  :: EventHandler s
+                 , render       :: s -> Vgrep Vty.Picture }
 
 
-runApp_ :: App s -> VgrepT IO ()
+runApp_ :: App s -> Consumer Text (VgrepT IO) ()
 runApp_ app = runApp app >> pure ()
 
-runApp :: App s -> VgrepT IO s
-runApp app = startEventLoop >>= suspendAndResume
+runApp :: App s -> Consumer Text (VgrepT IO) s
+runApp app = lift (startEventLoop >>= suspendAndResume)
   where
     startEventLoop = withVty $ \vty -> do
         initialState <- initialize app vty

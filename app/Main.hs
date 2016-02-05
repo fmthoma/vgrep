@@ -9,6 +9,7 @@ import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as T
 import Graphics.Vty hiding (resize)
+import Pipes as P
 import System.Directory
 import System.Environment (getArgs)
 import System.IO
@@ -41,9 +42,11 @@ main = do
         (True,  False)  -> recursiveGrep >>= liftIO . T.putStrLn
         (False, False)  -> grepStdin     >>= liftIO . T.putStrLn
         (False, True)
-            | null args -> view input      >>= runApp_ . app
-            | otherwise -> grepStdinForApp >>= runApp_ . app
-        (True,  True)   -> recursiveGrep   >>= runApp_ . app
+            | null args -> view input      >>= runApp'
+            | otherwise -> grepStdinForApp >>= runApp'
+        (True,  True)   -> recursiveGrep   >>= runApp'
+  where
+    runApp' input = runEffect (P.each (T.lines input) >-> runApp_ (app input))
 
 
 type MainWidget = HSplitWidget ResultsWidget PagerWidget
