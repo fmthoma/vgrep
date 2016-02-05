@@ -5,7 +5,6 @@ import Control.Monad.Reader
 import Control.Monad.State.Extended
 import Data.Maybe
 import Data.Ratio
-import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as T
 import Graphics.Vty hiding (resize)
@@ -39,16 +38,13 @@ main = do
     inputFromTerminal <- hIsTerminalDevice stdin
     outputToTerminal  <- hIsTerminalDevice stdout
     args <- getArgs
-    case (inputFromTerminal, outputToTerminal) of
-        (True,  False)  -> runEffect (recursiveGrep  >-> stdoutText)
-        (False, False)  -> runEffect (grep stdinText >-> stdoutText)
+    runEffect $ case (inputFromTerminal, outputToTerminal) of
+        (True,  False)  -> recursiveGrep  >-> stdoutText
+        (False, False)  -> grep stdinText >-> stdoutText
         (False, True)
-            | null args -> runEffect ( stdinText
-                                   >-> runApp_ (app (T.pack "")) environment )
-            | otherwise -> runEffect ( grepForApp stdinText
-                                   >-> runApp_ (app (T.pack "")) environment )  --FIXME Housekeeping
-        (True,  True)   -> runEffect ( recursiveGrep
-                                   >-> runApp_ (app (T.pack "")) environment )
+            | null args -> stdinText            >-> runApp_ app environment
+            | otherwise -> grepForApp stdinText >-> runApp_ app environment
+        (True,  True)   -> recursiveGrep        >-> runApp_ app environment
   where
     stdinText  = P.stdinLn  >-> P.map T.pack
     stdoutText = P.stdoutLn <-< P.map T.unpack
@@ -57,15 +53,15 @@ main = do
 
 type MainWidget = HSplitWidget ResultsWidget PagerWidget
 
-app :: Text -> App MainWidget
-app grepOutput = App
+app :: App MainWidget
+app = App
     { initialize  = initSplitView
     , handleEvent = eventHandler
     , render      = fmap picForImage . drawWidget }
   where
     initSplitView vty = do
         parsedOutput <- do
-            formattedLines <- expandForDisplay (T.lines grepOutput)
+            formattedLines <- expandForDisplay [T.pack ""] --FIXME
             pure (parseGrepOutput formattedLines)
         bounds <- liftIO (displayBounds (outputIface vty))
         let leftPager  = resultsWidget bounds parsedOutput
