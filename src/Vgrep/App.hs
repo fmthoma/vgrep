@@ -26,7 +26,7 @@ data App s = App { initialize   :: Vty -> VgrepT IO s
 
 
 runApp_ :: App s -> Environment -> Consumer' Text IO ()
-runApp_ app env = runApp app env >> pure ()
+runApp_ app env = void (runApp app env)
 
 runApp :: App s -> Environment -> Consumer' Text IO s
 runApp app env = lift (runVgrepT env (startEventLoop >>= suspendAndResume))

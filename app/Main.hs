@@ -5,7 +5,6 @@ import Control.Monad.Reader
 import Control.Monad.State.Extended
 import Data.Maybe
 import Data.Ratio
-import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as T
 import Graphics.Vty hiding (resize)
@@ -56,23 +55,31 @@ type MainWidget = HSplitWidget ResultsWidget PagerWidget
 
 app :: App MainWidget
 app = App
-    { initialize  = initSplitView
-    , receiveInput = inputPipe
-    , handleEvent = eventHandler
-    , render      = fmap picForImage . drawWidget }
+    { initialize   = initSplitView
+    , receiveInput = expand >-> parse >-> feed
+    , handleEvent  = eventHandler
+    , render       = fmap picForImage . drawWidget }
   where
     initSplitView vty = do
         bounds <- liftIO (displayBounds (outputIface vty))
         let leftPager  = resultsWidget bounds
             rightPager = pagerWidget T.empty bounds
         liftIO $ return (hSplitWidget leftPager rightPager bounds)
-    inputPipe :: Consumer' Text (StateT MainWidget Vgrep) ()
-    inputPipe = do
-        line <- lift . lift . expandLineForDisplay =<< await
-        let parsedLine = parseLine line
-        when (isJust parsedLine) . lift $
-            zoom (widgetState . leftWidget) (feedResult (fromJust parsedLine))
 
+    feed = forever $ do
+        line <- await
+        lift (zoom (widgetState . leftWidget) (feedResult line))
+
+    expand = forever $ do
+        line <- await
+        expandedLine <- (lift . lift . expandLineForDisplay) line
+        yield expandedLine
+
+    parse = forever $ do
+        line <- await
+        case parseLine line of
+            Just parsedLine -> yield parsedLine
+            Nothing         -> pure ()
 
 
 ---------------------------------------------------------------------------
