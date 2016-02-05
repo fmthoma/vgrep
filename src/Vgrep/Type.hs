@@ -3,6 +3,7 @@ module Vgrep.Type where
 
 import qualified Control.Exception as E
 import Control.Monad.Identity
+import Control.Monad.Morph
 import Control.Monad.Reader
 
 import Vgrep.Environment
@@ -11,6 +12,8 @@ newtype VgrepT m a = VgrepT (ReaderT Environment m a)
                 deriving ( Functor
                          , Applicative
                          , Monad
+                         , MonadTrans
+                         , MFunctor
                          , MonadReader Environment
                          , MonadIO )
 

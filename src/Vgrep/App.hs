@@ -14,6 +14,7 @@ import qualified Graphics.Vty as Vty
 import Pipes (Consumer)
 import System.Posix
 
+import Vgrep.Environment
 import Vgrep.Event
 import Vgrep.Type
 
@@ -23,11 +24,11 @@ data App s = App { initialize   :: Vty -> VgrepT IO s
                  , render       :: s -> Vgrep Vty.Picture }
 
 
-runApp_ :: App s -> Consumer Text (VgrepT IO) ()
-runApp_ app = runApp app >> pure ()
+runApp_ :: App s -> Environment -> Consumer Text IO ()
+runApp_ app env = runApp app env >> pure ()
 
-runApp :: App s -> Consumer Text (VgrepT IO) s
-runApp app = lift (startEventLoop >>= suspendAndResume)
+runApp :: App s -> Environment -> Consumer Text IO s
+runApp app env = lift (runVgrepT env (startEventLoop >>= suspendAndResume))
   where
     startEventLoop = withVty $ \vty -> do
         initialState <- initialize app vty
