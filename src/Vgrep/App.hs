@@ -6,7 +6,6 @@ module Vgrep.App
     , ttyOut
     ) where
 
-import Control.Lens
 import Control.Monad.Reader
 import Graphics.Vty (Vty, Config(..))
 import qualified Graphics.Vty as Vty
@@ -15,11 +14,9 @@ import System.Posix
 import Vgrep.Event
 import Vgrep.Type
 
-data App s = App { _initialize  :: Vty -> VgrepT IO s
-                 , _handleEvent :: EventHandler s
-                 , _render      :: s -> Vgrep Vty.Picture }
-
-makeLenses ''App
+data App s = App { initialize  :: Vty -> VgrepT IO s
+                 , handleEvent :: EventHandler s
+                 , render      :: s -> Vgrep Vty.Picture }
 
 
 runApp_ :: App s -> VgrepT IO ()
@@ -29,7 +26,7 @@ runApp :: App s -> VgrepT IO s
 runApp app = startEventLoop >>= suspendAndResume
   where
     startEventLoop = withVty $ \vty -> do
-        initialState <- (view initialize app) vty
+        initialState <- initialize app vty
         refresh vty initialState
         eventLoop vty initialState
 
@@ -51,8 +48,8 @@ runApp app = startEventLoop >>= suspendAndResume
         _other               -> cannotHappen_othersAreHandledInEventLoop
 
     refresh vty = liftVgrep . fmap (Vty.update vty) . renderApp
-    renderApp = view render app
-    handleAppEvent = view handleEvent app
+    renderApp = render app
+    handleAppEvent = handleEvent app
 
     cannotHappen_othersAreHandledInEventLoop =
         error "Internal error: Unhandled Continuation"

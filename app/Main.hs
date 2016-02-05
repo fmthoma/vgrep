@@ -50,9 +50,9 @@ type MainWidget = HSplitWidget ResultsWidget PagerWidget
 
 app :: Text -> App MainWidget
 app grepOutput = App
-    { _initialize  = initSplitView
-    , _handleEvent = eventHandler
-    , _render      = fmap picForImage . drawWidget }
+    { initialize  = initSplitView
+    , handleEvent = eventHandler
+    , render      = fmap picForImage . drawWidget }
   where
     initSplitView vty = do
         parsedOutput <- do
