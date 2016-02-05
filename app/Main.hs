@@ -10,6 +10,7 @@ import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as T
 import Graphics.Vty hiding (resize)
 import Pipes as P
+import qualified Pipes.Prelude as P
 import System.Directory
 import System.Environment (getArgs)
 import System.IO
@@ -40,13 +41,19 @@ main = do
     args <- getArgs
     runVgrepT environment $ case (inputFromTerminal, outputToTerminal) of
         (True,  False)  -> recursiveGrep >>= liftIO . T.putStrLn
-        (False, False)  -> grepStdin     >>= liftIO . T.putStrLn
+        (False, False)  -> liftIO (runEffect (grep stdinText >-> stdoutText))
         (False, True)
-            | null args -> view input      >>= runApp'
-            | otherwise -> grepStdinForApp >>= runApp'
+            | null args -> runEffect ( smurf stdinText
+                                   >-> runApp_ (app (T.pack "")) )
+            | otherwise -> runEffect ( smurf (grepForApp stdinText)
+                                   >-> runApp_ (app (T.pack "")) )  --FIXME Housekeeping
         (True,  True)   -> recursiveGrep   >>= runApp'
   where
     runApp' input = runEffect (P.each (T.lines input) >-> runApp_ (app input))
+    stdinText  = P.stdinLn  >-> P.map T.pack
+    stdoutText = P.stdoutLn <-< P.map T.unpack
+    smurf = hoist (VgrepT . lift)
+
 
 
 type MainWidget = HSplitWidget ResultsWidget PagerWidget
