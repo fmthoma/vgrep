@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE Rank2Types      #-}
 module Vgrep.App
     ( App(..)
     , runApp, runApp_
@@ -11,7 +12,7 @@ import Control.Monad.State
 import Data.Text.Lazy
 import Graphics.Vty (Vty, Config(..))
 import qualified Graphics.Vty as Vty
-import Pipes (Consumer)
+import Pipes (Consumer')
 import System.Posix
 
 import Vgrep.Environment
@@ -19,15 +20,15 @@ import Vgrep.Event
 import Vgrep.Type
 
 data App s = App { initialize   :: Vty -> VgrepT IO s
-                 , receiveInput :: Consumer Text (StateT s Vgrep) ()
+                 , receiveInput :: Consumer' Text (StateT s Vgrep) ()
                  , handleEvent  :: EventHandler s
                  , render       :: s -> Vgrep Vty.Picture }
 
 
-runApp_ :: App s -> Environment -> Consumer Text IO ()
+runApp_ :: App s -> Environment -> Consumer' Text IO ()
 runApp_ app env = runApp app env >> pure ()
 
-runApp :: App s -> Environment -> Consumer Text IO s
+runApp :: App s -> Environment -> Consumer' Text IO s
 runApp app env = lift (runVgrepT env (startEventLoop >>= suspendAndResume))
   where
     startEventLoop = withVty $ \vty -> do

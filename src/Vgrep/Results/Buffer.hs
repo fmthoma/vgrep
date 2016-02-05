@@ -1,8 +1,8 @@
 module Vgrep.Results.Buffer
     ( module Vgrep.Results
     , DisplayLine(..)
-    , Buffer
-    , buffer
+    , Buffer(..)
+    , feed
     , showPrev, showNext
     , hidePrev, hideNext
     , moveUp, moveDown
@@ -26,11 +26,12 @@ import           Prelude hiding (reverse)
 import Vgrep.Results
 
 
-type Buffer = ( [FileLineReference]    -- above screen (reversed)
-              , Seq FileLineReference  -- top of screen (reversed)
-              , FileLineReference      -- currently selected
-              , Seq FileLineReference  -- bottom of screen
-              , [FileLineReference] )  -- below screen
+data Buffer = EmptyBuffer
+            | Buffer ( Seq FileLineReference   -- above screen (reversed)
+                     , Seq FileLineReference   -- top of screen (reversed)
+                     , FileLineReference       -- currently selected
+                     , Seq FileLineReference   -- bottom of screen
+                     , Seq FileLineReference ) -- below screen
 
 data DisplayLine = FileHeader   File
                  | Line         LineReference
@@ -38,29 +39,40 @@ data DisplayLine = FileHeader   File
                  deriving (Eq)
 
 
-buffer :: [FileLineReference] -> Maybe Buffer
-buffer (ref : refs) = Just ([], empty, ref, empty, refs)
-buffer []           = Nothing
+feed :: FileLineReference -> Buffer -> Buffer
+feed l = \case
+    EmptyBuffer                -> Buffer (empty, empty, l, empty, empty)
+    Buffer (as, bs, c, ds, es) -> Buffer (as, bs, c, ds, es |> l)
+
 
 reverse :: Buffer -> Buffer
-reverse (as, bs, c, ds, es) = (es, ds, c, bs, as)
+reverse = \case
+    Buffer (as, bs, c, ds, es) -> Buffer (es, ds, c, bs, as)
+    EmptyBuffer                -> EmptyBuffer
 
 showNext :: Buffer -> Maybe Buffer
-showNext (as, bs, c, ds, es) = do e:es' <- Just es
-                                  Just (as, bs, c, ds |> e, es')
+showNext = \case
+    Buffer (as, bs, c, ds, es) -> do e :< es' <- Just (viewl es)
+                                     Just (Buffer (as, bs, c, ds |> e, es'))
+    EmptyBuffer                -> Nothing
+
 showPrev :: Buffer -> Maybe Buffer
 showPrev = fmap reverse . showNext . reverse
 
 hideNext :: Buffer -> Maybe Buffer
-hideNext (as, bs, c, ds, es) = do ds' :> d <- Just (viewr ds)
-                                  Just (as, bs, c, ds', d:es)
+hideNext = \case
+    Buffer (as, bs, c, ds, es) -> do ds' :> d <- Just (viewr ds)
+                                     Just (Buffer (as, bs, c, ds', d <| es))
+    EmptyBuffer                -> Nothing
 
 hidePrev :: Buffer -> Maybe Buffer
 hidePrev = fmap reverse . hideNext . reverse
 
 moveDown :: Buffer -> Maybe Buffer
-moveDown (as, bs, c, ds, es) = do d :< ds' <- Just (viewl ds)
-                                  Just (as, c <| bs, d, ds', es)
+moveDown = \case
+    Buffer (as, bs, c, ds, es) -> do d :< ds' <- Just (viewl ds)
+                                     Just (Buffer (as, c <| bs, d, ds', es))
+    EmptyBuffer                -> Nothing
 
 moveUp :: Buffer -> Maybe Buffer
 moveUp = fmap reverse . moveDown . reverse
@@ -84,7 +96,8 @@ visibleHeight :: Buffer -> Int
 visibleHeight = length . toLines
 
 toLines :: Buffer -> [DisplayLine]
-toLines (_, bs, c, ds, _) = linesBefore <> selected c <> linesAfter
+toLines EmptyBuffer = []
+toLines (Buffer (_, bs, c, ds, _)) = linesBefore <> selected c <> linesAfter
 
   where
     linesBefore = case viewl bs of
@@ -104,8 +117,10 @@ toLines (_, bs, c, ds, _) = linesBefore <> selected c <> linesAfter
     pointsToSameFile = (==) `on` fst
 
 
-current :: Buffer -> FileLineReference
-current (_, _, c, _, _) = c
+current :: Buffer -> Maybe FileLineReference
+current = \case
+    Buffer (_, _, c, _, _) -> Just c
+    EmptyBuffer            -> Nothing
 
 lineNumber :: DisplayLine -> Maybe Int
 lineNumber (FileHeader _)        = Nothing

@@ -5,6 +5,7 @@ import Control.Monad.Reader
 import Control.Monad.State.Extended
 import Data.Maybe
 import Data.Ratio
+import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as T
 import Graphics.Vty hiding (resize)
@@ -56,17 +57,22 @@ type MainWidget = HSplitWidget ResultsWidget PagerWidget
 app :: App MainWidget
 app = App
     { initialize  = initSplitView
+    , receiveInput = inputPipe
     , handleEvent = eventHandler
     , render      = fmap picForImage . drawWidget }
   where
     initSplitView vty = do
-        parsedOutput <- do
-            formattedLines <- expandForDisplay [T.pack ""] --FIXME
-            pure (parseGrepOutput formattedLines)
         bounds <- liftIO (displayBounds (outputIface vty))
-        let leftPager  = resultsWidget bounds parsedOutput
+        let leftPager  = resultsWidget bounds
             rightPager = pagerWidget T.empty bounds
         liftIO $ return (hSplitWidget leftPager rightPager bounds)
+    inputPipe :: Consumer' Text (StateT MainWidget Vgrep) ()
+    inputPipe = do
+        line <- lift . lift . expandLineForDisplay =<< await
+        let parsedLine = parseLine line
+        when (isJust parsedLine) . lift $
+            zoom (widgetState . leftWidget) (feedResult (fromJust parsedLine))
+
 
 
 ---------------------------------------------------------------------------
@@ -101,21 +107,26 @@ eventHandler = mconcat
                   liftState moveToSelectedLineNumber
                   liftState (zoom widgetState (splitFocusRight (1 % 3)))
     keyEdit  = zoom (widgetState . leftWidget) $ do
-                  fileName <- uses currentFileName T.unpack
-                  lineNumber <- uses currentLineNumber (fromMaybe 0)
-                  invokeEditor fileName lineNumber
+                  maybeFileName <- uses currentFileName (fmap T.unpack)
+                  when (isJust maybeFileName) $ do
+                      lineNumber <- uses currentLineNumber (fromMaybe 0)
+                      invokeEditor (fromJust maybeFileName) lineNumber
     keyEsc   = whenS (has pagerFocused)
                   (zoom widgetState leftOnly)
 
 loadSelectedFileToPager :: StateT MainWidget (VgrepT IO) ()
 loadSelectedFileToPager = zoom widgetState $ do
-    fileName <- uses (leftWidget . currentFileName) T.unpack
-    fileExists <- liftIO (doesFileExist fileName)
-    fileContent <- if fileExists
-        then liftIO (T.readFile fileName)
-        else lift (view input)
-    displayContent <- lift (expandForDisplay (T.lines fileContent))
-    liftState $ zoom (rightWidget . widgetState) (replaceBufferContents  displayContent)
+    maybeFileName <- uses (leftWidget . currentFileName) (fmap T.unpack)
+    case maybeFileName of
+        Just fileName -> do
+            fileExists <- liftIO (doesFileExist fileName)
+            fileContent <- if fileExists
+                then liftIO (T.readFile fileName)
+                else lift (view input)
+            displayContent <- lift (expandForDisplay (T.lines fileContent))
+            liftState $ zoom (rightWidget . widgetState)
+                             (replaceBufferContents  displayContent)
+        Nothing -> pure ()
 
 moveToSelectedLineNumber :: State MainWidget ()
 moveToSelectedLineNumber = zoom widgetState $ do
