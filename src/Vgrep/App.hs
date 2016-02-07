@@ -42,7 +42,7 @@ runApp app env = lift (runVgrepT env (startEventLoop >>= suspendAndResume))
 
     eventLoop vty currentState = do
         event <- liftIO (Vty.nextEvent vty)
-        next <- runEventHandler handleAppEvent event currentState
+        next <- runEventHandler handleAppEvent (VtyEvent event) currentState
         case next of
             Unchanged         -> eventLoop vty currentState
             Continue newState -> refresh vty newState >> eventLoop vty newState

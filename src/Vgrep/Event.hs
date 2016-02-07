@@ -1,11 +1,12 @@
 {-# LANGUAGE DeriveFunctor #-}
 module Vgrep.Event
-    ( EventHandler ()
+    ( Event (..)
+    , EventHandler ()
     , runEventHandler
     , mkEventHandler
     , mkEventHandlerIO
 
-    , Next(..)
+    , Next (..)
 
     , handle
     , handleResize
@@ -22,9 +23,15 @@ import Control.Applicative
 import Control.Monad.State.Extended ( State, StateT
                                     , execState, execStateT
                                     , liftState )
-import Graphics.Vty as Vty
+import qualified Graphics.Vty as Vty
+import Graphics.Vty.Prelude
 
 import Vgrep.Type
+import Vgrep.Results
+
+
+data Event = VtyEvent Vty.Event
+           | ReceiveInput FileLineReference
 
 newtype EventHandler s = EventHandler
                          { runEventHandler :: Event -> s -> VgrepT IO (Next s) }
@@ -58,17 +65,17 @@ handle doesMatch action = mkEventHandlerIO $ \event state ->
 
 handleResize :: (DisplayRegion -> State s ()) -> EventHandler s
 handleResize action = mkEventHandler $ \event state -> case event of
-    EvResize w h -> Continue (execState (action (w, h)) state)
-    _otherwise   -> Unchanged
+    VtyEvent (Vty.EvResize w h) -> Continue (execState (action (w, h)) state)
+    _otherwise                  -> Unchanged
 
 
-keyEvent :: Key -> [Modifier] -> Event -> Bool
+keyEvent :: Vty.Key -> [Vty.Modifier] -> Event -> Bool
 keyEvent k ms = \case
-    EvKey k' ms' | (k', ms') == (k, ms) -> True
-    _otherwise                          -> False
+    VtyEvent (Vty.EvKey k' ms') | (k', ms') == (k, ms) -> True
+    _otherwise                                         -> False
 
-keyCharEvent :: Char -> [Modifier] -> Event -> Bool
-keyCharEvent c = keyEvent (KChar c)
+keyCharEvent :: Char -> [Vty.Modifier] -> Event -> Bool
+keyCharEvent c = keyEvent (Vty.KChar c)
 
 
 continueIO :: StateT s (VgrepT IO) () -> s -> VgrepT IO (Next s)

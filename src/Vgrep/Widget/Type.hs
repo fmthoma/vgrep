@@ -25,5 +25,5 @@ resizeWidget newRegion = do
 
 handleResizeEvent :: EventHandler (Widget s)
 handleResizeEvent = mkEventHandler $ \event widget -> case event of
-    EvResize w h -> Continue (execState (resizeWidget (w, h)) widget)
-    _otherwise   -> Unchanged
+    VtyEvent (EvResize w h) -> Continue (execState (resizeWidget (w, h)) widget)
+    _otherwise              -> Unchanged
