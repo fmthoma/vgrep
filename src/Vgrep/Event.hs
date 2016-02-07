@@ -17,6 +17,7 @@ module Vgrep.Event
     , continue
     , suspend
     , halt
+    , handleReceiveLine
     ) where
 
 import Control.Applicative
@@ -89,3 +90,8 @@ suspend action = pure . Resume . execStateT action
 
 halt :: s -> VgrepT IO (Next s)
 halt state = pure (Halt state)
+
+handleReceiveLine :: (Text -> StateT s (VgrepT IO) ()) -> EventHandler s
+handleReceiveLine action = mkEventHandlerIO $ \event state -> case event of
+    ReceiveInput line -> fmap Continue (execStateT (action line) state)
+    _otherwise        -> pure Unchanged

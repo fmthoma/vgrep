@@ -89,6 +89,12 @@ eventHandler :: EventHandler MainWidget
 eventHandler = mconcat
     [ handle (keyCharEvent 'q'   []) halt
     , handleResizeEvent
+    , handleReceiveLine $ \line -> do
+          expandedLine <- (lift . expandLineForDisplay) line
+          let maybeParsedLine = parseLine expandedLine
+          when (isJust maybeParsedLine) $
+              zoom (widgetState . leftWidget) (feedResult (fromJust maybeParsedLine))
+          
     , handle (keyCharEvent '\t'  []) (continue keyTab)
     , handle (keyEvent KUp       []) (continue keyUp)
     , handle (keyEvent KDown     []) (continue keyDown)

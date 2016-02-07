@@ -61,7 +61,9 @@ initState initialDimensions = State { _files  = EmptyBuffer
 
 feedResult :: Monad m
            => FileLineReference -> StateT ResultsWidget m ()
-feedResult line = zoom (widgetState . files) (modify (feed line))
+feedResult line = do
+    zoom (widgetState . files) (modify (feed line))
+    zoom widgetState resizeToWindow
 
 pageUp, pageDown :: State ResultsState ()
 pageUp = do
@@ -148,7 +150,7 @@ resizeToRegion newRegion = do
     assign region newRegion
     resizeToWindow
 
-resizeToWindow :: State ResultsState ()
+resizeToWindow :: Monad m => StateT ResultsState m ()
 resizeToWindow = do
     height <- uses region regionHeight
     modifying files (Buffer.resize height)
