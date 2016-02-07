@@ -7,12 +7,15 @@ module Vgrep.App
     , ttyOut
     ) where
 
+import Control.Concurrent.Async
 import Control.Monad.Reader
 import Control.Monad.State
 import Data.Text.Lazy
 import Graphics.Vty (Vty, Config(..))
 import qualified Graphics.Vty as Vty
-import Pipes (Consumer')
+import Pipes
+import Pipes.Concurrent
+import Pipes.Prelude as P
 import System.Posix
 
 import Vgrep.Environment
@@ -25,27 +28,36 @@ data App s = App { initialize   :: Vty -> VgrepT IO s
                  , render       :: s -> Vgrep Vty.Picture }
 
 
-runApp_ :: App s -> Environment -> Consumer' Text IO ()
-runApp_ app env = void (runApp app env)
+runApp_ :: App s -> Environment -> Producer Text IO () -> IO ()
+runApp_ app env input = void (runApp app env input)
 
-runApp :: App s -> Environment -> Consumer' Text IO s
-runApp app env = lift (runVgrepT env (startEventLoop >>= suspendAndResume))
+runApp :: App s -> Environment -> Producer Text IO () -> IO s
+runApp app env input = withSpawn unbounded $ \(evSink, evSource) -> do
+    c <- (async . runEffect) (input >-> P.map ReceiveInput >-> toOutput evSink)
+    finalState <- runVgrepT env (foo app evSource evSink)
+    cancel c
+    pure finalState
+
+foo :: App s -> Input Event -> Output Event -> VgrepT IO s
+foo app evSource evSink = do
+    startEventLoop >>= suspendAndResume
+
   where
-    startEventLoop = withVty $ \vty -> do
+    startEventLoop = withVty evSink $ \vty -> do
         initialState <- initialize app vty
         refresh vty initialState
-        eventLoop vty initialState
+        runEffect $ (fromInput evSource >> pure Unchanged) >-> eventLoop vty initialState
 
-    continueEventLoop currentState = withVty $ \vty -> do
+    continueEventLoop currentState = withVty evSink $ \vty -> do
         refresh vty currentState
-        eventLoop vty currentState
+        runEffect $ (fromInput evSource >> pure Unchanged) >-> eventLoop vty currentState
 
     eventLoop vty currentState = do
-        event <- liftIO (Vty.nextEvent vty)
-        next <- runEventHandler handleAppEvent (VtyEvent event) currentState
+        event <- await
+        next <- lift (runEventHandler handleAppEvent event currentState)
         case next of
             Unchanged         -> eventLoop vty currentState
-            Continue newState -> refresh vty newState >> eventLoop vty newState
+            Continue newState -> lift (refresh vty newState) >> eventLoop vty newState
             other             -> pure other
 
     suspendAndResume = \case
@@ -61,8 +73,18 @@ runApp app env = lift (runVgrepT env (startEventLoop >>= suspendAndResume))
         error "Internal error: Unhandled Continuation"
 
 
-withVty :: (Vty -> VgrepT IO s) -> VgrepT IO s
-withVty = bracket initVty Vty.shutdown
+withVty :: Output Event -> (Vty -> VgrepT IO s) -> VgrepT IO s
+withVty sink action = bracket before after (\(vty, _) -> action vty)
+  where
+    before = do
+        vty <- initVty
+        evLoop <- (async . runEffect) $
+            lift (Vty.nextEvent vty) >~ P.map VtyEvent >-> toOutput sink
+        pure (vty, evLoop)
+    after (vty, evLoop) = do
+        cancel evLoop
+        Vty.shutdown vty
+
 
 initVty :: IO Vty
 initVty = do

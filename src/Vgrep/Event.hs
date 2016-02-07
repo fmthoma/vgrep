@@ -23,15 +23,15 @@ import Control.Applicative
 import Control.Monad.State.Extended ( State, StateT
                                     , execState, execStateT
                                     , liftState )
+import Data.Text.Lazy (Text)
 import qualified Graphics.Vty as Vty
 import Graphics.Vty.Prelude
 
 import Vgrep.Type
-import Vgrep.Results
 
 
 data Event = VtyEvent Vty.Event
-           | ReceiveInput FileLineReference
+           | ReceiveInput Text
 
 newtype EventHandler s = EventHandler
                          { runEventHandler :: Event -> s -> VgrepT IO (Next s) }

@@ -35,6 +35,7 @@ library
                      , Vgrep.Widget.Results
                      , Vgrep.Widget.Type
   build-depends:       base >= 4.7 && < 5
+                     , async
                      , attoparsec
                      , containers
                      , lens

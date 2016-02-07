@@ -33,18 +33,18 @@ main :: IO ()
 main = do
     hSetBuffering stdin  LineBuffering
     hSetBuffering stdout LineBuffering
-    environment <- Env <$> T.getContents
+    environment <- Env <$> pure T.empty
                        <*> defaultConfig
     inputFromTerminal <- hIsTerminalDevice stdin
     outputToTerminal  <- hIsTerminalDevice stdout
     args <- getArgs
-    runEffect $ case (inputFromTerminal, outputToTerminal) of
-        (True,  False)  -> recursiveGrep  >-> stdoutText
-        (False, False)  -> grep stdinText >-> stdoutText
+    case (inputFromTerminal, outputToTerminal) of
+        (True,  False)  -> runEffect (recursiveGrep  >-> stdoutText)
+        (False, False)  -> runEffect (grep stdinText >-> stdoutText)
         (False, True)
-            | null args -> stdinText            >-> runApp_ app environment
-            | otherwise -> grepForApp stdinText >-> runApp_ app environment
-        (True,  True)   -> recursiveGrep        >-> runApp_ app environment
+            | null args -> runApp_ app environment stdinText
+            | otherwise -> runApp_ app environment (grepForApp stdinText)
+        (True,  True)   -> runApp_ app environment recursiveGrep
   where
     stdinText  = P.stdinLn  >-> P.map T.pack
     stdoutText = P.stdoutLn <-< P.map T.unpack
