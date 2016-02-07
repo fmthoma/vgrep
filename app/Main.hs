@@ -33,8 +33,7 @@ main :: IO ()
 main = do
     hSetBuffering stdin  LineBuffering
     hSetBuffering stdout LineBuffering
-    environment <- Env <$> pure T.empty
-                       <*> defaultConfig
+    environment <- Env <$> defaultConfig
     inputFromTerminal <- hIsTerminalDevice stdin
     outputToTerminal  <- hIsTerminalDevice stdout
     args <- getArgs
@@ -56,7 +55,6 @@ type MainWidget = HSplitWidget ResultsWidget PagerWidget
 app :: App MainWidget
 app = App
     { initialize   = initSplitView
-    , receiveInput = expand >-> parse >-> feed
     , handleEvent  = eventHandler
     , render       = fmap picForImage . drawWidget }
   where
@@ -66,21 +64,6 @@ app = App
             rightPager = pagerWidget T.empty bounds
         liftIO $ return (hSplitWidget leftPager rightPager bounds)
 
-    feed = forever $ do
-        line <- await
-        lift (zoom (widgetState . leftWidget) (feedResult line))
-
-    expand = forever $ do
-        line <- await
-        expandedLine <- (lift . lift . expandLineForDisplay) line
-        yield expandedLine
-
-    parse = forever $ do
-        line <- await
-        case parseLine line of
-            Just parsedLine -> yield parsedLine
-            Nothing         -> pure ()
-
 
 ---------------------------------------------------------------------------
 -- Events
@@ -89,12 +72,7 @@ eventHandler :: EventHandler MainWidget
 eventHandler = mconcat
     [ handle (keyCharEvent 'q'   []) halt
     , handleResizeEvent
-    , handleReceiveLine $ \line -> do
-          expandedLine <- (lift . expandLineForDisplay) line
-          let maybeParsedLine = parseLine expandedLine
-          when (isJust maybeParsedLine) $
-              zoom (widgetState . leftWidget) (feedResult (fromJust maybeParsedLine))
-          
+    , handleReceiveLine              feedLine
     , handle (keyCharEvent '\t'  []) (continue keyTab)
     , handle (keyEvent KUp       []) (continue keyUp)
     , handle (keyEvent KDown     []) (continue keyDown)
@@ -106,6 +84,12 @@ eventHandler = mconcat
     , handle (keyCharEvent 'e'   []) (suspend keyEdit)
     , handle (keyEvent KEsc      []) (continue keyEsc) ]
   where
+    feedLine line = do
+        expandedLine <- (lift . expandLineForDisplay) line
+        let maybeParsedLine = parseLine expandedLine
+        when (isJust maybeParsedLine) $
+            zoom (widgetState . leftWidget)
+                 (feedResult (fromJust maybeParsedLine))
     keyTab   = zoom widgetState switchFocus
     keyUp    = do whenS (has resultsFocused) (zoom results prevLine)
                   whenS (has pagerFocused)   (zoom pager   (scroll (-1)))
@@ -135,7 +119,7 @@ loadSelectedFileToPager = zoom widgetState $ do
             fileExists <- liftIO (doesFileExist fileName)
             fileContent <- if fileExists
                 then liftIO (T.readFile fileName)
-                else lift (view input)
+                else lift (pure (T.pack "FIXME")) -- FIXME
             displayContent <- lift (expandForDisplay (T.lines fileContent))
             liftState $ zoom (rightWidget . widgetState)
                              (replaceBufferContents  displayContent)

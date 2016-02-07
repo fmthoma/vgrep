@@ -9,11 +9,10 @@ module Vgrep.App
 
 import Control.Concurrent.Async
 import Control.Monad.Reader
-import Control.Monad.State
 import Data.Text.Lazy
 import Graphics.Vty (Vty, Config(..))
 import qualified Graphics.Vty as Vty
-import Pipes
+import Pipes hiding (next)
 import Pipes.Concurrent
 import Pipes.Prelude as P
 import System.Posix
@@ -23,7 +22,6 @@ import Vgrep.Event
 import Vgrep.Type
 
 data App s = App { initialize   :: Vty -> VgrepT IO s
-                 , receiveInput :: Consumer' Text (StateT s Vgrep) ()
                  , handleEvent  :: EventHandler s
                  , render       :: s -> Vgrep Vty.Picture }
 
