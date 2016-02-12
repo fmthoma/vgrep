@@ -31,13 +31,13 @@ runApp_ app env input = void (runApp app env input)
 
 runApp :: App s -> Environment -> Producer Text IO () -> IO s
 runApp app env input = withSpawn unbounded $ \(evSink, evSource) -> do
-    c <- (async . runEffect) (input >-> P.map ReceiveInput >-> toOutput evSink)
-    finalState <- runVgrepT env (foo app evSource evSink)
-    cancel c
+    inputThread <- (async . runEffect) (input >-> P.map ReceiveInput >-> toOutput evSink)
+    finalState <- runVgrepT env (appEventLoop app evSource evSink)
+    cancel inputThread
     pure finalState
 
-foo :: App s -> Input Event -> Output Event -> VgrepT IO s
-foo app evSource evSink = do
+appEventLoop :: App s -> Input Event -> Output Event -> VgrepT IO s
+appEventLoop app evSource evSink = do
     startEventLoop >>= suspendAndResume
 
   where
@@ -76,11 +76,11 @@ withVty sink action = bracket before after (\(vty, _) -> action vty)
   where
     before = do
         vty <- initVty
-        evLoop <- (async . runEffect) $
+        evThread <- (async . runEffect) $
             lift (Vty.nextEvent vty) >~ P.map VtyEvent >-> toOutput sink
-        pure (vty, evLoop)
-    after (vty, evLoop) = do
-        cancel evLoop
+        pure (vty, evThread)
+    after (vty, evThread) = do
+        cancel evThread
         Vty.shutdown vty
 
 
