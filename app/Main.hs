@@ -118,7 +118,7 @@ eventHandler = mconcat
                   loadSelectedFileToPager
                   liftState moveToSelectedLineNumber
                   liftState (zoom mainWidgetState (splitFocusRight (1 % 3)))
-    keyEdit  = zoom (mainWidgetState . leftWidget) $ do
+    keyEdit  = zoom results $ do
                   maybeFileName <- uses currentFileName (fmap T.unpack)
                   when (isJust maybeFileName) $ do
                       lineNumber <- uses currentLineNumber (fromMaybe 0)
@@ -128,7 +128,7 @@ eventHandler = mconcat
 
 loadSelectedFileToPager :: StateT AppState (VgrepT IO) ()
 loadSelectedFileToPager = do
-    maybeFileName <- uses (mainWidgetState . leftWidget . currentFileName)
+    maybeFileName <- uses (results . currentFileName)
                           (fmap T.unpack)
     case maybeFileName of
         Just fileName -> do
@@ -141,11 +141,11 @@ loadSelectedFileToPager = do
         Nothing -> pure ()
 
 moveToSelectedLineNumber :: State AppState ()
-moveToSelectedLineNumber = zoom mainWidgetState $ do
-    lineNumber <- use (leftWidget . currentLineNumber)
-    zoom (rightWidget . widgetState) (moveToLine (fromMaybe 0 lineNumber))
+moveToSelectedLineNumber = do
+    lineNumber <- use (results . currentLineNumber)
+    zoom pager (moveToLine (fromMaybe 0 lineNumber))
 
-invokeEditor :: FilePath -> Int -> StateT ResultsWidget (VgrepT IO) ()
+invokeEditor :: FilePath -> Int -> StateT ResultsState (VgrepT IO) ()
 invokeEditor file lineNumber = do
     configuredEditor <- view (config . editor)
     liftIO $ doesFileExist file >>= \case

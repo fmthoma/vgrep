@@ -5,7 +5,6 @@ import Control.Lens
 import Control.Monad.State.Extended
 import Graphics.Vty hiding (resize)
 
-import Vgrep.Event
 import Vgrep.Type
 
 data Widget s = Widget { _widgetState :: s
@@ -22,8 +21,3 @@ resizeWidget :: DisplayRegion -> State (Widget s) ()
 resizeWidget newRegion = do
     resizeTo <- use resize
     zoom widgetState (resizeTo newRegion)
-
-handleResizeEvent :: EventHandler (Widget s)
-handleResizeEvent = mkEventHandler $ \event widget -> case event of
-    VtyEvent (EvResize w h) -> Continue (execState (resizeWidget (w, h)) widget)
-    _otherwise              -> Unchanged

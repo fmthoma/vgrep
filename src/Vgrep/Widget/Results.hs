@@ -156,10 +156,10 @@ resizeToWindow = do
     modifying files (Buffer.resize height)
 
 
-currentFileName :: Getter ResultsWidget (Maybe Text)
+currentFileName :: Getter ResultsState (Maybe Text)
 currentFileName =
-    pre (widgetState . files . to (current) . _Just . _1 . to getFileName)
+    pre (files . to (current) . _Just . _1 . to getFileName)
 
-currentLineNumber :: Getter ResultsWidget (Maybe Int)
+currentLineNumber :: Getter ResultsState (Maybe Int)
 currentLineNumber =
-    pre (widgetState . files . to current . _Just . _2 . _1 . _Just)
+    pre (files . to current . _Just . _2 . _1 . _Just)
