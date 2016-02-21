@@ -3,6 +3,7 @@ module Main (main) where
 import Control.Lens
 import Control.Monad.Reader
 import Control.Monad.State.Extended
+import Data.Foldable
 import Data.Maybe
 import Data.Ratio
 import Data.Sequence (Seq)
@@ -60,6 +61,9 @@ data AppState = AppState { _appWidget  :: MainWidget
 
 appWidget :: Lens' AppState MainWidget
 appWidget = lens _appWidget (\s w -> s { _appWidget = w })
+
+inputLines :: Lens' AppState (Seq Text)
+inputLines = lens _inputLines (\s l -> s { _inputLines = l })
 
 app :: App AppState
 app = App
@@ -123,17 +127,17 @@ eventHandler = mconcat
                   (zoom mainWidgetState leftOnly)
 
 loadSelectedFileToPager :: StateT AppState (VgrepT IO) ()
-loadSelectedFileToPager = zoom mainWidgetState $ do
-    maybeFileName <- uses (leftWidget . currentFileName) (fmap T.unpack)
+loadSelectedFileToPager = do
+    maybeFileName <- uses (mainWidgetState . leftWidget . currentFileName)
+                          (fmap T.unpack)
     case maybeFileName of
         Just fileName -> do
             fileExists <- liftIO (doesFileExist fileName)
             fileContent <- if fileExists
-                then liftIO (T.readFile fileName)
-                else lift (pure (T.pack "FIXME")) -- FIXME
-            displayContent <- lift (expandForDisplay (T.lines fileContent))
-            liftState $ zoom (rightWidget . widgetState)
-                             (replaceBufferContents  displayContent)
+                then liftIO (fmap T.lines (T.readFile fileName))
+                else uses inputLines toList
+            displayContent <- lift (expandForDisplay fileContent)
+            liftState $ zoom pager (replaceBufferContents  displayContent)
         Nothing -> pure ()
 
 moveToSelectedLineNumber :: State AppState ()
@@ -165,10 +169,10 @@ mainWidgetState :: Lens' AppState (HSplitState ResultsWidget PagerWidget)
 mainWidgetState = appWidget . widgetState
 
 results :: Lens' AppState ResultsState
-results = appWidget . widgetState . leftWidget . widgetState
+results = mainWidgetState . leftWidget . widgetState
 
 pager :: Lens' AppState PagerState
-pager = appWidget . widgetState . rightWidget . widgetState
+pager = mainWidgetState . rightWidget . widgetState
 
 
 resultsFocused :: Traversal' AppState ResultsWidget
