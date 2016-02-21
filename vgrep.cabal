@@ -59,6 +59,7 @@ executable vgrep
                      , MultiWayIf
   build-depends:       base
                      , directory
+                     , containers
                      , lens
                      , mtl
                      , pipes
