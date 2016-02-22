@@ -1,10 +1,10 @@
 {-# LANGUAGE DeriveFunctor #-}
 module Vgrep.Event
-    ( Event (..)
-    , EventHandler ()
+    ( EventHandler ()
     , runEventHandler
     , mkEventHandler
     , mkEventHandlerIO
+    , liftEventHandler
 
     , Next (..)
 
@@ -17,33 +17,34 @@ module Vgrep.Event
     , continue
     , suspend
     , halt
-    , handleReceiveLine
     ) where
 
 import Control.Applicative
 import Control.Monad.State.Extended ( State, StateT
                                     , execState, execStateT
                                     , liftState )
-import Data.Text.Lazy (Text)
 import qualified Graphics.Vty as Vty
 import Graphics.Vty.Prelude
 
 import Vgrep.Type
 
 
-data Event = VtyEvent Vty.Event
-           | ReceiveInput Text
+newtype EventHandler e s = EventHandler
+    { runEventHandler :: e -> s -> VgrepT IO (Next s) }
 
-newtype EventHandler s = EventHandler
-                         { runEventHandler :: Event -> s -> VgrepT IO (Next s) }
-
-mkEventHandler :: (Event -> s -> Next s) -> EventHandler s
+mkEventHandler :: (e -> s -> Next s) -> EventHandler e s
 mkEventHandler f = EventHandler $ \e s -> pure (f e s)
 
-mkEventHandlerIO :: (Event -> s -> VgrepT IO (Next s)) -> EventHandler s
+mkEventHandlerIO :: (e -> s -> VgrepT IO (Next s)) -> EventHandler e s
 mkEventHandlerIO = EventHandler
 
-instance Monoid (EventHandler s) where
+liftEventHandler :: (e -> Maybe e') -> EventHandler e' s -> EventHandler e s
+liftEventHandler f (EventHandler h) = EventHandler $ \e -> case f e of
+    Just e' -> h e'
+    Nothing -> const (pure Unchanged)
+
+
+instance Monoid (EventHandler e s) where
     mempty = EventHandler $ \_ _ -> pure Unchanged
     h1 `mappend` h2 = EventHandler $ \ev s ->
         liftA2 mappend (runEventHandler h1 ev s) (runEventHandler h2 ev s)
@@ -60,22 +61,22 @@ instance Monoid (Next s) where
     next      `mappend` _    = next
 
 
-handle :: (Event -> Bool) -> (s -> VgrepT IO (Next s)) -> EventHandler s
+handle :: (e -> Bool) -> (s -> VgrepT IO (Next s)) -> EventHandler e s
 handle doesMatch action = mkEventHandlerIO $ \event state ->
     if doesMatch event then action state else pure Unchanged
 
-handleResize :: (DisplayRegion -> State s ()) -> EventHandler s
+handleResize :: (DisplayRegion -> State s ()) -> EventHandler Vty.Event s
 handleResize action = mkEventHandler $ \event state -> case event of
-    VtyEvent (Vty.EvResize w h) -> Continue (execState (action (w, h)) state)
-    _otherwise                  -> Unchanged
+    Vty.EvResize w h -> Continue (execState (action (w, h)) state)
+    _otherwise       -> Unchanged
 
 
-keyEvent :: Vty.Key -> [Vty.Modifier] -> Event -> Bool
+keyEvent :: Vty.Key -> [Vty.Modifier] -> Vty.Event -> Bool
 keyEvent k ms = \case
-    VtyEvent (Vty.EvKey k' ms') | (k', ms') == (k, ms) -> True
-    _otherwise                                         -> False
+    Vty.EvKey k' ms' | (k', ms') == (k, ms) -> True
+    _otherwise                              -> False
 
-keyCharEvent :: Char -> [Vty.Modifier] -> Event -> Bool
+keyCharEvent :: Char -> [Vty.Modifier] -> Vty.Event -> Bool
 keyCharEvent c = keyEvent (Vty.KChar c)
 
 
@@ -90,8 +91,3 @@ suspend action = pure . Resume . execStateT action
 
 halt :: s -> VgrepT IO (Next s)
 halt state = pure (Halt state)
-
-handleReceiveLine :: (Text -> StateT s (VgrepT IO) ()) -> EventHandler s
-handleReceiveLine action = mkEventHandlerIO $ \event state -> case event of
-    ReceiveInput line -> fmap Continue (execStateT (action line) state)
-    _otherwise        -> pure Unchanged

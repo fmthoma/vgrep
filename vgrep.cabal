@@ -58,11 +58,13 @@ executable vgrep
   default-extensions:  LambdaCase
                      , MultiWayIf
   build-depends:       base
-                     , directory
+                     , async
                      , containers
+                     , directory
                      , lens
                      , mtl
                      , pipes
+                     , pipes-concurrency
                      , process
                      , text
                      , unix

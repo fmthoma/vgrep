@@ -1,5 +1,6 @@
 module Main (main) where
 
+import Control.Concurrent.Async
 import Control.Lens
 import Control.Monad.Reader
 import Control.Monad.State.Extended
@@ -11,8 +12,12 @@ import qualified Data.Sequence as S
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as T
-import Graphics.Vty hiding (resize)
+import qualified Graphics.Vty as Vty
+import Graphics.Vty.Input.Events hiding (Event)
+import Graphics.Vty.Output
+import Graphics.Vty.Picture
 import Pipes as P
+import Pipes.Concurrent
 import qualified Pipes.Prelude as P
 import System.Directory
 import System.Environment (getArgs)
@@ -42,16 +47,24 @@ main = do
     outputToTerminal  <- hIsTerminalDevice stdout
     args <- getArgs
     case (inputFromTerminal, outputToTerminal) of
-        (True,  False)  -> runEffect (recursiveGrep  >-> stdoutText)
-        (False, False)  -> runEffect (grep stdinText >-> stdoutText)
+        (True,  False)  -> runHeadless (const recursiveGrep)
+        (False, False)  -> runHeadless grep
         (False, True)
-            | null args -> runApp_ app environment stdinText
-            | otherwise -> runApp_ app environment (grepForApp stdinText)
-        (True,  True)   -> runApp_ app environment recursiveGrep
+            | null args -> runGui environment id
+            | otherwise -> runGui environment grepForApp
+        (True,  True)   -> runGui environment (const recursiveGrep)
   where
     stdinText  = P.stdinLn  >-> P.map T.pack
     stdoutText = P.stdoutLn <-< P.map T.unpack
-
+    runHeadless grepCommand = runEffect (grepCommand stdinText >-> stdoutText)
+    runGui environment  grepCommand = withSpawn unbounded $
+      \(evSink, evSource) -> do
+        let stdinText' = stdinText >-> P.tee (P.map ReceiveInputEvent >-> toOutput evSink)
+        grepThread <- async . runEffect $
+            grepCommand stdinText' >-> P.map ReceiveResultEvent
+                                   >-> toOutput evSink
+        runApp_ app environment (fromInput evSource)
+        cancel grepThread
 
 
 type MainWidget = HSplitWidget ResultsWidget PagerWidget
@@ -65,14 +78,35 @@ appWidget = lens _appWidget (\s w -> s { _appWidget = w })
 inputLines :: Lens' AppState (Seq Text)
 inputLines = lens _inputLines (\s l -> s { _inputLines = l })
 
-app :: App AppState
+data Event = VtyEvent Vty.Event
+           | ReceiveInputEvent  Text
+           | ReceiveResultEvent Text
+
+vtyEvent :: Prism' Event Vty.Event
+vtyEvent = prism VtyEvent $ \case
+    VtyEvent e -> Right e
+    other      -> Left other
+
+receiveInputEvent :: Prism' Event Text
+receiveInputEvent = prism ReceiveInputEvent $ \case
+    ReceiveInputEvent e -> Right e
+    other               -> Left other
+
+receiveResultEvent :: Prism' Event Text
+receiveResultEvent = prism ReceiveResultEvent $ \case
+    ReceiveResultEvent e -> Right e
+    other                -> Left other
+
+
+app :: App Event AppState
 app = App
     { initialize   = initSplitView
+    , liftEvent    = VtyEvent
     , handleEvent  = eventHandler
     , render       = fmap picForImage . drawWidget . view appWidget }
   where
     initSplitView vty = do
-        bounds <- liftIO (displayBounds (outputIface vty))
+        bounds <- liftIO (displayBounds (Vty.outputIface vty))
         let leftPager  = resultsWidget bounds
             rightPager = pagerWidget T.empty bounds
         liftIO . pure $ AppState
@@ -83,11 +117,31 @@ app = App
 ---------------------------------------------------------------------------
 -- Events
 
-eventHandler :: EventHandler AppState
-eventHandler = mconcat
+eventHandler :: EventHandler Event AppState
+eventHandler = mconcat $
+    [ liftEventHandler (preview vtyEvent)           vtyEventHandler
+    , liftEventHandler (preview receiveInputEvent)  (smurf feedInputLine)
+    , liftEventHandler (preview receiveResultEvent) (smurf feedResultLine) ]
+  where
+    feedResultLine, feedInputLine :: Text -> StateT AppState (VgrepT IO) ()
+    feedResultLine line = do
+        expandedLine <- (lift . expandLineForDisplay) line
+        let maybeParsedLine = parseLine expandedLine
+        when (isJust maybeParsedLine) $
+            zoom (mainWidgetState . leftWidget)
+                 (feedResult (fromJust maybeParsedLine))
+    feedInputLine line = do
+        expandedLine <- (lift . expandLineForDisplay) line
+        modifying inputLines (|> expandedLine)
+
+    smurf action = mkEventHandlerIO $ \event state ->
+        fmap Continue (execStateT (action event) state)
+
+
+vtyEventHandler :: EventHandler Vty.Event AppState
+vtyEventHandler = mconcat
     [ handle (keyCharEvent 'q'   []) halt
     , handleResize                   (zoom appWidget . resizeWidget)
-    , handleReceiveLine              feedLine
     , handle (keyCharEvent '\t'  []) (continue keyTab)
     , handle (keyEvent KUp       []) (continue keyUp)
     , handle (keyEvent KDown     []) (continue keyDown)
@@ -99,12 +153,6 @@ eventHandler = mconcat
     , handle (keyCharEvent 'e'   []) (suspend keyEdit)
     , handle (keyEvent KEsc      []) (continue keyEsc) ]
   where
-    feedLine line = do
-        expandedLine <- (lift . expandLineForDisplay) line
-        let maybeParsedLine = parseLine expandedLine
-        when (isJust maybeParsedLine) $
-            zoom (mainWidgetState . leftWidget)
-                 (feedResult (fromJust maybeParsedLine))
     keyTab   = zoom mainWidgetState switchFocus
     keyUp    = do whenS (has resultsFocused) (zoom results prevLine)
                   whenS (has pagerFocused)   (zoom pager   (scroll (-1)))
