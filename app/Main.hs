@@ -119,9 +119,9 @@ app = App
 
 eventHandler :: EventHandler Event AppState
 eventHandler = mconcat $
-    [ liftEventHandler (preview vtyEvent)           vtyEventHandler
-    , liftEventHandler (preview receiveInputEvent)  (smurf feedInputLine)
-    , liftEventHandler (preview receiveResultEvent) (smurf feedResultLine) ]
+    [ liftEventHandler (preview vtyEvent) vtyEventHandler
+    , handle (preview receiveInputEvent)  (continueIO . feedInputLine)
+    , handle (preview receiveResultEvent) (continueIO . feedResultLine) ]
   where
     feedResultLine, feedInputLine :: Text -> StateT AppState (VgrepT IO) ()
     feedResultLine line = do
@@ -134,24 +134,20 @@ eventHandler = mconcat $
         expandedLine <- (lift . expandLineForDisplay) line
         modifying inputLines (|> expandedLine)
 
-    smurf action = mkEventHandlerIO $ \event state ->
-        fmap Continue (execStateT (action event) state)
-
-
 vtyEventHandler :: EventHandler Vty.Event AppState
 vtyEventHandler = mconcat
-    [ handle (keyCharEvent 'q'   []) halt
-    , handleResize                   (zoom appWidget . resizeWidget)
-    , handle (keyCharEvent '\t'  []) (continue keyTab)
-    , handle (keyEvent KUp       []) (continue keyUp)
-    , handle (keyEvent KDown     []) (continue keyDown)
-    , handle (keyCharEvent 'k'   []) (continue keyUp)
-    , handle (keyCharEvent 'j'   []) (continue keyDown)
-    , handle (keyEvent KPageUp   []) (continue keyPgUp)
-    , handle (keyEvent KPageDown []) (continue keyPgDn)
-    , handle (keyEvent KEnter    []) (continueIO keyEnter)
-    , handle (keyCharEvent 'e'   []) (suspend keyEdit)
-    , handle (keyEvent KEsc      []) (continue keyEsc) ]
+    [ handle (keyCharEvent 'q'   []) (const halt)
+    , handle resizeEvent             (continue . zoom appWidget . resizeWidget)
+    , handle (keyCharEvent '\t'  []) (const (continue keyTab))
+    , handle (keyEvent KUp       []) (const (continue keyUp))
+    , handle (keyEvent KDown     []) (const (continue keyDown))
+    , handle (keyCharEvent 'k'   []) (const (continue keyUp))
+    , handle (keyCharEvent 'j'   []) (const (continue keyDown))
+    , handle (keyEvent KPageUp   []) (const (continue keyPgUp))
+    , handle (keyEvent KPageDown []) (const (continue keyPgDn))
+    , handle (keyEvent KEnter    []) (const (continueIO keyEnter))
+    , handle (keyCharEvent 'e'   []) (const (suspend keyEdit))
+    , handle (keyEvent KEsc      []) (const (continue keyEsc)) ]
   where
     keyTab   = zoom mainWidgetState switchFocus
     keyUp    = do whenS (has resultsFocused) (zoom results prevLine)

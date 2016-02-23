@@ -9,10 +9,10 @@ module Vgrep.Event
     , Next (..)
 
     , handle
-    , handleResize
 
     , keyEvent
     , keyCharEvent
+    , resizeEvent
     , continueIO
     , continue
     , suspend
@@ -21,8 +21,7 @@ module Vgrep.Event
 
 import Control.Applicative
 import Control.Monad.State.Extended ( State, StateT
-                                    , execState, execStateT
-                                    , liftState )
+                                    , execStateT, liftState )
 import qualified Graphics.Vty as Vty
 import Graphics.Vty.Prelude
 
@@ -61,23 +60,26 @@ instance Monoid (Next s) where
     next      `mappend` _    = next
 
 
-handle :: (e -> Bool) -> (s -> VgrepT IO (Next s)) -> EventHandler e s
-handle doesMatch action = mkEventHandlerIO $ \event state ->
-    if doesMatch event then action state else pure Unchanged
+handle :: (e -> Maybe e')
+       -> (e' -> s -> VgrepT IO (Next s))
+       -> EventHandler e s
+handle select action = mkEventHandlerIO $ \event state ->
+    case select event of
+        Just event' -> action event' state
+        Nothing     -> pure Unchanged
 
-handleResize :: (DisplayRegion -> State s ()) -> EventHandler Vty.Event s
-handleResize action = mkEventHandler $ \event state -> case event of
-    Vty.EvResize w h -> Continue (execState (action (w, h)) state)
-    _otherwise       -> Unchanged
-
-
-keyEvent :: Vty.Key -> [Vty.Modifier] -> Vty.Event -> Bool
+keyEvent :: Vty.Key -> [Vty.Modifier] -> Vty.Event -> Maybe ()
 keyEvent k ms = \case
-    Vty.EvKey k' ms' | (k', ms') == (k, ms) -> True
-    _otherwise                              -> False
+    Vty.EvKey k' ms' | (k', ms') == (k, ms) -> Just ()
+    _otherwise                              -> Nothing
 
-keyCharEvent :: Char -> [Vty.Modifier] -> Vty.Event -> Bool
+keyCharEvent :: Char -> [Vty.Modifier] -> Vty.Event -> Maybe ()
 keyCharEvent c = keyEvent (Vty.KChar c)
+
+resizeEvent :: Vty.Event -> Maybe DisplayRegion
+resizeEvent = \case
+    Vty.EvResize w h -> Just (w, h)
+    _otherwise       -> Nothing
 
 
 continueIO :: StateT s (VgrepT IO) () -> s -> VgrepT IO (Next s)
