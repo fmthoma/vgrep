@@ -1,4 +1,6 @@
-{-# LANGUAGE Rank2Types, TemplateHaskell #-}
+{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE TemplateHaskell #-}
+
 module Vgrep.Widget.HorizontalSplit
     ( HSplitState ()
     , HSplitWidget
@@ -18,7 +20,7 @@ module Vgrep.Widget.HorizontalSplit
 
 import Control.Applicative (liftA2)
 import Control.Lens
-import Control.Monad.State (State, execState)
+import Control.Monad.State.Extended (State, execState)
 import Graphics.Vty (Image, DisplayRegion, (<|>))
 
 import Vgrep.Type
