@@ -47,23 +47,19 @@ makeLenses ''ResultsState
 type ResultsWidget = Widget ResultsState
 
 resultsWidget :: DisplayRegion
-              -> ResultsWidget
+              -> (ResultsWidget, ResultsState)
 resultsWidget initialDimensions =
-    Widget { _widgetState = initState initialDimensions
-           , _dimensions  = initialDimensions
-           , _resize      = resizeToRegion
-           , _draw        = renderResultList }
+    ( Widget { _resize = resizeToRegion
+             , _draw   = renderResultList }
+    , State  { _files  = EmptyBuffer
+             , _region = initialDimensions } )
 
-initState :: DisplayRegion
-          -> ResultsState
-initState initialDimensions = State { _files  = EmptyBuffer
-                                    , _region = initialDimensions }
 
 feedResult :: Monad m
-           => FileLineReference -> StateT ResultsWidget m ()
+           => FileLineReference -> StateT ResultsState m ()
 feedResult line = do
-    zoom (widgetState . files) (modify (feed line))
-    zoom widgetState resizeToWindow
+    zoom files (modify (feed line))
+    resizeToWindow
 
 pageUp, pageDown :: State ResultsState ()
 pageUp = do
