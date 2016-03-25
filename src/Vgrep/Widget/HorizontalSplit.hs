@@ -20,7 +20,7 @@ module Vgrep.Widget.HorizontalSplit
 
 import Control.Applicative (liftA2)
 import Control.Lens
-import Control.Monad.State.Extended (State, execState)
+import Control.Monad.State.Extended (State)
 import Graphics.Vty (Image, DisplayRegion, (<|>))
 
 import Vgrep.Type
@@ -42,8 +42,8 @@ leftWidget = widgets . _1
 rightWidget :: Lens' (HSplitState s t) t
 rightWidget = widgets . _2
 
-currentWidget :: Lens' (HSplitWidget s t) (Either s t)
-currentWidget = widgetState . lens getCurrentWidget setCurrentWidget
+currentWidget :: Lens' (HSplitState s t) (Either s t)
+currentWidget = lens getCurrentWidget setCurrentWidget
   where
     getCurrentWidget state = case view split state of
         LeftOnly              -> Left  (view leftWidget  state)
@@ -58,76 +58,70 @@ currentWidget = widgetState . lens getCurrentWidget setCurrentWidget
         (Split (FocusRight, _), Right widgetR) -> set rightWidget widgetR state
         (_,                     _            ) -> state
 
-leftWidgetFocused :: Traversal' (HSplitWidget s t) s
+leftWidgetFocused :: Traversal' (HSplitState s t) s
 leftWidgetFocused = currentWidget . _Left
 
-rightWidgetFocused :: Traversal' (HSplitWidget s t) t
+rightWidgetFocused :: Traversal' (HSplitState s t) t
 rightWidgetFocused = currentWidget . _Right
 
 
 type HSplitWidget s t = Widget (HSplitState s t)
 
-hSplitWidget :: Widget s
-             -> Widget t
+hSplitWidget :: (Widget s, s)
+             -> (Widget t, t)
              -> DisplayRegion
-             -> HSplitWidget (Widget s) (Widget t)
-hSplitWidget left right initialRegion =
-    Widget { _widgetState = initState left right initialRegion
-           , _dimensions  = initialRegion
-           , _resize      = resizeWidgets
-           , _draw        = drawWidgets }
+             -> (HSplitWidget s t, HSplitState s t)
+hSplitWidget (left, leftState) (right, rightState) initialRegion =
+    ( Widget { _resize  = resizeWidgets left right
+             , _draw    = drawWidgets   left right }
+    , State  { _widgets = (leftState, rightState)
+             , _split   = LeftOnly
+             , _region  = initialRegion } )
 
-initState :: Widget s
-          -> Widget t
-          -> DisplayRegion
-          -> HSplitState (Widget s) (Widget t)
-initState left right initialRegion =
-    execState (resizeWidgets initialRegion) $
-        State { _widgets = (left, right)
-              , _split   = LeftOnly
-              , _region  = initialRegion }
 
-leftOnly :: State (HSplitState (Widget s) (Widget t)) ()
-leftOnly = do assign split LeftOnly
-              use region >>= resizeWidgets
+leftOnly :: HSplitWidget s t -> State (HSplitState s t) ()
+leftOnly widget = do assign split LeftOnly
+                     use region >>= view resize widget
 
-rightOnly :: State (HSplitState (Widget s) (Widget t)) ()
-rightOnly = do assign split RightOnly
-               use region >>= resizeWidgets
+rightOnly :: HSplitWidget s t -> State (HSplitState s t) ()
+rightOnly widget = do assign split RightOnly
+                      use region >>= view resize widget
 
-splitFocusLeft :: Rational -> State (HSplitState (Widget s) (Widget t)) ()
-splitFocusLeft ratio = do assign split (Split (FocusLeft, ratio))
-                          use region >>= resizeWidgets
+splitFocusLeft :: HSplitWidget s t -> Rational -> State (HSplitState s t) ()
+splitFocusLeft widget ratio = do assign split (Split (FocusLeft, ratio))
+                                 use region >>= view resize widget
 
-splitFocusRight :: Rational -> State (HSplitState (Widget s) (Widget t)) ()
-splitFocusRight ratio = do assign split (Split (FocusRight, ratio))
-                           use region >>= resizeWidgets
+splitFocusRight :: HSplitWidget s t -> Rational -> State (HSplitState s t) ()
+splitFocusRight widget ratio = do assign split (Split (FocusRight, ratio))
+                                  use region >>= view resize widget
 
-switchFocus :: State (HSplitState (Widget s) (Widget t)) ()
-switchFocus = use split >>= \case
+switchFocus :: HSplitWidget s t -> State (HSplitState s t) ()
+switchFocus widget = use split >>= \case
     Split focus  -> do assign split (Split (switch focus))
-                       use region >>= resizeWidgets
+                       use region >>= view resize widget
     _otherwise   -> pure ()
   where
     switch (FocusLeft,  ratio) = (FocusRight, 1 - ratio)
     switch (FocusRight, ratio) = (FocusLeft,  1 - ratio)
 
-resizeWidgets :: DisplayRegion
-              -> State (HSplitState (Widget s) (Widget t)) ()
-resizeWidgets newRegion@(w, h) = do
+resizeWidgets :: Widget s
+              -> Widget t
+              -> DisplayRegion
+              -> State (HSplitState s t) ()
+resizeWidgets left right newRegion@(w, h) = do
     assign region newRegion
     use split >>= \case
-        LeftOnly  -> zoom (widgets . _1) (resizeWidget newRegion)
-        RightOnly -> zoom (widgets . _2) (resizeWidget newRegion)
+        LeftOnly  -> zoom (widgets . _1) (view resize left  newRegion)
+        RightOnly -> zoom (widgets . _2) (view resize right newRegion)
         Split (_, ratio) -> do
             let leftRegion  = (ceiling (ratio * fromIntegral w), h)
                 rightRegion = (floor ((1 - ratio) * fromIntegral w), h)
-            zoom (widgets . _1) (resizeWidget leftRegion)
-            zoom (widgets . _2) (resizeWidget rightRegion)
+            zoom (widgets . _1) (view resize left  leftRegion)
+            zoom (widgets . _2) (view resize right rightRegion)
 
-drawWidgets :: HSplitState (Widget s) (Widget t) -> Vgrep Image
-drawWidgets state = case view split state of
-    LeftOnly  -> drawWidget (view leftWidget  state)
-    RightOnly -> drawWidget (view rightWidget state)
-    Split _   -> liftA2 (<|>) (drawWidget (view leftWidget  state))
-                              (drawWidget (view rightWidget state))
+drawWidgets :: Widget s -> Widget t -> HSplitState s t -> Vgrep Image
+drawWidgets left right state = case view split state of
+    LeftOnly  -> view draw left  (view leftWidget  state)
+    RightOnly -> view draw right (view rightWidget state)
+    Split _   -> liftA2 (<|>) (view draw left  (view leftWidget  state))
+                              (view draw right (view rightWidget state))
