@@ -34,18 +34,13 @@ type PagerWidget = Widget PagerState
 
 pagerWidget :: Text
             -> DisplayRegion
-            -> PagerWidget
-pagerWidget items initialRegion =
-    Widget { _widgetState = initialPagerState items initialRegion
-           , _dimensions  = initialRegion
-           , _resize      = resizeToRegion
-           , _draw        = renderPager }
+            -> (PagerWidget, PagerState)
+pagerWidget initialContent initialRegion =
+    ( Widget     { _resize = resizeToRegion
+                 , _draw   = renderPager }
+    , PagerState { _buffer = (1, [], T.lines initialContent)
+                 , _region = initialRegion } )
 
-
-initialPagerState :: Text -> DisplayRegion-> PagerState
-initialPagerState initialContent initialRegion =
-    PagerState { _buffer          = (1, [], T.lines initialContent)
-               , _region          = initialRegion }
 
 replaceBufferContents :: [Text] -> State PagerState ()
 replaceBufferContents content = assign buffer (1, [], content)
