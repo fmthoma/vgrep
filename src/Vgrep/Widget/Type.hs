@@ -7,17 +7,7 @@ import Graphics.Vty hiding (resize)
 
 import Vgrep.Type
 
-data Widget s = Widget { _widgetState :: s
-                       , _dimensions  :: DisplayRegion
-                       , _resize      :: DisplayRegion -> State s ()
-                       , _draw        :: s -> Vgrep Image }
+data Widget s = Widget { _resize :: DisplayRegion -> State s ()
+                       , _draw   :: s -> Vgrep Image }
 
 makeLenses ''Widget
-
-drawWidget :: Widget s -> Vgrep Image
-drawWidget widget = (view draw widget) (view widgetState widget)
-
-resizeWidget :: DisplayRegion -> State (Widget s) ()
-resizeWidget newRegion = do
-    resizeTo <- use resize
-    zoom widgetState (resizeTo newRegion)

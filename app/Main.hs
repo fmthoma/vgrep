@@ -67,16 +67,12 @@ main = do
         cancel grepThread
 
 
-type MainWidget = HSplitWidget ResultsWidget PagerWidget
+type MainWidget  = HSplitWidget ResultsWidget PagerWidget
+type WidgetState = HSplitState  ResultsWidget PagerWidget
 
-data AppState = AppState { _appWidget  :: MainWidget
-                         , _inputLines :: Seq Text }
-
-appWidget :: Lens' AppState MainWidget
-appWidget = lens _appWidget (\s w -> s { _appWidget = w })
-
-inputLines :: Lens' AppState (Seq Text)
-inputLines = lens _inputLines (\s l -> s { _inputLines = l })
+data AppState = AppState { _appWidget   :: MainWidget
+                         , _widgetState :: WidgetState
+                         , _inputLines  :: Seq Text }
 
 data Event = VtyEvent Vty.Event
            | ReceiveInputEvent  Text
@@ -110,8 +106,9 @@ app = App
         let leftPager  = resultsWidget bounds
             rightPager = pagerWidget T.empty bounds
         liftIO . pure $ AppState
-            { _appWidget  = hSplitWidget leftPager rightPager bounds
-            , _inputLines = S.empty }
+            { _appWidget   = hSplitWidget leftPager rightPager bounds
+            , _widgetState = hSplitState  leftPager rightPager bounds
+            , _inputLines  = S.empty }
 
 
 ---------------------------------------------------------------------------
@@ -128,7 +125,7 @@ eventHandler = mconcat $
         expandedLine <- (lift . expandLineForDisplay) line
         let maybeParsedLine = parseLine expandedLine
         when (isJust maybeParsedLine) $
-            zoom (mainWidgetState . leftWidget)
+            zoom (widgetState . leftWidget)
                  (feedResult (fromJust maybeParsedLine))
     feedInputLine line = do
         expandedLine <- (lift . expandLineForDisplay) line
@@ -149,7 +146,7 @@ vtyEventHandler = mconcat
     , handle (keyCharEvent 'e'   []) (const (suspend keyEdit))
     , handle (keyEvent KEsc      []) (const (continue keyEsc)) ]
   where
-    keyTab   = zoom mainWidgetState switchFocus
+    keyTab   = zoom widgetState switchFocus
     keyUp    = do whenS (has resultsFocused) (zoom results prevLine)
                   whenS (has pagerFocused)   (zoom pager   (scroll (-1)))
     keyDown  = do whenS (has resultsFocused) (zoom results nextLine)
@@ -161,14 +158,14 @@ vtyEventHandler = mconcat
     keyEnter = whenS (has resultsFocused) $ do
                   loadSelectedFileToPager
                   liftState moveToSelectedLineNumber
-                  liftState (zoom mainWidgetState (splitFocusRight (1 % 3)))
+                  liftState (zoom widgetState (splitFocusRight (1 % 3)))
     keyEdit  = zoom results $ do
                   maybeFileName <- uses currentFileName (fmap T.unpack)
                   when (isJust maybeFileName) $ do
                       lineNumber <- uses currentLineNumber (fromMaybe 0)
                       invokeEditor (fromJust maybeFileName) lineNumber
     keyEsc   = whenS (has pagerFocused)
-                  (zoom mainWidgetState leftOnly)
+                  (zoom widgetState leftOnly)
 
 loadSelectedFileToPager :: StateT AppState (VgrepT IO) ()
 loadSelectedFileToPager = do
@@ -209,14 +206,20 @@ exec command args = liftIO $ do
 ---------------------------------------------------------------------------
 -- Lenses
 
-mainWidgetState :: Lens' AppState (HSplitState ResultsWidget PagerWidget)
-mainWidgetState = appWidget . widgetState
+appWidget :: Lens' AppState MainWidget
+appWidget = lens _appWidget (\s w -> s { _appWidget = w })
+
+widgetState :: Lens' AppState (HSplitState ResultsWidget PagerWidget)
+widgetState = lens _widgetState (\s ws -> s { _widgetState = ws })
+
+inputLines :: Lens' AppState (Seq Text)
+inputLines = lens _inputLines (\s l -> s { _inputLines = l })
 
 results :: Lens' AppState ResultsState
-results = mainWidgetState . leftWidget . widgetState
+results = widgetState . leftWidget . widgetState
 
 pager :: Lens' AppState PagerState
-pager = mainWidgetState . rightWidget . widgetState
+pager = widgetState . rightWidget . widgetState
 
 
 resultsFocused :: Traversal' AppState ResultsWidget
