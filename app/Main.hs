@@ -67,8 +67,8 @@ main = do
         cancel grepThread
 
 
-type MainWidget  = HSplitWidget ResultsWidget PagerWidget
-type WidgetState = HSplitState  ResultsWidget PagerWidget
+type MainWidget  = HSplitWidget ResultsState PagerState
+type WidgetState = HSplitState  ResultsState PagerState
 
 data AppState = AppState { _appWidget   :: MainWidget
                          , _widgetState :: WidgetState
@@ -99,16 +99,21 @@ app = App
     { initialize   = initSplitView
     , liftEvent    = VtyEvent
     , handleEvent  = eventHandler
-    , render       = fmap picForImage . drawWidget . view appWidget }
+    , render       = renderMainWidget }
   where
     initSplitView vty = do
         bounds <- liftIO (displayBounds (Vty.outputIface vty))
         let leftPager  = resultsWidget bounds
             rightPager = pagerWidget T.empty bounds
+            (mainWidget, mainWidgetState) = hSplitWidget leftPager rightPager bounds
         liftIO . pure $ AppState
-            { _appWidget   = hSplitWidget leftPager rightPager bounds
-            , _widgetState = hSplitState  leftPager rightPager bounds
+            { _appWidget   = mainWidget
+            , _widgetState = mainWidgetState
             , _inputLines  = S.empty }
+    renderMainWidget s =
+        let drawMainWidget  = view (appWidget . draw) s
+            mainWidgetState = view widgetState s
+        in  fmap picForImage (drawMainWidget mainWidgetState)
 
 
 ---------------------------------------------------------------------------
@@ -134,7 +139,7 @@ eventHandler = mconcat $
 vtyEventHandler :: EventHandler Vty.Event AppState
 vtyEventHandler = mconcat
     [ handle (keyCharEvent 'q'   []) (const halt)
-    , handle resizeEvent             (continue . zoom appWidget . resizeWidget)
+    , handle resizeEvent             (continue . resizeMainWidget)
     , handle (keyCharEvent '\t'  []) (const (continue keyTab))
     , handle (keyEvent KUp       []) (const (continue keyUp))
     , handle (keyEvent KDown     []) (const (continue keyDown))
@@ -146,7 +151,10 @@ vtyEventHandler = mconcat
     , handle (keyCharEvent 'e'   []) (const (suspend keyEdit))
     , handle (keyEvent KEsc      []) (const (continue keyEsc)) ]
   where
-    keyTab   = zoom widgetState switchFocus
+    resizeMainWidget region = do
+        resizeTo <- use (appWidget . Widget.resize)
+        zoom widgetState (resizeTo region)
+    keyTab   = use appWidget >>= zoom widgetState . switchFocus
     keyUp    = do whenS (has resultsFocused) (zoom results prevLine)
                   whenS (has pagerFocused)   (zoom pager   (scroll (-1)))
     keyDown  = do whenS (has resultsFocused) (zoom results nextLine)
@@ -157,15 +165,16 @@ vtyEventHandler = mconcat
                   whenS (has pagerFocused)   (zoom pager   (scrollPage 1))
     keyEnter = whenS (has resultsFocused) $ do
                   loadSelectedFileToPager
+                  widget <- use appWidget
                   liftState moveToSelectedLineNumber
-                  liftState (zoom widgetState (splitFocusRight (1 % 3)))
+                  liftState (zoom widgetState (splitFocusRight widget (1 % 3)))
     keyEdit  = zoom results $ do
                   maybeFileName <- uses currentFileName (fmap T.unpack)
                   when (isJust maybeFileName) $ do
                       lineNumber <- uses currentLineNumber (fromMaybe 0)
                       invokeEditor (fromJust maybeFileName) lineNumber
     keyEsc   = whenS (has pagerFocused)
-                  (zoom widgetState leftOnly)
+                  (use appWidget >>= zoom widgetState . leftOnly)
 
 loadSelectedFileToPager :: StateT AppState (VgrepT IO) ()
 loadSelectedFileToPager = do
@@ -209,21 +218,21 @@ exec command args = liftIO $ do
 appWidget :: Lens' AppState MainWidget
 appWidget = lens _appWidget (\s w -> s { _appWidget = w })
 
-widgetState :: Lens' AppState (HSplitState ResultsWidget PagerWidget)
+widgetState :: Lens' AppState WidgetState
 widgetState = lens _widgetState (\s ws -> s { _widgetState = ws })
 
 inputLines :: Lens' AppState (Seq Text)
 inputLines = lens _inputLines (\s l -> s { _inputLines = l })
 
 results :: Lens' AppState ResultsState
-results = widgetState . leftWidget . widgetState
+results = widgetState . leftWidget
 
 pager :: Lens' AppState PagerState
-pager = widgetState . rightWidget . widgetState
+pager = widgetState . rightWidget
 
 
-resultsFocused :: Traversal' AppState ResultsWidget
-resultsFocused = appWidget . leftWidgetFocused
+resultsFocused :: Traversal' AppState ResultsState
+resultsFocused = widgetState . leftWidgetFocused
 
-pagerFocused :: Traversal' AppState PagerWidget
-pagerFocused = appWidget . rightWidgetFocused
+pagerFocused :: Traversal' AppState PagerState
+pagerFocused = widgetState . rightWidgetFocused
