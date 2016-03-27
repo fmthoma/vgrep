@@ -1,6 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Vgrep.Widget.Pager
     ( PagerState ()
+    , initPager
     , PagerWidget
     , pagerWidget
 
@@ -32,15 +33,15 @@ makeLenses ''PagerState
 
 type PagerWidget = Widget PagerState
 
-pagerWidget :: Text
-            -> DisplayRegion
-            -> (PagerWidget, PagerState)
-pagerWidget initialContent initialRegion =
-    ( Widget     { _resize = resizeToRegion
-                 , _draw   = renderPager }
-    , PagerState { _buffer = (1, [], T.lines initialContent)
-                 , _region = initialRegion } )
+pagerWidget :: PagerWidget
+pagerWidget =
+    Widget { _resize = resizeToRegion
+           , _draw   = renderPager }
 
+initPager :: Text -> DisplayRegion -> PagerState
+initPager initialContent initialRegion =
+    PagerState { _buffer = (1, [], T.lines initialContent)
+               , _region = initialRegion }
 
 replaceBufferContents :: [Text] -> State PagerState ()
 replaceBufferContents content = assign buffer (1, [], content)

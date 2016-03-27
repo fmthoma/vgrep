@@ -3,6 +3,7 @@
 
 module Vgrep.Widget.HorizontalSplit
     ( HSplitState ()
+    , initHSplit
     , HSplitWidget
     , hSplitWidget
 
@@ -67,16 +68,16 @@ rightWidgetFocused = currentWidget . _Right
 
 type HSplitWidget s t = Widget (HSplitState s t)
 
-hSplitWidget :: (Widget s, s)
-             -> (Widget t, t)
-             -> DisplayRegion
-             -> (HSplitWidget s t, HSplitState s t)
-hSplitWidget (left, leftState) (right, rightState) initialRegion =
-    ( Widget { _resize  = resizeWidgets left right
-             , _draw    = drawWidgets   left right }
-    , State  { _widgets = (leftState, rightState)
-             , _split   = LeftOnly
-             , _region  = initialRegion } )
+hSplitWidget :: Widget s -> Widget t -> HSplitWidget s t
+hSplitWidget left right =
+    Widget { _resize  = resizeWidgets left right
+           , _draw    = drawWidgets   left right }
+
+initHSplit :: s -> t -> DisplayRegion -> HSplitState s t
+initHSplit left right initialRegion =
+    State  { _widgets = (left, right)
+           , _split   = LeftOnly
+           , _region  = initialRegion }
 
 
 leftOnly :: HSplitWidget s t -> State (HSplitState s t) ()
@@ -87,12 +88,12 @@ rightOnly :: HSplitWidget s t -> State (HSplitState s t) ()
 rightOnly widget = do assign split RightOnly
                       use region >>= view resize widget
 
-splitFocusLeft :: HSplitWidget s t -> Rational -> State (HSplitState s t) ()
-splitFocusLeft widget ratio = do assign split (Split (FocusLeft, ratio))
+splitFocusLeft :: Rational -> HSplitWidget s t -> State (HSplitState s t) ()
+splitFocusLeft ratio widget = do assign split (Split (FocusLeft, ratio))
                                  use region >>= view resize widget
 
-splitFocusRight :: HSplitWidget s t -> Rational -> State (HSplitState s t) ()
-splitFocusRight widget ratio = do assign split (Split (FocusRight, ratio))
+splitFocusRight :: Rational -> HSplitWidget s t -> State (HSplitState s t) ()
+splitFocusRight ratio widget = do assign split (Split (FocusRight, ratio))
                                   use region >>= view resize widget
 
 switchFocus :: HSplitWidget s t -> State (HSplitState s t) ()

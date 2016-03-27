@@ -103,12 +103,11 @@ app = App
   where
     initSplitView vty = do
         bounds <- liftIO (displayBounds (Vty.outputIface vty))
-        let leftPager  = resultsWidget bounds
-            rightPager = pagerWidget T.empty bounds
-            (mainWidget, mainWidgetState) = hSplitWidget leftPager rightPager bounds
         liftIO . pure $ AppState
-            { _appWidget   = mainWidget
-            , _widgetState = mainWidgetState
+            { _appWidget   = hSplitWidget resultsWidget pagerWidget
+            , _widgetState = initHSplit (initResults bounds)
+                                        (initPager T.empty bounds)
+                                        bounds
             , _inputLines  = S.empty }
     renderMainWidget s =
         let drawMainWidget  = view (appWidget . draw) s
@@ -165,9 +164,9 @@ vtyEventHandler = mconcat
                   whenS (has pagerFocused)   (zoom pager   (scrollPage 1))
     keyEnter = whenS (has resultsFocused) $ do
                   loadSelectedFileToPager
-                  widget <- use appWidget
-                  liftState moveToSelectedLineNumber
-                  liftState (zoom widgetState (splitFocusRight widget (1 % 3)))
+                  liftState $ do
+                      moveToSelectedLineNumber
+                      use appWidget >>= zoom widgetState . splitFocusRight (1 % 3)
     keyEdit  = zoom results $ do
                   maybeFileName <- uses currentFileName (fmap T.unpack)
                   when (isJust maybeFileName) $ do

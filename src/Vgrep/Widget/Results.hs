@@ -4,10 +4,11 @@
 
 module Vgrep.Widget.Results
     ( ResultsState ()
+    , initResults
     , ResultsWidget
     , resultsWidget
-    , feedResult
 
+    , feedResult
     , prevLine
     , nextLine
     , pageUp
@@ -46,13 +47,15 @@ makeLenses ''ResultsState
 
 type ResultsWidget = Widget ResultsState
 
-resultsWidget :: DisplayRegion
-              -> (ResultsWidget, ResultsState)
-resultsWidget initialDimensions =
-    ( Widget { _resize = resizeToRegion
-             , _draw   = renderResultList }
-    , State  { _files  = EmptyBuffer
-             , _region = initialDimensions } )
+resultsWidget :: ResultsWidget
+resultsWidget =
+    Widget { _resize = resizeToRegion
+           , _draw   = renderResultList }
+
+initResults :: DisplayRegion -> ResultsState
+initResults initialDimensions =
+    State { _files  = EmptyBuffer
+          , _region = initialDimensions }
 
 
 feedResult :: Monad m
