@@ -1,7 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Vgrep.Widget.Pager
     ( PagerState ()
-    , initPager
     , PagerWidget
     , pagerWidget
 
@@ -16,7 +15,7 @@ import Control.Monad.State.Extended (State)
 import Data.Foldable
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
-import Graphics.Vty
+import Graphics.Vty.Image hiding (resize)
 import Graphics.Vty.Prelude
 
 import Vgrep.Environment
@@ -35,12 +34,13 @@ type PagerWidget = Widget PagerState
 
 pagerWidget :: PagerWidget
 pagerWidget =
-    Widget { _resize = resizeToRegion
-           , _draw   = renderPager }
+    Widget { initialize = initPager
+           , resize     = resizeToRegion
+           , draw       = renderPager }
 
-initPager :: Text -> DisplayRegion -> PagerState
-initPager initialContent initialRegion =
-    PagerState { _buffer = (1, [], T.lines initialContent)
+initPager :: DisplayRegion -> PagerState
+initPager initialRegion =
+    PagerState { _buffer = (1, [], [])
                , _region = initialRegion }
 
 replaceBufferContents :: [Text] -> State PagerState ()

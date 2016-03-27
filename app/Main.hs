@@ -25,7 +25,7 @@ import System.IO
 import System.Posix
 import System.Process
 
-import Vgrep.App
+import Vgrep.App as App
 import Vgrep.Event
 import Vgrep.Environment
 import Vgrep.Parser
@@ -96,23 +96,22 @@ receiveResultEvent = prism ReceiveResultEvent $ \case
 
 app :: App Event AppState
 app = App
-    { initialize   = initSplitView
-    , liftEvent    = VtyEvent
-    , handleEvent  = eventHandler
-    , render       = renderMainWidget }
+    { App.initialize  = initSplitView
+    , App.liftEvent   = VtyEvent
+    , App.handleEvent = eventHandler
+    , App.render      = renderMainWidget }
   where
     initSplitView vty = do
         bounds <- liftIO (displayBounds (Vty.outputIface vty))
+        let mainWidget = hSplitWidget resultsWidget pagerWidget
         liftIO . pure $ AppState
-            { _appWidget   = hSplitWidget resultsWidget pagerWidget
-            , _widgetState = initHSplit (initResults bounds)
-                                        (initPager T.empty bounds)
-                                        bounds
+            { _appWidget   = mainWidget
+            , _widgetState = Widget.initialize mainWidget bounds
             , _inputLines  = S.empty }
     renderMainWidget s =
-        let drawMainWidget  = view (appWidget . draw) s
+        let mainWidget      = view appWidget   s
             mainWidgetState = view widgetState s
-        in  fmap picForImage (drawMainWidget mainWidgetState)
+        in  fmap picForImage (draw mainWidget mainWidgetState)
 
 
 ---------------------------------------------------------------------------
@@ -151,8 +150,8 @@ vtyEventHandler = mconcat
     , handle (keyEvent KEsc      []) (const (continue keyEsc)) ]
   where
     resizeMainWidget region = do
-        resizeTo <- use (appWidget . Widget.resize)
-        zoom widgetState (resizeTo region)
+        mainWidget <- use appWidget
+        zoom widgetState (Widget.resize mainWidget region)
     keyTab   = use appWidget >>= zoom widgetState . switchFocus
     keyUp    = do whenS (has resultsFocused) (zoom results prevLine)
                   whenS (has pagerFocused)   (zoom pager   (scroll (-1)))

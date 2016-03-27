@@ -4,7 +4,6 @@
 
 module Vgrep.Widget.Results
     ( ResultsState ()
-    , initResults
     , ResultsWidget
     , resultsWidget
 
@@ -28,7 +27,7 @@ import Data.Maybe
 import Data.Monoid
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
-import Graphics.Vty hiding ((<|>))
+import Graphics.Vty.Image hiding ((<|>))
 import Graphics.Vty.Prelude
 import Prelude
 
@@ -36,7 +35,7 @@ import Vgrep.Environment
 import Vgrep.Results
 import Vgrep.Results.Buffer as Buffer
 import Vgrep.Type
-import Vgrep.Widget.Type
+import Vgrep.Widget.Type as Widget
 
 
 data ResultsState = State { _files  :: Buffer
@@ -49,8 +48,9 @@ type ResultsWidget = Widget ResultsState
 
 resultsWidget :: ResultsWidget
 resultsWidget =
-    Widget { _resize = resizeToRegion
-           , _draw   = renderResultList }
+    Widget { Widget.initialize = initResults
+           , Widget.resize     = resizeToRegion
+           , Widget.draw       = renderResultList }
 
 initResults :: DisplayRegion -> ResultsState
 initResults initialDimensions =

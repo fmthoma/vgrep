@@ -1,13 +1,11 @@
-{-# LANGUAGE TemplateHaskell #-}
 module Vgrep.Widget.Type where
 
-import Control.Lens
 import Control.Monad.State.Extended
-import Graphics.Vty hiding (resize)
+import Graphics.Vty.Image (Image)
+import Graphics.Vty.Prelude
 
 import Vgrep.Type
 
-data Widget s = Widget { _resize :: DisplayRegion -> State s ()
-                       , _draw   :: s -> Vgrep Image }
-
-makeLenses ''Widget
+data Widget s = Widget { initialize :: DisplayRegion -> s
+                       , resize     :: DisplayRegion -> State s ()
+                       , draw       :: s -> Vgrep Image }

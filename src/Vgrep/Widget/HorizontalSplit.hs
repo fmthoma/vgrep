@@ -19,10 +19,10 @@ module Vgrep.Widget.HorizontalSplit
     , switchFocus
     ) where
 
-import Control.Applicative (liftA2)
 import Control.Lens
 import Control.Monad.State.Extended (State)
-import Graphics.Vty (Image, DisplayRegion, (<|>))
+import Graphics.Vty.Image hiding (resize)
+import Graphics.Vty.Prelude
 
 import Vgrep.Type
 import Vgrep.Widget.Type
@@ -70,36 +70,38 @@ type HSplitWidget s t = Widget (HSplitState s t)
 
 hSplitWidget :: Widget s -> Widget t -> HSplitWidget s t
 hSplitWidget left right =
-    Widget { _resize  = resizeWidgets left right
-           , _draw    = drawWidgets   left right }
+    Widget { initialize = initHSplit    left right
+           , resize     = resizeWidgets left right
+           , draw       = drawWidgets   left right }
 
-initHSplit :: s -> t -> DisplayRegion -> HSplitState s t
+initHSplit :: Widget s -> Widget t -> DisplayRegion -> HSplitState s t
 initHSplit left right initialRegion =
-    State  { _widgets = (left, right)
+    State  { _widgets = ( initialize left  initialRegion
+                        , initialize right initialRegion )
            , _split   = LeftOnly
            , _region  = initialRegion }
 
 
 leftOnly :: HSplitWidget s t -> State (HSplitState s t) ()
 leftOnly widget = do assign split LeftOnly
-                     use region >>= view resize widget
+                     use region >>= resize widget
 
 rightOnly :: HSplitWidget s t -> State (HSplitState s t) ()
 rightOnly widget = do assign split RightOnly
-                      use region >>= view resize widget
+                      use region >>= resize widget
 
 splitFocusLeft :: Rational -> HSplitWidget s t -> State (HSplitState s t) ()
 splitFocusLeft ratio widget = do assign split (Split (FocusLeft, ratio))
-                                 use region >>= view resize widget
+                                 use region >>= resize widget
 
 splitFocusRight :: Rational -> HSplitWidget s t -> State (HSplitState s t) ()
 splitFocusRight ratio widget = do assign split (Split (FocusRight, ratio))
-                                  use region >>= view resize widget
+                                  use region >>= resize widget
 
 switchFocus :: HSplitWidget s t -> State (HSplitState s t) ()
 switchFocus widget = use split >>= \case
     Split focus  -> do assign split (Split (switch focus))
-                       use region >>= view resize widget
+                       use region >>= resize widget
     _otherwise   -> pure ()
   where
     switch (FocusLeft,  ratio) = (FocusRight, 1 - ratio)
@@ -112,17 +114,17 @@ resizeWidgets :: Widget s
 resizeWidgets left right newRegion@(w, h) = do
     assign region newRegion
     use split >>= \case
-        LeftOnly  -> zoom (widgets . _1) (view resize left  newRegion)
-        RightOnly -> zoom (widgets . _2) (view resize right newRegion)
+        LeftOnly  -> zoom (widgets . _1) (resize left  newRegion)
+        RightOnly -> zoom (widgets . _2) (resize right newRegion)
         Split (_, ratio) -> do
             let leftRegion  = (ceiling (ratio * fromIntegral w), h)
                 rightRegion = (floor ((1 - ratio) * fromIntegral w), h)
-            zoom (widgets . _1) (view resize left  leftRegion)
-            zoom (widgets . _2) (view resize right rightRegion)
+            zoom (widgets . _1) (resize left  leftRegion)
+            zoom (widgets . _2) (resize right rightRegion)
 
 drawWidgets :: Widget s -> Widget t -> HSplitState s t -> Vgrep Image
 drawWidgets left right state = case view split state of
-    LeftOnly  -> view draw left  (view leftWidget  state)
-    RightOnly -> view draw right (view rightWidget state)
-    Split _   -> liftA2 (<|>) (view draw left  (view leftWidget  state))
-                              (view draw right (view rightWidget state))
+    LeftOnly  -> draw left  (view leftWidget  state)
+    RightOnly -> draw right (view rightWidget state)
+    Split _   -> liftA2 (<|>) (draw left  (view leftWidget  state))
+                              (draw right (view rightWidget state))
