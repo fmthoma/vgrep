@@ -11,7 +11,7 @@ module Vgrep.Widget.Pager
     ) where
 
 import Control.Lens
-import Control.Monad.State.Extended (State)
+import Control.Monad.State.Extended (StateT, put, modify)
 import Data.Foldable
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
@@ -23,80 +23,88 @@ import Vgrep.Type
 import Vgrep.Widget.Type
 
 
-type Buffer = (Int, [Text], [Text])
+data PagerState = PagerState { _position :: Int
+                             , _above    :: [Text]
+                             , _visible  :: [Text] }
 
-data PagerState = PagerState { _buffer :: Buffer
-                             , _region :: DisplayRegion }
+makeLensesFor [("_position", "position"), ("_visible", "visible")] ''PagerState
 
-makeLenses ''PagerState
+data PagerEvent
+    = Scroll Int
+    | ScrollPage Int
+    | MoveToLine Int
+    | ReplaceBufferContents [Text]
 
-type PagerWidget = Widget PagerState
+type PagerWidget = Widget PagerEvent PagerState
 
 pagerWidget :: PagerWidget
 pagerWidget =
     Widget { initialize = initPager
-           , resize     = resizeToRegion
-           , draw       = renderPager }
+           , draw       = renderPager
+           , handle     = handlePagerEvent }
 
-initPager :: DisplayRegion -> PagerState
-initPager initialRegion =
-    PagerState { _buffer = (1, [], [])
-               , _region = initialRegion }
+initPager :: PagerState
+initPager = PagerState { _position = 0
+                       , _above    = []
+                       , _visible  = [] }
 
-replaceBufferContents :: [Text] -> State PagerState ()
-replaceBufferContents content = assign buffer (1, [], content)
 
-moveToLine :: Int -> State PagerState ()
-moveToLine n = do
-    height <- use (region . to regionHeight)
-    pos    <- use (buffer . _1)
-    scroll (n - height `div` 2 - pos)
+handlePagerEvent :: PagerEvent -> StateT PagerState Vgrep ()
+handlePagerEvent event = view region >>= \displayRegion -> case event of
+    ReplaceBufferContents content -> replaceBufferContents content
+    MoveToLine n                  -> moveToLine displayRegion n
+    ScrollPage n                  -> scrollPage displayRegion n
+    Scroll n                      -> scroll displayRegion n
 
-scroll :: Int -> State PagerState ()
-scroll n = do
-    height <- uses region regionHeight
-    linesVisible <- uses (buffer . _3) (length . take (height + 1))
+replaceBufferContents :: [Text] -> StateT PagerState Vgrep ()
+replaceBufferContents content = put (set visible content initPager)
+
+moveToLine :: DisplayRegion -> Int -> StateT PagerState Vgrep ()
+moveToLine displayRegion n = do
+    let height = regionHeight displayRegion
+    pos    <- use position
+    scroll displayRegion (n - height `div` 2 - pos)
+
+scroll :: DisplayRegion -> Int -> StateT PagerState Vgrep ()
+scroll displayRegion n = do
+    let height = regionHeight displayRegion
+    linesVisible <- uses visible (length . take (height + 1))
     if | n > 0 && linesVisible > height
-                   -> modifying buffer goDown >> scroll (n - 1)
-       | n < 0     -> modifying buffer goUp   >> scroll (n + 1)
+                   -> modify goDown >> scroll displayRegion (n - 1)
+       | n < 0     -> modify goUp   >> scroll displayRegion (n + 1)
        | otherwise -> pure ()
   where
-    goDown (l, as, b:bs) = (l + 1, b:as, bs)
-    goDown (l, as, [])   = (l,     as,   [])
-    goUp   (l, a:as, bs) = (l - 1, as, a:bs)
-    goUp   (l, [],   bs) = (l,     [], bs)
+    goDown (PagerState l as     (b:bs)) = PagerState (l + 1) (b:as) bs
+    goDown (PagerState l as     [])     = PagerState l       as     []
+    goUp   (PagerState l (a:as) bs)     = PagerState (l - 1) as     (a:bs)
+    goUp   (PagerState l []     bs)     = PagerState l       []     bs
 
-scrollPage :: Int -> State PagerState ()
-scrollPage n = do height <- uses region regionHeight
-                  scroll (n * (height - 1))
-                -- gracefully leave one ^ line on the screen
+scrollPage :: DisplayRegion -> Int -> StateT PagerState Vgrep ()
+scrollPage displayRegion n =
+    let height = regionHeight displayRegion
+    in  scroll displayRegion (n * (height - 1))
+                    -- gracefully leave one ^ line on the screen
+
 
 renderPager :: PagerState -> Vgrep Image
 renderPager state = do
     textColor       <- view (config . colors . normal)
     lineNumberColor <- view (config . colors . lineNumbers)
-    let image = renderLineNumbers lineNumberColor
-            <|> renderTextLines textColor
+    (width, height) <- view region
+    let visibleLines = take height (view visible state)
+        image = renderLineNumbers lineNumberColor visibleLines
+            <|> renderTextLines textColor visibleLines
     pure (resizeWidth width image)
   where
-    (width, height) = view region state
-    (currentPosition, _, bufferLines) = view buffer state
-    visibleLines = take height bufferLines
-
     renderTextLines attr =
         fold . fmap (string attr)
-             . take height
              . fmap padWithSpace
              . fmap T.unpack
-             $ visibleLines
 
-    renderLineNumbers attr =
+    renderLineNumbers attr visibleLines =
         fold . fmap (string attr)
              . take (length visibleLines)
              . fmap (padWithSpace . show)
-             $ [currentPosition ..]
+             $ [(view position state) ..]
 
     padWithSpace s = ' ' : s ++ " "
-
-resizeToRegion :: DisplayRegion -> State PagerState ()
-resizeToRegion newRegion = assign region newRegion
