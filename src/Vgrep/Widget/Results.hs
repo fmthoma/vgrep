@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Vgrep.Widget.Results
-    ( ResultsState ()
+    ( ResultsState
     , ResultsWidget
     , resultsWidget
 
@@ -35,46 +35,52 @@ import Vgrep.Environment
 import Vgrep.Results
 import Vgrep.Results.Buffer as Buffer
 import Vgrep.Type
-import Vgrep.Widget.Type as Widget
+import Vgrep.Widget.Type
 
 
-data ResultsState = State { _files  :: Buffer
-                          , _region :: DisplayRegion }
+type ResultsState = Buffer
 
-makeLenses ''ResultsState
+data ResultsEvent
+    = FeedResult FileLineReference
+    | PageUp   | PageDown
+    | PrevLine | NextLine
 
-
-type ResultsWidget = Widget ResultsState
+type ResultsWidget = Widget ResultsEvent ResultsState
 
 resultsWidget :: ResultsWidget
 resultsWidget =
-    Widget { Widget.initialize = initResults
-           , Widget.resize     = resizeToRegion
-           , Widget.draw       = renderResultList }
+    Widget { initialize = initResults
+           , draw       = renderResultList
+           , handle     = handleResultsEvent }
 
-initResults :: DisplayRegion -> ResultsState
-initResults initialDimensions =
-    State { _files  = EmptyBuffer
-          , _region = initialDimensions }
+initResults :: ResultsState
+initResults = EmptyBuffer
 
 
-feedResult :: Monad m
-           => FileLineReference -> StateT ResultsState m ()
+handleResultsEvent :: ResultsEvent -> StateT ResultsState Vgrep ()
+handleResultsEvent = \case
+    FeedResult line -> feedResult line
+    PageUp          -> pageUp
+    PageDown        -> pageDown
+    PrevLine        -> prevLine
+    NextLine        -> nextLine
+
+feedResult :: FileLineReference -> StateT ResultsState Vgrep ()
 feedResult line = do
-    zoom files (modify (feed line))
+    modify (feed line)
     resizeToWindow
 
-pageUp, pageDown :: State ResultsState ()
+pageUp, pageDown :: StateT ResultsState Vgrep ()
 pageUp = do
-    unlessS (isJust . moveUp . view files) $ do
-        modifying files (repeatedly (hideNext >=> showPrev))
+    unlessS (isJust . moveUp) $ do
+        modify (repeatedly (hideNext >=> showPrev))
         resizeToWindow
-    modifying files (repeatedly moveUp)
+    modify (repeatedly moveUp)
 pageDown = do
-    unlessS (isJust . moveDown . view files) $ do
-        modifying files (repeatedly hidePrev)
+    unlessS (isJust . moveDown) $ do
+        modify (repeatedly hidePrev)
         resizeToWindow
-    modifying files (repeatedly moveDown)
+    modify (repeatedly moveDown)
 
 repeatedly :: (a -> Maybe a) -> a -> a
 repeatedly f = go
@@ -83,15 +89,15 @@ repeatedly f = go
          | otherwise      = x
 
 
-prevLine, nextLine :: State ResultsState ()
-prevLine = zoom files (maybeModify tryPrevLine) >> resizeToWindow
-nextLine = zoom files (maybeModify tryNextLine) >> resizeToWindow
+prevLine, nextLine :: StateT ResultsState Vgrep ()
+prevLine = maybeModify tryPrevLine >> resizeToWindow
+nextLine = maybeModify tryNextLine >> resizeToWindow
 
 tryPrevLine, tryNextLine :: Buffer -> Maybe Buffer
 tryPrevLine buf = moveUp   buf <|> (showPrev buf >>= tryPrevLine)
 tryNextLine buf = moveDown buf <|> (showNext buf >>= tryNextLine)
 
-maybeModify :: (s -> Maybe s) -> State s ()
+maybeModify :: Monad m => (s -> Maybe s) -> StateT s m ()
 maybeModify f = do
     s <- get
     case f s of
@@ -100,10 +106,10 @@ maybeModify f = do
 
 
 renderResultList :: ResultsState -> Vgrep Image
-renderResultList s = do
-      renderedLines <- renderLines width (toLines (view files s))
+renderResultList buffer = do
+      width <- views region regionWidth
+      renderedLines <- renderLines width (toLines buffer)
       pure (vertCat renderedLines)
-  where width = regionWidth (view region s)
 
 renderLines :: Int -> [DisplayLine] -> Vgrep [Image]
 renderLines width ls = traverse (renderLine (width, lineNumberWidth)) ls
@@ -144,21 +150,16 @@ renderLine (width, lineNumberWidth) displayLine = do
                         . padWithSpace (width - lineNumberWidth)
 
 
-resizeToRegion :: DisplayRegion -> State ResultsState ()
-resizeToRegion newRegion = do
-    assign region newRegion
-    resizeToWindow
-
-resizeToWindow :: Monad m => StateT ResultsState m ()
+resizeToWindow :: StateT ResultsState Vgrep ()
 resizeToWindow = do
-    height <- uses region regionHeight
-    modifying files (Buffer.resize height)
+    height <- views region regionHeight
+    modify (Buffer.resize height)
 
 
 currentFileName :: Getter ResultsState (Maybe Text)
 currentFileName =
-    pre (files . to (current) . _Just . _1 . to getFileName)
+    pre (to (current) . _Just . _1 . to getFileName)
 
 currentLineNumber :: Getter ResultsState (Maybe Int)
 currentLineNumber =
-    pre (files . to current . _Just . _2 . _1 . _Just)
+    pre (to current . _Just . _2 . _1 . _Just)
