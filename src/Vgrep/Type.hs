@@ -1,43 +1,61 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Vgrep.Type where
+{-# LANGUAGE MultiParamTypeClasses #-}
+module Vgrep.Type
+  ( VgrepT ()
+  , Vgrep
+
+  , mkVgrepT
+  , runVgrepT
+  , vgrepBracket
+
+  , modifyEnvironment
+
+  -- Re-exports
+  , lift
+  , hoist
+  , module Vgrep.Environment
+) where
 
 import qualified Control.Exception as E
 import Control.Monad.Identity
 import Control.Monad.Morph
 import Control.Monad.Reader
+import Control.Monad.State.Extended
 
 import Vgrep.Environment
 
-newtype VgrepT m a = VgrepT (ReaderT Environment m a)
+newtype VgrepT m a = VgrepT (StateT Environment m a)
                 deriving ( Functor
                          , Applicative
                          , Monad
                          , MonadTrans
                          , MFunctor
-                         , MonadReader Environment
                          , MonadIO )
 
-mkVgrepT :: Monad m => (Environment -> m a) -> VgrepT m a
-mkVgrepT action = VgrepT (ReaderT action)
+instance Monad m => MonadReader Environment (VgrepT m) where
+    ask = VgrepT get
+    local f action = mkVgrepT $ \env -> runVgrepT action (f env)
 
-runVgrepT :: Monad m => Environment -> VgrepT m a -> m a
-runVgrepT env (VgrepT action) = runReaderT action env
+mkVgrepT :: Monad m
+         => (Environment -> m (a, Environment))
+         -> VgrepT m a
+mkVgrepT = VgrepT . StateT
+
+runVgrepT :: Monad m
+          => VgrepT m a
+          -> Environment -> m (a, Environment)
+runVgrepT (VgrepT action) = runStateT action
 
 type Vgrep = VgrepT Identity
 
-mkVgrep :: (Environment -> a) -> Vgrep a
-mkVgrep = mkVgrepT . fmap Identity
-
-runVgrep :: Environment -> Vgrep a -> a
-runVgrep env = runIdentity . runVgrepT env
-
-liftVgrep :: Monad m => Vgrep (m a) -> VgrepT m a
-liftVgrep = mkVgrepT . flip runVgrep
-
-bracket :: IO a
-        -> (a -> IO c)
-        -> (a -> VgrepT IO b)
-        -> VgrepT IO b
-bracket before after action = mkVgrepT $ \env ->
-    let baseAction a = runVgrepT env (action a)
+vgrepBracket :: IO a
+             -> (a -> IO c)
+             -> (a -> VgrepT IO b)
+             -> VgrepT IO b
+vgrepBracket before after action = mkVgrepT $ \env ->
+    let baseAction a = runVgrepT (action a) env
     in  E.bracket before after baseAction
+
+
+modifyEnvironment :: Monad m => (Environment -> Environment) -> VgrepT m ()
+modifyEnvironment = VgrepT . modify
