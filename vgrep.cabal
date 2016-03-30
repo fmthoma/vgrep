@@ -35,11 +35,15 @@ library
                      , Vgrep.Widget.Results
                      , Vgrep.Widget.Type
   build-depends:       base >= 4.7 && < 5
+                     , async
                      , attoparsec
                      , containers
                      , lens
                      , lifted-base
                      , mtl
+                     , mmorph
+                     , pipes
+                     , pipes-concurrency
                      , process
                      , text
                      , transformers
@@ -54,9 +58,13 @@ executable vgrep
   default-extensions:  LambdaCase
                      , MultiWayIf
   build-depends:       base
+                     , async
+                     , containers
                      , directory
                      , lens
                      , mtl
+                     , pipes
+                     , pipes-concurrency
                      , process
                      , text
                      , unix

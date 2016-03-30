@@ -1,4 +1,7 @@
-module Vgrep.Text ( expandForDisplay ) where
+module Vgrep.Text
+    ( expandForDisplay
+    , expandLineForDisplay
+    ) where
 
 import Control.Lens
 import Data.Char
@@ -12,10 +15,15 @@ import Vgrep.Type
 expandForDisplay :: Monad m => [Text] -> VgrepT m [Text]
 expandForDisplay inputLines = do
     tabWidth <- view (config . tabstop)
-    pure (map (expandLineForDisplay tabWidth) inputLines)
+    pure (map (expandText tabWidth) inputLines)
 
-expandLineForDisplay :: Int -> Text -> Text
-expandLineForDisplay tabWidth =
+expandLineForDisplay :: Monad m => Text -> VgrepT m Text
+expandLineForDisplay inputLine = do
+    tabWidth <- view (config . tabstop)
+    pure (expandText tabWidth inputLine)
+
+expandText :: Int -> Text -> Text
+expandText tabWidth =
     (T.pack . expandSpecialChars . expandTabs tabWidth . T.unpack)
 
 expandTabs :: Int -> String -> String

@@ -6,6 +6,7 @@ module Vgrep.Widget.Results
     ( ResultsState ()
     , ResultsWidget
     , resultsWidget
+    , feedResult
 
     , prevLine
     , nextLine
@@ -46,21 +47,23 @@ makeLenses ''ResultsState
 type ResultsWidget = Widget ResultsState
 
 resultsWidget :: DisplayRegion
-              -> [FileLineReference]
               -> ResultsWidget
-resultsWidget initialDimensions fileResults =
-    Widget { _widgetState = initState fileResults initialDimensions
+resultsWidget initialDimensions =
+    Widget { _widgetState = initState initialDimensions
            , _dimensions  = initialDimensions
            , _resize      = resizeToRegion
            , _draw        = renderResultList }
 
-initState :: [FileLineReference]
-          -> DisplayRegion
+initState :: DisplayRegion
           -> ResultsState
-initState fileResults initialDimensions =
-    let Just foo = buffer fileResults -- FIXME handle case of empty input
-    in  State { _files  = Buffer.resize (regionHeight initialDimensions) foo
-              , _region = initialDimensions }
+initState initialDimensions = State { _files  = EmptyBuffer
+                                    , _region = initialDimensions }
+
+feedResult :: Monad m
+           => FileLineReference -> StateT ResultsWidget m ()
+feedResult line = do
+    zoom (widgetState . files) (modify (feed line))
+    zoom widgetState resizeToWindow
 
 pageUp, pageDown :: State ResultsState ()
 pageUp = do
@@ -147,14 +150,16 @@ resizeToRegion newRegion = do
     assign region newRegion
     resizeToWindow
 
-resizeToWindow :: State ResultsState ()
+resizeToWindow :: Monad m => StateT ResultsState m ()
 resizeToWindow = do
     height <- uses region regionHeight
     modifying files (Buffer.resize height)
 
 
-currentFileName :: Getter ResultsWidget Text
-currentFileName = widgetState . files . to current . _1 . to getFileName
+currentFileName :: Getter ResultsState (Maybe Text)
+currentFileName =
+    pre (files . to (current) . _Just . _1 . to getFileName)
 
-currentLineNumber :: Getter ResultsWidget (Maybe Int)
-currentLineNumber = widgetState . files . to current . _2 . _1
+currentLineNumber :: Getter ResultsState (Maybe Int)
+currentLineNumber =
+    pre (files . to current . _Just . _2 . _1 . _Just)
