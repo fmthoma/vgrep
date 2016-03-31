@@ -32,7 +32,8 @@ import Vgrep.Parser
 import Vgrep.System.Grep
 import Vgrep.Text
 import Vgrep.Type
-import Vgrep.Widget as Widget
+import Vgrep.Widget hiding (handle)
+import qualified Vgrep.Widget as Widget
 import Vgrep.Widget.HorizontalSplit
 import Vgrep.Widget.Pager
 import Vgrep.Widget.Results
@@ -42,7 +43,7 @@ main :: IO ()
 main = do
     hSetBuffering stdin  LineBuffering
     hSetBuffering stdout LineBuffering
-    environment <- Env <$> defaultConfig
+    config <- defaultConfig
     inputFromTerminal <- hIsTerminalDevice stdin
     outputToTerminal  <- hIsTerminalDevice stdout
     args <- getArgs
