@@ -3,7 +3,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Vgrep.Widget.Results
-    ( ResultsState
+    ( ResultsState()
+    , ResultsEvent(..)
     , ResultsWidget
     , resultsWidget
 
@@ -57,7 +58,7 @@ initResults :: ResultsState
 initResults = EmptyBuffer
 
 
-handleResultsEvent :: ResultsEvent -> StateT ResultsState Vgrep ()
+handleResultsEvent :: Monad m => ResultsEvent -> StateT ResultsState (VgrepT m) ()
 handleResultsEvent = \case
     FeedResult line -> feedResult line
     PageUp          -> pageUp
@@ -65,12 +66,12 @@ handleResultsEvent = \case
     PrevLine        -> prevLine
     NextLine        -> nextLine
 
-feedResult :: FileLineReference -> StateT ResultsState Vgrep ()
+feedResult :: Monad m => FileLineReference -> StateT ResultsState (VgrepT m) ()
 feedResult line = do
     modify (feed line)
     resizeToWindow
 
-pageUp, pageDown :: StateT ResultsState Vgrep ()
+pageUp, pageDown :: Monad m => StateT ResultsState (VgrepT m) ()
 pageUp = do
     unlessS (isJust . moveUp) $ do
         modify (repeatedly (hideNext >=> showPrev))
@@ -89,7 +90,7 @@ repeatedly f = go
          | otherwise      = x
 
 
-prevLine, nextLine :: StateT ResultsState Vgrep ()
+prevLine, nextLine :: Monad m => StateT ResultsState (VgrepT m) ()
 prevLine = maybeModify tryPrevLine >> resizeToWindow
 nextLine = maybeModify tryNextLine >> resizeToWindow
 
@@ -105,13 +106,13 @@ maybeModify f = do
         Nothing -> pure ()
 
 
-renderResultList :: ResultsState -> Vgrep Image
+renderResultList :: Monad m => ResultsState -> VgrepT m Image
 renderResultList buffer = do
       width <- views region regionWidth
       renderedLines <- renderLines width (toLines buffer)
       pure (vertCat renderedLines)
 
-renderLines :: Int -> [DisplayLine] -> Vgrep [Image]
+renderLines :: Monad m => Int -> [DisplayLine] -> VgrepT m [Image]
 renderLines width ls = traverse (renderLine (width, lineNumberWidth)) ls
   where lineNumberWidth = foldl' max 0
                         . map (twoExtraSpaces . length . show)
@@ -119,7 +120,7 @@ renderLines width ls = traverse (renderLine (width, lineNumberWidth)) ls
                         $ map lineNumber ls
         twoExtraSpaces = (+ 2)
 
-renderLine :: (Int, Int) -> DisplayLine -> Vgrep Image
+renderLine :: Monad m => (Int, Int) -> DisplayLine -> VgrepT m Image
 renderLine (width, lineNumberWidth) displayLine = do
     fileHeaderStyle <- view (config . colors . fileHeaders)
     lineNumberStyle <- view (config . colors . lineNumbers)
@@ -150,7 +151,7 @@ renderLine (width, lineNumberWidth) displayLine = do
                         . padWithSpace (width - lineNumberWidth)
 
 
-resizeToWindow :: StateT ResultsState Vgrep ()
+resizeToWindow :: Monad m => StateT ResultsState (VgrepT m) ()
 resizeToWindow = do
     height <- views region regionHeight
     modify (Buffer.resize height)

@@ -1,3 +1,4 @@
+{-# LANGUAGE Rank2Types #-}
 module Vgrep.Widget.Type where
 
 import Control.Monad.State.Extended
@@ -7,5 +8,5 @@ import Vgrep.Type
 
 data Widget e s = Widget
     { initialize :: s
-    , draw       :: s -> Vgrep Image
-    , handle     :: e -> StateT s Vgrep () }
+    , draw       :: forall m. Monad m => s -> VgrepT m Image
+    , handle     :: forall m. Monad m => e -> StateT s (VgrepT m) () }

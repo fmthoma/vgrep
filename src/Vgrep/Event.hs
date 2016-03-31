@@ -85,8 +85,8 @@ resizeEvent = \case
 continueIO :: StateT s (VgrepT IO) () -> s -> VgrepT IO (Next s)
 continueIO action state = (fmap Continue . execStateT action) state
 
-continue :: State s () -> s -> VgrepT IO (Next s)
-continue action = continueIO (liftState action)
+continue :: Monad m => StateT s (VgrepT m) () -> s -> VgrepT IO (Next s)
+continue action = undefined --continueIO (liftState action)
 
 suspend :: StateT s (VgrepT IO) () -> s -> VgrepT IO (Next s)
 suspend action = pure . Resume . execStateT action

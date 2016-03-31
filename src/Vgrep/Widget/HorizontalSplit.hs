@@ -3,6 +3,7 @@
 
 module Vgrep.Widget.HorizontalSplit
     ( HSplitState ()
+    , HSplitEvent (..)
     , initHSplit
     , HSplitWidget
     , hSplitWidget
@@ -105,10 +106,11 @@ switchFocus = use split >>= \case
     switch (FocusLeft,  ratio) = (FocusRight, 1 - ratio)
     switch (FocusRight, ratio) = (FocusLeft,  1 - ratio)
 
-drawWidgets :: Widget u s
+drawWidgets :: Monad m
+            => Widget u s
             -> Widget v t
             -> HSplitState s t
-            -> Vgrep Image
+            -> VgrepT m Image
 drawWidgets left right state = case view split state of
     LeftOnly  -> draw left  (view leftWidget  state)
     RightOnly -> draw right (view rightWidget state)
@@ -116,10 +118,11 @@ drawWidgets left right state = case view split state of
         (local (leftRegion state)  (draw left  (view leftWidget  state)))
         (local (rightRegion state) (draw right (view rightWidget state)))
 
-handleEvents :: Widget u s
+handleEvents :: Monad m
+             => Widget u s
              -> Widget v t
              -> HSplitEvent u v
-             -> StateT (HSplitState s t) Vgrep ()
+             -> StateT (HSplitState s t) (VgrepT m) ()
 handleEvents left right = \case
     LeftEvent l    -> handleLeft l
     RightEvent r   -> handleRight r

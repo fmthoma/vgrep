@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Main (main) where
 
 import Control.Concurrent.Async
@@ -51,24 +52,24 @@ main = do
         (True,  False)  -> runHeadless (const recursiveGrep)
         (False, False)  -> runHeadless grep
         (False, True)
-            | null args -> runGui environment id
-            | otherwise -> runGui environment grepForApp
-        (True,  True)   -> runGui environment (const recursiveGrep)
+            | null args -> runGui config id
+            | otherwise -> runGui config grepForApp
+        (True,  True)   -> runGui config (const recursiveGrep)
   where
     stdinText  = P.stdinLn  >-> P.map T.pack
     stdoutText = P.stdoutLn <-< P.map T.unpack
     runHeadless grepCommand = runEffect (grepCommand stdinText >-> stdoutText)
-    runGui environment  grepCommand = withSpawn unbounded $
+    runGui config  grepCommand = withSpawn unbounded $
       \(evSink, evSource) -> do
         let stdinText' = stdinText >-> P.tee (P.map ReceiveInputEvent >-> toOutput evSink)
         grepThread <- async . runEffect $
             grepCommand stdinText' >-> P.map ReceiveResultEvent
                                    >-> toOutput evSink
-        runApp_ app environment (fromInput evSource)
+        runApp_ app config (fromInput evSource)
         cancel grepThread
 
 
-type MainWidget  = HSplitWidget ResultsState PagerState
+type MainWidget  = HSplitWidget ResultsEvent PagerEvent ResultsState PagerState
 type WidgetState = HSplitState  ResultsState PagerState
 
 data AppState = AppState { _appWidget   :: MainWidget
@@ -103,11 +104,10 @@ app = App
     , App.render      = renderMainWidget }
   where
     initSplitView vty = do
-        bounds <- liftIO (displayBounds (Vty.outputIface vty))
         let mainWidget = hSplitWidget resultsWidget pagerWidget
         liftIO . pure $ AppState
             { _appWidget   = mainWidget
-            , _widgetState = Widget.initialize mainWidget bounds
+            , _widgetState = Widget.initialize mainWidget
             , _inputLines  = S.empty }
     renderMainWidget s =
         let mainWidget      = view appWidget   s
@@ -138,7 +138,7 @@ eventHandler = mconcat $
 vtyEventHandler :: EventHandler Vty.Event AppState
 vtyEventHandler = mconcat
     [ handle (keyCharEvent 'q'   []) (const halt)
-    , handle resizeEvent             (continue . resizeMainWidget)
+    , handle resizeEvent             resizeMainWidget
     , handle (keyCharEvent '\t'  []) (const (continue keyTab))
     , handle (keyEvent KUp       []) (const (continue keyUp))
     , handle (keyEvent KDown     []) (const (continue keyDown))
@@ -150,9 +150,9 @@ vtyEventHandler = mconcat
     , handle (keyCharEvent 'e'   []) (const (suspend keyEdit))
     , handle (keyEvent KEsc      []) (const (continue keyEsc)) ]
   where
-    resizeMainWidget region = do
-        mainWidget <- use appWidget
-        zoom widgetState (Widget.resize mainWidget region)
+    resizeMainWidget newRegion state = do
+        modifyEnvironment (set region newRegion)
+        get >>= pure . Continue
     keyTab   = use appWidget >>= zoom widgetState . switchFocus
     keyUp    = do whenS (has resultsFocused) (zoom results prevLine)
                   whenS (has pagerFocused)   (zoom pager   (scroll (-1)))
