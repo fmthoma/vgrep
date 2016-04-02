@@ -1,72 +1,68 @@
-{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE Rank2Types #-}
 module Vgrep.Event
-    ( EventHandler ()
-    , runEventHandler
-    , mkEventHandler
-    , mkEventHandlerIO
+    ( EventHandler (..)
     , liftEventHandler
 
     , Next (..)
+    , Redraw (..)
+    , Interrupt (..)
 
     , handle
 
     , keyEvent
     , keyCharEvent
     , resizeEvent
-    , continueIO
-    , continue
-    , suspend
-    , halt
     ) where
 
 import Control.Applicative
-import Control.Monad.State.Extended ( State, StateT
-                                    , execStateT, liftState )
+import Control.Monad.State.Extended (StateT)
+import Control.Monad.IO.Class
 import qualified Graphics.Vty as Vty
 import Graphics.Vty.Prelude
 
 import Vgrep.Type
 
 
-newtype EventHandler e s = EventHandler
-    { runEventHandler :: e -> s -> VgrepT IO (Next s) }
+data Redraw = Redraw | Unchanged
 
-mkEventHandler :: (e -> s -> Next s) -> EventHandler e s
-mkEventHandler f = EventHandler $ \e s -> pure (f e s)
+data Interrupt = Suspend (forall io. MonadIO io => io ())
+               | Halt
 
-mkEventHandlerIO :: (e -> s -> VgrepT IO (Next s)) -> EventHandler e s
-mkEventHandlerIO = EventHandler
+data Next s m = Skip
+              | Continue (StateT s (VgrepT m) Redraw)
+              | Interrupt Interrupt
 
-liftEventHandler :: (e -> Maybe e') -> EventHandler e' s -> EventHandler e s
+instance Monoid (Next s m) where
+    mempty = Skip
+    Skip `mappend` next   = next
+    next `mappend` _other = next
+    
+
+newtype EventHandler e s m = EventHandler { runEventHandler :: e -> Next s m }
+
+instance Monoid (EventHandler e s m) where
+    mempty = EventHandler $ \_ -> Skip
+    (EventHandler h1) `mappend` (EventHandler h2) =
+        EventHandler (liftA2 mappend h1 h2)
+
+
+liftEventHandler :: Monad m
+                 => (e -> Maybe e')
+                 -> EventHandler e' s m
+                 -> EventHandler e s m
 liftEventHandler f (EventHandler h) = EventHandler $ \e -> case f e of
     Just e' -> h e'
-    Nothing -> const (pure Unchanged)
+    Nothing -> Skip
 
 
-instance Monoid (EventHandler e s) where
-    mempty = EventHandler $ \_ _ -> pure Unchanged
-    h1 `mappend` h2 = EventHandler $ \ev s ->
-        liftA2 mappend (runEventHandler h1 ev s) (runEventHandler h2 ev s)
-
-data Next s = Continue s
-            | Resume (VgrepT IO s)
-            | Halt s
-            | Unchanged
-            deriving (Functor)
-
-instance Monoid (Next s) where
-    mempty = Unchanged
-    Unchanged `mappend` next = next
-    next      `mappend` _    = next
-
-
-handle :: (e -> Maybe e')
-       -> (e' -> s -> VgrepT IO (Next s))
-       -> EventHandler e s
-handle select action = mkEventHandlerIO $ \event state ->
+handle :: Monad m
+       => (e -> Maybe e')
+       -> (e' -> Next s m)
+       -> EventHandler e s m
+handle select action = EventHandler $ \event ->
     case select event of
-        Just event' -> action event' state
-        Nothing     -> pure Unchanged
+        Just event' -> action event'
+        Nothing     -> Skip
 
 keyEvent :: Vty.Key -> [Vty.Modifier] -> Vty.Event -> Maybe ()
 keyEvent k ms = \case
@@ -80,16 +76,3 @@ resizeEvent :: Vty.Event -> Maybe DisplayRegion
 resizeEvent = \case
     Vty.EvResize w h -> Just (w, h)
     _otherwise       -> Nothing
-
-
-continueIO :: StateT s (VgrepT IO) () -> s -> VgrepT IO (Next s)
-continueIO action state = (fmap Continue . execStateT action) state
-
-continue :: Monad m => StateT s (VgrepT m) () -> s -> VgrepT IO (Next s)
-continue action = undefined --continueIO (liftState action)
-
-suspend :: StateT s (VgrepT IO) () -> s -> VgrepT IO (Next s)
-suspend action = pure . Resume . execStateT action
-
-halt :: s -> VgrepT IO (Next s)
-halt state = pure (Halt state)
