@@ -1,5 +1,6 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE Rank2Types      #-}
+{-# LANGUAGE TemplateHaskell     #-}
+{-# LANGUAGE Rank2Types          #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Vgrep.App
     ( App(..)
     , runApp, runApp_
@@ -10,21 +11,23 @@ module Vgrep.App
 import Control.Concurrent.Async
 import Control.Exception
 import Control.Monad.Reader
+import Control.Monad.State (StateT (..), execStateT, get)
 import Graphics.Vty (Vty)
 import qualified Graphics.Vty as Vty
 import Pipes hiding (next)
 import Pipes.Concurrent
 import Pipes.Prelude as P
-import System.Posix
+import System.Posix.IO
+import System.Posix.Types (Fd)
 
 import Vgrep.Environment
 import Vgrep.Event
 import Vgrep.Type
 
 data App e s = App
-    { initialize   :: forall m. MonadIO m => Vty -> VgrepT m s
+    { initialize   :: forall m. Monad m => VgrepT m s
     , liftEvent    :: Vty.Event -> e
-    , handleEvent  :: EventHandler e s
+    , handleEvent  :: forall m. Monad m => EventHandler e s m
     , render       :: forall m. Monad m => s -> VgrepT m Vty.Picture }
 
 
@@ -44,41 +47,47 @@ displayRegionHack :: IO DisplayRegion
 displayRegionHack = bracket initVty Vty.shutdown $ \vty ->
         Vty.displayBounds (Vty.outputIface vty)
 
-appEventLoop :: App e s -> Input e -> Output e -> VgrepT IO s
-appEventLoop app evSource evSink = do
-    startEventLoop >>= suspendAndResume
+appEventLoop :: forall e s. App e s -> Input e -> Output e -> VgrepT IO s
+appEventLoop app evSource evSink =
+    initialize app >>= execStateT (startEventLoop >>= suspendAndResume)
 
   where
-    startEventLoop = withVty vtyEventSink $ \vty -> do
-        initialState <- initialize app vty
-        refresh vty initialState
-        runEffect $ (fromInput evSource >> pure Unchanged) >-> eventLoop vty initialState
+    startEventLoop :: StateT s (VgrepT IO) Interrupt
+    startEventLoop = smurf vtyEventSink $ \vty -> do
+        refresh vty
+        runEffect ((fromInput evSource >> pure Halt) >-> eventLoop vty)
 
-    continueEventLoop currentState = withVty vtyEventSink $ \vty -> do
-        refresh vty currentState
-        runEffect $ (fromInput evSource >> pure Unchanged) >-> eventLoop vty currentState
+    continueEventLoop :: StateT s (VgrepT IO) Interrupt
+    continueEventLoop = smurf vtyEventSink $ \vty -> do
+        refresh vty
+        runEffect ((fromInput evSource >> pure Halt) >-> eventLoop vty)
 
-    eventLoop vty currentState = do
+    eventLoop :: Vty -> Consumer e (StateT s (VgrepT IO)) Interrupt
+    eventLoop vty = do
         event <- await
-        next <- lift (runEventHandler handleAppEvent event currentState)
-        case next of
-            Unchanged         -> eventLoop vty currentState
-            Continue newState -> lift (refresh vty newState) >> eventLoop vty newState
-            other             -> pure other
+        case runEventHandler handleAppEvent event of
+            Skip                -> eventLoop vty
+            Continue action     -> lift (action >> refresh vty) >> eventLoop vty
+            Interrupt interrupt -> pure interrupt
 
+    suspendAndResume :: Interrupt -> StateT s (VgrepT IO) ()
     suspendAndResume = \case
-        Halt finalState      -> pure finalState
-        Resume outsideAction -> outsideAction >>= continueEventLoop >>= suspendAndResume
-        _other               -> cannotHappen_othersAreHandledInEventLoop
+        Halt                  -> pure ()
+        Suspend outsideAction -> do liftIO outsideAction
+                                    continueEventLoop >>= suspendAndResume
 
-    refresh vty s = renderApp s >>= lift . Vty.update vty
-    renderApp = render app
+    refresh :: Vty -> StateT s (VgrepT IO) ()
+    refresh vty = get >>= lift . render app >>= lift . lift . Vty.update vty
     vtyEventSink = P.map (liftEvent app) >-> toOutput evSink
     handleAppEvent = handleEvent app
 
-    cannotHappen_othersAreHandledInEventLoop =
-        error "Internal error: Unhandled Continuation"
 
+smurf :: Consumer Vty.Event IO ()
+      -> (Vty -> StateT s (VgrepT IO) a)
+      -> StateT s (VgrepT IO) a
+
+smurf sink action = StateT $ \s ->
+    withVty sink $ \vty -> runStateT (action vty) s
 
 withVty :: Consumer Vty.Event IO () -> (Vty -> VgrepT IO s) -> VgrepT IO s
 withVty sink action = vgrepBracket before after (\(vty, _) -> action vty)
