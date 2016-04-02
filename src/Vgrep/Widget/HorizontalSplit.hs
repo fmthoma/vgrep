@@ -122,11 +122,11 @@ handleEvents :: Monad m
              => Widget u s
              -> Widget v t
              -> HSplitEvent u v
-             -> StateT (HSplitState s t) (VgrepT m) ()
+             -> StateT (HSplitState s t) (VgrepT m) Redraw
 handleEvents left right = \case
     LeftEvent l    -> handleLeft l
     RightEvent r   -> handleRight r
-    BothEvents l r -> handleLeft l >> handleRight r
+    BothEvents l r -> liftA2 mappend (handleLeft l) (handleRight r)
   where handleLeft event = get >>= \state ->
             local (leftRegion state) (zoom leftWidget (handle left event))
         handleRight event = get >>= \state ->

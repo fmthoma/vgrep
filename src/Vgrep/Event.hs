@@ -25,6 +25,12 @@ import Vgrep.Type
 
 data Redraw = Redraw | Unchanged
 
+instance Monoid Redraw where
+    mempty = Unchanged
+    Unchanged `mappend` Unchanged = Unchanged
+    Redraw `mappend` _ = Redraw
+    _ `mappend` Redraw = Redraw
+
 data Interrupt = Suspend (forall io. MonadIO io => io ())
                | Halt
 

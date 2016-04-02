@@ -50,12 +50,14 @@ initPager = PagerState { _position = 0
                        , _visible  = [] }
 
 
-handlePagerEvent :: Monad m => PagerEvent -> StateT PagerState (VgrepT m) ()
-handlePagerEvent event = view region >>= \displayRegion -> case event of
-    ReplaceBufferContents content -> replaceBufferContents content
-    MoveToLine n                  -> moveToLine displayRegion n
-    ScrollPage n                  -> scrollPage displayRegion n
-    Scroll n                      -> scroll displayRegion n
+handlePagerEvent :: Monad m => PagerEvent -> StateT PagerState (VgrepT m) Redraw
+handlePagerEvent event = do
+    view region >>= \displayRegion -> case event of
+        ReplaceBufferContents content -> replaceBufferContents content
+        MoveToLine n                  -> moveToLine displayRegion n
+        ScrollPage n                  -> scrollPage displayRegion n
+        Scroll n                      -> scroll displayRegion n
+    pure Redraw
 
 replaceBufferContents :: Monad m => [Text] -> StateT PagerState (VgrepT m) ()
 replaceBufferContents content = put (set visible content initPager)

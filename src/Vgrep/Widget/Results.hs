@@ -58,18 +58,19 @@ initResults :: ResultsState
 initResults = EmptyBuffer
 
 
-handleResultsEvent :: Monad m => ResultsEvent -> StateT ResultsState (VgrepT m) ()
+handleResultsEvent :: Monad m => ResultsEvent -> StateT ResultsState (VgrepT m) Redraw
 handleResultsEvent = \case
     FeedResult line -> feedResult line
-    PageUp          -> pageUp
-    PageDown        -> pageDown
-    PrevLine        -> prevLine
-    NextLine        -> nextLine
+    PageUp          -> pageUp   >> pure Redraw
+    PageDown        -> pageDown >> pure Redraw
+    PrevLine        -> prevLine >> pure Redraw
+    NextLine        -> nextLine >> pure Redraw
 
-feedResult :: Monad m => FileLineReference -> StateT ResultsState (VgrepT m) ()
+feedResult :: Monad m => FileLineReference -> StateT ResultsState (VgrepT m) Redraw
 feedResult line = do
     modify (feed line)
     resizeToWindow
+    pure Redraw -- FIXME only redraw if necessary
 
 pageUp, pageDown :: Monad m => StateT ResultsState (VgrepT m) ()
 pageUp = do
