@@ -13,15 +13,10 @@ module Vgrep.Widget.HorizontalSplit
     , currentWidget
     , leftWidgetFocused
     , rightWidgetFocused
-    , leftOnly
-    , rightOnly
-    , splitFocusLeft
-    , splitFocusRight
-    , switchFocus
     ) where
 
 import Control.Lens
-import Control.Monad.State.Extended (State, StateT, get)
+import Control.Monad.State.Extended (StateT, get)
 import Control.Monad.Reader (local)
 import Graphics.Vty.Image hiding (resize)
 
@@ -34,12 +29,17 @@ data HSplitState s t = State { _widgets :: (s, t)
                              , _split   :: Split }
 
 data Focus = FocusLeft | FocusRight deriving (Eq)
-data Split = LeftOnly | RightOnly | Split (Focus, Rational) deriving (Eq)
+data Split = LeftOnly | RightOnly | Split Focus Rational deriving (Eq)
 
 data HSplitEvent u v
     = LeftEvent u
     | RightEvent v
     | BothEvents u v
+    | FocusedWidgetEvent u v
+    | LeftWidget
+    | RightWidget
+    | SplitView Focus Rational
+    | SwitchFocus
 
 makeLenses ''HSplitState
 
@@ -53,17 +53,17 @@ currentWidget :: Lens' (HSplitState s t) (Either s t)
 currentWidget = lens getCurrentWidget setCurrentWidget
   where
     getCurrentWidget state = case view split state of
-        LeftOnly              -> Left  (view leftWidget  state)
-        Split (FocusLeft, _)  -> Left  (view leftWidget  state)
-        RightOnly             -> Right (view rightWidget state)
-        Split (FocusRight, _) -> Right (view rightWidget state)
+        LeftOnly           -> Left  (view leftWidget  state)
+        Split FocusLeft _  -> Left  (view leftWidget  state)
+        RightOnly          -> Right (view rightWidget state)
+        Split FocusRight _ -> Right (view rightWidget state)
 
     setCurrentWidget state newWidget = case (view split state, newWidget) of
-        (RightOnly,             Left  widgetL) -> set leftWidget  widgetL state
-        (Split (FocusLeft, _),  Left  widgetL) -> set leftWidget  widgetL state
-        (LeftOnly,              Right widgetR) -> set rightWidget widgetR state
-        (Split (FocusRight, _), Right widgetR) -> set rightWidget widgetR state
-        (_,                     _            ) -> state
+        (RightOnly,          Left  widgetL) -> set leftWidget  widgetL state
+        (Split FocusLeft _,  Left  widgetL) -> set leftWidget  widgetL state
+        (LeftOnly,           Right widgetR) -> set rightWidget widgetR state
+        (Split FocusRight _, Right widgetR) -> set rightWidget widgetR state
+        (_,                  _            ) -> state
 
 leftWidgetFocused :: Traversal' (HSplitState s t) s
 leftWidgetFocused = currentWidget . _Left
@@ -86,25 +86,26 @@ initHSplit left right =
            , _split   = LeftOnly }
 
 
-leftOnly :: State (HSplitState s t) ()
-leftOnly = assign split LeftOnly
+leftOnly :: Monad m => StateT (HSplitState s t) m Redraw
+leftOnly = use split >>= \case
+    LeftOnly -> pure Unchanged
+    _other   -> assign split LeftOnly >> pure Redraw
 
-rightOnly :: State (HSplitState s t) ()
-rightOnly = assign split RightOnly
+rightOnly :: Monad m => StateT (HSplitState s t) m Redraw
+rightOnly = use split >>= \case
+    RightOnly -> pure Unchanged
+    _other    -> assign split RightOnly >> pure Redraw
 
-splitFocusLeft :: Rational -> State (HSplitState s t) ()
-splitFocusLeft ratio = do assign split (Split (FocusLeft, ratio))
+splitView :: Monad m => Focus -> Rational -> StateT (HSplitState s t) m Redraw
+splitView focus ratio = assign split (Split focus ratio) >> pure Redraw
 
-splitFocusRight :: Rational -> State (HSplitState s t) ()
-splitFocusRight ratio = assign split (Split (FocusRight, ratio))
-
-switchFocus :: State (HSplitState s t) ()
+switchFocus :: Monad m => StateT (HSplitState s t) m Redraw
 switchFocus = use split >>= \case
-    Split focus  -> assign split (Split (switch focus))
-    _otherwise   -> pure ()
+    Split focus ratio -> assign split (switch focus ratio) >> pure Redraw
+    _otherwise        -> pure Unchanged
   where
-    switch (FocusLeft,  ratio) = (FocusRight, 1 - ratio)
-    switch (FocusRight, ratio) = (FocusLeft,  1 - ratio)
+    switch FocusLeft  ratio = Split FocusRight (1 - ratio)
+    switch FocusRight ratio = Split FocusLeft  (1 - ratio)
 
 drawWidgets :: Monad m
             => Widget u s
@@ -114,7 +115,7 @@ drawWidgets :: Monad m
 drawWidgets left right state = case view split state of
     LeftOnly  -> draw left  (view leftWidget  state)
     RightOnly -> draw right (view rightWidget state)
-    Split _   -> liftA2 (<|>)
+    Split _ _ -> liftA2 (<|>)
         (local (leftRegion state)  (draw left  (view leftWidget  state)))
         (local (rightRegion state) (draw right (view rightWidget state)))
 
@@ -127,6 +128,13 @@ handleEvents left right = \case
     LeftEvent l    -> handleLeft l
     RightEvent r   -> handleRight r
     BothEvents l r -> liftA2 mappend (handleLeft l) (handleRight r)
+    FocusedWidgetEvent l r -> use currentWidget >>= \case
+        Left _  -> handleLeft l
+        Right _ -> handleRight r
+    LeftWidget     -> leftOnly
+    RightWidget    -> rightOnly
+    SplitView f r  -> splitView f r
+    SwitchFocus    -> switchFocus
   where handleLeft event = get >>= \state ->
             local (leftRegion state) (zoom leftWidget (handle left event))
         handleRight event = get >>= \state ->
@@ -134,12 +142,12 @@ handleEvents left right = \case
 
 leftRegion, rightRegion :: HSplitState s t -> Environment -> Environment
 leftRegion state = case view split state of
-    LeftOnly         -> id
-    RightOnly        -> id
-    Split (_, ratio) -> over region $ \(w, h) ->
+    LeftOnly      -> id
+    RightOnly     -> id
+    Split _ ratio -> over region $ \(w, h) ->
                             (ceiling (ratio * fromIntegral w), h)
 rightRegion state = case view split state of
-    LeftOnly         -> id
-    RightOnly        -> id
-    Split (_, ratio) -> over region $ \(w, h) ->
+    LeftOnly      -> id
+    RightOnly     -> id
+    Split _ ratio -> over region $ \(w, h) ->
                             (floor ((1 - ratio) * fromIntegral w), h)
