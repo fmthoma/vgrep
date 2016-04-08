@@ -152,30 +152,27 @@ vtyEventHandler = mconcat
     , handle (keyCharEvent 'e'   []) (const (Interrupt (Suspend keyEdit)))
     , handle (keyEvent KEsc      []) (const (Continue keyEsc)) ]
   where
+    handleWidget e = use appWidget >>= \w -> zoom widgetState (Widget.handle w e)
     resizeMainWidget newRegion = Continue $ do
-        modifyEnvironment (set region newRegion)
+        lift (modifyEnvironment (set region newRegion))
         pure Unchanged
-    keyTab   = use appWidget >>= zoom widgetState . switchFocus
-    keyUp    = do whenS (has resultsFocused) (zoom results prevLine)
-                  whenS (has pagerFocused)   (zoom pager   (scroll (-1)))
-    keyDown  = do whenS (has resultsFocused) (zoom results nextLine)
-                  whenS (has pagerFocused)   (zoom pager   (scroll 1))
-    keyPgUp  = do whenS (has resultsFocused) (zoom results pageUp)
-                  whenS (has pagerFocused)   (zoom pager   (scrollPage (-1)))
-    keyPgDn  = do whenS (has resultsFocused) (zoom results pageDown)
-                  whenS (has pagerFocused)   (zoom pager   (scrollPage 1))
+    keyTab   = handleWidget SwitchFocus
+    keyUp    = handleWidget (FocusedWidgetEvent PrevLine (Scroll (-1)))
+    keyDown  = handleWidget (FocusedWidgetEvent NextLine (Scroll 1))
+    keyPgUp  = handleWidget (FocusedWidgetEvent PageUp   (ScrollPage (-1)))
+    keyPgDn  = handleWidget (FocusedWidgetEvent PageDown (ScrollPage 1))
     keyEnter = whenS (has resultsFocused) $ do
                   loadSelectedFileToPager
                   liftState $ do
                       moveToSelectedLineNumber
-                      use appWidget >>= zoom widgetState . splitFocusRight (1 % 3)
+                      use appWidget >>= zoom widgetState . _splitFocusRight (1 % 3)
     keyEdit  = zoom results $ do
                   maybeFileName <- uses currentFileName (fmap T.unpack)
                   when (isJust maybeFileName) $ do
                       lineNumber <- uses currentLineNumber (fromMaybe 0)
                       invokeEditor (fromJust maybeFileName) lineNumber
-    keyEsc   = whenS (has pagerFocused)
-                  (use appWidget >>= zoom widgetState . leftOnly)
+    keyEsc   = handleWidget LeftWidget
+
 
 loadSelectedFileToPager :: StateT AppState (VgrepT IO) ()
 loadSelectedFileToPager = do
@@ -191,10 +188,11 @@ loadSelectedFileToPager = do
             liftState $ zoom pager (replaceBufferContents  displayContent)
         Nothing -> pure ()
 
-moveToSelectedLineNumber :: State AppState ()
+moveToSelectedLineNumber :: Monad m => StateT AppState m Redraw
 moveToSelectedLineNumber = do
     lineNumber <- use (results . currentLineNumber)
-    zoom pager (moveToLine (fromMaybe 0 lineNumber))
+    widget <- use appWidget
+    zoom widgetState (Widget.handle widget (RightEvent (MoveToLine (fromMaybe 0 lineNumber))))
 
 invokeEditor :: FilePath -> Int -> StateT ResultsState (VgrepT IO) ()
 invokeEditor file lineNumber = do
