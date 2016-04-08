@@ -23,7 +23,7 @@ import qualified Pipes.Prelude as P
 import System.Directory
 import System.Environment (getArgs)
 import System.IO
-import System.Posix
+import System.Posix.IO
 import System.Process
 
 import Vgrep.App as App
@@ -103,7 +103,8 @@ app = App
     , App.handleEvent = eventHandler
     , App.render      = renderMainWidget }
   where
-    initSplitView vty = do
+    initSplitView :: MonadIO m => VgrepT m AppState
+    initSplitView = do
         let mainWidget = hSplitWidget resultsWidget pagerWidget
         liftIO . pure $ AppState
             { _appWidget   = mainWidget
@@ -118,41 +119,42 @@ app = App
 ---------------------------------------------------------------------------
 -- Events
 
-eventHandler :: EventHandler Event AppState
+eventHandler :: MonadIO m => EventHandler Event AppState m
 eventHandler = mconcat $
     [ liftEventHandler (preview vtyEvent) vtyEventHandler
-    , handle (preview receiveInputEvent)  (continueIO . feedInputLine)
-    , handle (preview receiveResultEvent) (continueIO . feedResultLine) ]
+    , handle (preview receiveInputEvent)  (Continue . feedInputLine)
+    , handle (preview receiveResultEvent) (Continue . feedResultLine) ]
   where
-    feedResultLine, feedInputLine :: Text -> StateT AppState (VgrepT IO) ()
+    feedResultLine, feedInputLine :: MonadIO m
+                                  => Text -> StateT AppState (VgrepT m) Redraw
     feedResultLine line = do
         expandedLine <- (lift . expandLineForDisplay) line
-        let maybeParsedLine = parseLine expandedLine
-        when (isJust maybeParsedLine) $
-            zoom (widgetState . leftWidget)
-                 (feedResult (fromJust maybeParsedLine))
+        case parseLine expandedLine of
+            Just line -> zoom (widgetState . leftWidget) (feedResult line)
+            Nothing   -> pure Unchanged
     feedInputLine line = do
         expandedLine <- (lift . expandLineForDisplay) line
         modifying inputLines (|> expandedLine)
+        pure Unchanged
 
-vtyEventHandler :: EventHandler Vty.Event AppState
+vtyEventHandler :: MonadIO m => EventHandler Vty.Event AppState m
 vtyEventHandler = mconcat
-    [ handle (keyCharEvent 'q'   []) (const halt)
+    [ handle (keyCharEvent 'q'   []) (const (Interrupt Halt))
     , handle resizeEvent             resizeMainWidget
-    , handle (keyCharEvent '\t'  []) (const (continue keyTab))
-    , handle (keyEvent KUp       []) (const (continue keyUp))
-    , handle (keyEvent KDown     []) (const (continue keyDown))
-    , handle (keyCharEvent 'k'   []) (const (continue keyUp))
-    , handle (keyCharEvent 'j'   []) (const (continue keyDown))
-    , handle (keyEvent KPageUp   []) (const (continue keyPgUp))
-    , handle (keyEvent KPageDown []) (const (continue keyPgDn))
-    , handle (keyEvent KEnter    []) (const (continueIO keyEnter))
-    , handle (keyCharEvent 'e'   []) (const (suspend keyEdit))
-    , handle (keyEvent KEsc      []) (const (continue keyEsc)) ]
+    , handle (keyCharEvent '\t'  []) (const (Continue keyTab))
+    , handle (keyEvent KUp       []) (const (Continue keyUp))
+    , handle (keyEvent KDown     []) (const (Continue keyDown))
+    , handle (keyCharEvent 'k'   []) (const (Continue keyUp))
+    , handle (keyCharEvent 'j'   []) (const (Continue keyDown))
+    , handle (keyEvent KPageUp   []) (const (Continue keyPgUp))
+    , handle (keyEvent KPageDown []) (const (Continue keyPgDn))
+    , handle (keyEvent KEnter    []) (const (Continue keyEnter))
+    , handle (keyCharEvent 'e'   []) (const (Interrupt (Suspend keyEdit)))
+    , handle (keyEvent KEsc      []) (const (Continue keyEsc)) ]
   where
-    resizeMainWidget newRegion state = do
+    resizeMainWidget newRegion = Continue $ do
         modifyEnvironment (set region newRegion)
-        get >>= pure . Continue
+        pure Unchanged
     keyTab   = use appWidget >>= zoom widgetState . switchFocus
     keyUp    = do whenS (has resultsFocused) (zoom results prevLine)
                   whenS (has pagerFocused)   (zoom pager   (scroll (-1)))
