@@ -119,9 +119,9 @@ app = App
 ---------------------------------------------------------------------------
 -- Events
 
-eventHandler :: MonadIO m => EventHandler Event AppState m
+eventHandler :: MonadIO m => Event -> Next AppState m
 eventHandler = mconcat $
-    [ liftEventHandler (preview vtyEvent) vtyEventHandler
+    [ handle (preview vtyEvent) vtyEventHandler
     , handle (preview receiveInputEvent)  (Continue . feedInputLine)
     , handle (preview receiveResultEvent) (Continue . feedResultLine) ]
   where
@@ -137,7 +137,7 @@ eventHandler = mconcat $
         modifying inputLines (|> expandedLine)
         pure Unchanged
 
-vtyEventHandler :: MonadIO m => EventHandler Vty.Event AppState m
+vtyEventHandler :: MonadIO m => Vty.Event -> Next AppState m
 vtyEventHandler = mconcat
     [ handle (keyCharEvent 'q'   []) (const (Interrupt Halt))
     , handle resizeEvent             resizeMainWidget

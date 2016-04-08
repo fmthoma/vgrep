@@ -1,9 +1,6 @@
 {-# LANGUAGE Rank2Types #-}
 module Vgrep.Event
-    ( EventHandler (..)
-    , liftEventHandler
-
-    , Next (..)
+    ( Next (..)
     , Redraw (..)
     , Interrupt (..)
 
@@ -14,7 +11,6 @@ module Vgrep.Event
     , resizeEvent
     ) where
 
-import Control.Applicative
 import Control.Monad.State.Extended (StateT)
 import Control.Monad.IO.Class
 import qualified Graphics.Vty as Vty
@@ -44,31 +40,14 @@ instance Monoid (Next s m) where
     next `mappend` _other = next
     
 
-newtype EventHandler e s m = EventHandler { runEventHandler :: e -> Next s m }
-
-instance Monoid (EventHandler e s m) where
-    mempty = EventHandler $ \_ -> Skip
-    (EventHandler h1) `mappend` (EventHandler h2) =
-        EventHandler (liftA2 mappend h1 h2)
-
-
-liftEventHandler :: Monad m
-                 => (e -> Maybe e')
-                 -> EventHandler e' s m
-                 -> EventHandler e s m
-liftEventHandler f (EventHandler h) = EventHandler $ \e -> case f e of
-    Just e' -> h e'
-    Nothing -> Skip
-
-
 handle :: Monad m
        => (e -> Maybe e')
        -> (e' -> Next s m)
-       -> EventHandler e s m
-handle select action = EventHandler $ \event ->
-    case select event of
-        Just event' -> action event'
-        Nothing     -> Skip
+       -> (e  -> Next s m)
+handle select action event = case select event of
+    Just event' -> action event'
+    Nothing     -> Skip
+
 
 keyEvent :: Vty.Key -> [Vty.Modifier] -> Vty.Event -> Maybe ()
 keyEvent k ms = \case
