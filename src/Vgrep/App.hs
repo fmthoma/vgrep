@@ -27,7 +27,7 @@ import Vgrep.Type
 data App e s = App
     { initialize   :: forall m. MonadIO m => VgrepT m s
     , liftEvent    :: Vty.Event -> e
-    , handleEvent  :: forall m. MonadIO m => e -> Next s m
+    , handleEvent  :: forall m. MonadIO m => e -> StateT s (VgrepT m) Next
     , render       :: forall m. Monad m => s -> VgrepT m Vty.Picture }
 
 
@@ -65,10 +65,11 @@ appEventLoop app evSource evSink =
     eventLoop :: Vty -> Consumer e (StateT s (VgrepT IO)) Interrupt
     eventLoop vty = do
         event <- await
-        case handleAppEvent event of
-            Skip                -> eventLoop vty
-            Continue action     -> lift (action >> refresh vty) >> eventLoop vty
-            Interrupt interrupt -> pure interrupt
+        lift (handleAppEvent event) >>= \case
+            Skip               -> eventLoop vty
+            Continue Unchanged -> eventLoop vty
+            Continue Redraw    -> lift (refresh vty) >> eventLoop vty
+            Interrupt int      -> pure int
 
     suspendAndResume :: Interrupt -> StateT s (VgrepT IO) ()
     suspendAndResume = \case
