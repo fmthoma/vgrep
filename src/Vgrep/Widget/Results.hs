@@ -4,7 +4,6 @@
 
 module Vgrep.Widget.Results
     ( ResultsState()
-    , ResultsEvent(..)
     , ResultsWidget
     , resultsWidget
 
@@ -29,10 +28,12 @@ import Data.Monoid
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 import Graphics.Vty.Image hiding ((<|>))
+import Graphics.Vty.Input
 import Graphics.Vty.Prelude
 import Prelude
 
 import Vgrep.Environment
+import Vgrep.Event
 import Vgrep.Results
 import Vgrep.Results.Buffer as Buffer
 import Vgrep.Type
@@ -41,30 +42,30 @@ import Vgrep.Widget.Type
 
 type ResultsState = Buffer
 
-data ResultsEvent
-    = FeedResult FileLineReference
-    | PageUp   | PageDown
-    | PrevLine | NextLine
-
-type ResultsWidget = Widget ResultsEvent ResultsState
+type ResultsWidget = Widget ResultsState
 
 resultsWidget :: ResultsWidget
 resultsWidget =
     Widget { initialize = initResults
            , draw       = renderResultList
-           , handle     = handleResultsEvent }
+           , handle     = resultsKeyBindings }
 
 initResults :: ResultsState
 initResults = EmptyBuffer
 
 
-handleResultsEvent :: Monad m => ResultsEvent -> StateT ResultsState (VgrepT m) Redraw
-handleResultsEvent = \case
-    FeedResult line -> feedResult line
-    PageUp          -> pageUp   >> pure Redraw
-    PageDown        -> pageDown >> pure Redraw
-    PrevLine        -> prevLine >> pure Redraw
-    NextLine        -> nextLine >> pure Redraw
+resultsKeyBindings :: Monad m
+                   => Event
+                   -> StateT ResultsState (VgrepT m) Redraw
+resultsKeyBindings = fromMaybe (pure Unchanged) . dispatch
+    [ EvKey KPageUp     [] ==> (pageUp   >> pure Redraw)
+    , EvKey KPageDown   [] ==> (pageDown >> pure Redraw)
+    , EvKey KPageUp     [] ==> (pageUp   >> pure Redraw)
+    , EvKey KPageDown   [] ==> (pageDown >> pure Redraw)
+    , EvKey KUp         [] ==> (prevLine >> pure Redraw)
+    , EvKey KDown       [] ==> (nextLine >> pure Redraw)
+    , EvKey (KChar 'k') [] ==> (prevLine >> pure Redraw)
+    , EvKey (KChar 'h') [] ==> (nextLine >> pure Redraw) ]
 
 feedResult :: Monad m => FileLineReference -> StateT ResultsState (VgrepT m) Redraw
 feedResult line = do

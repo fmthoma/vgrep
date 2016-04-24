@@ -1,7 +1,6 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Vgrep.Widget.Pager
     ( PagerState ()
-    , PagerEvent (..)
     , PagerWidget
     , pagerWidget
 
@@ -14,12 +13,15 @@ module Vgrep.Widget.Pager
 import Control.Lens
 import Control.Monad.State.Extended (StateT, put, modify)
 import Data.Foldable
+import Data.Maybe
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 import Graphics.Vty.Image hiding (resize)
+import Graphics.Vty.Input
 import Graphics.Vty.Prelude
 
 import Vgrep.Environment
+import Vgrep.Event
 import Vgrep.Type
 import Vgrep.Widget.Type
 
@@ -30,19 +32,13 @@ data PagerState = PagerState { _position :: Int
 
 makeLensesFor [("_position", "position"), ("_visible", "visible")] ''PagerState
 
-data PagerEvent
-    = Scroll Int
-    | ScrollPage Int
-    | MoveToLine Int
-    | ReplaceBufferContents [Text]
-
-type PagerWidget = Widget PagerEvent PagerState
+type PagerWidget = Widget PagerState
 
 pagerWidget :: PagerWidget
 pagerWidget =
     Widget { initialize = initPager
            , draw       = renderPager
-           , handle     = handlePagerEvent }
+           , handle     = pagerKeyBindings }
 
 initPager :: PagerState
 initPager = PagerState { _position = 0
@@ -50,42 +46,45 @@ initPager = PagerState { _position = 0
                        , _visible  = [] }
 
 
-handlePagerEvent :: Monad m => PagerEvent -> StateT PagerState (VgrepT m) Redraw
-handlePagerEvent event = do
-    view region >>= \displayRegion -> case event of
-        ReplaceBufferContents content -> replaceBufferContents content
-        MoveToLine n                  -> moveToLine displayRegion n
-        ScrollPage n                  -> scrollPage displayRegion n
-        Scroll n                      -> scroll displayRegion n
-    pure Redraw
+pagerKeyBindings :: Monad m
+                 => Event
+                 -> StateT PagerState (VgrepT m) Redraw
+pagerKeyBindings = fromMaybe (pure Unchanged) . dispatch
+    [ EvKey KUp         [] ==> scroll (-1)
+    , EvKey KDown       [] ==> scroll 1
+    , EvKey (KChar 'j') [] ==> scroll (-1)
+    , EvKey (KChar 'k') [] ==> scroll 1
+    , EvKey KPageUp     [] ==> scrollPage (-1)
+    , EvKey KPageDown   [] ==> scrollPage 1
+    ]
 
 replaceBufferContents :: Monad m => [Text] -> StateT PagerState (VgrepT m) ()
 replaceBufferContents content = put (set visible content initPager)
 
-moveToLine :: Monad m => DisplayRegion -> Int -> StateT PagerState (VgrepT m) ()
-moveToLine displayRegion n = do
+moveToLine :: Monad m => Int -> StateT PagerState (VgrepT m) Redraw
+moveToLine n = view region >>= \displayRegion -> do
     let height = regionHeight displayRegion
     pos    <- use position
-    scroll displayRegion (n - height `div` 2 - pos)
+    scroll (n - height `div` 2 - pos)
 
-scroll :: Monad m => DisplayRegion -> Int -> StateT PagerState (VgrepT m) ()
-scroll displayRegion n = do
+scroll :: Monad m => Int -> StateT PagerState (VgrepT m) Redraw
+scroll n = view region >>= \displayRegion -> do
     let height = regionHeight displayRegion
     linesVisible <- uses visible (length . take (height + 1))
     if | n > 0 && linesVisible > height
-                   -> modify goDown >> scroll displayRegion (n - 1)
-       | n < 0     -> modify goUp   >> scroll displayRegion (n + 1)
-       | otherwise -> pure ()
+                   -> modify goDown >> scroll (n - 1)
+       | n < 0     -> modify goUp   >> scroll (n + 1)
+       | otherwise -> pure Redraw
   where
     goDown (PagerState l as     (b:bs)) = PagerState (l + 1) (b:as) bs
     goDown (PagerState l as     [])     = PagerState l       as     []
     goUp   (PagerState l (a:as) bs)     = PagerState (l - 1) as     (a:bs)
     goUp   (PagerState l []     bs)     = PagerState l       []     bs
 
-scrollPage :: Monad m => DisplayRegion -> Int -> StateT PagerState (VgrepT m) ()
-scrollPage displayRegion n =
+scrollPage :: Monad m => Int -> StateT PagerState (VgrepT m) Redraw
+scrollPage n = view region >>= \displayRegion ->
     let height = regionHeight displayRegion
-    in  scroll displayRegion (n * (height - 1))
+    in  scroll (n * (height - 1))
                     -- gracefully leave one ^ line on the screen
 
 

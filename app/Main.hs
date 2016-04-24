@@ -70,8 +70,7 @@ main = do
         cancel grepThread
 
 
-type MainWidget  = HSplitWidget ResultsEvent PagerEvent ResultsState PagerState
-type WidgetEvent = HSplitEvent  ResultsEvent PagerEvent
+type MainWidget  = HSplitWidget ResultsState PagerState
 type WidgetState = HSplitState  ResultsState PagerState
 
 data AppState = AppState { _appWidget   :: MainWidget
@@ -125,8 +124,7 @@ eventHandler :: MonadIO m => Event -> StateT AppState (VgrepT m) Next
 eventHandler = \case
     ReceiveInputEvent line  -> handleFeedInput line
     ReceiveResultEvent line -> handleFeedResult line
-    VtyEvent event          -> do w <- use appWidget
-                                  zoom widgetState (handleVty w event)
+    VtyEvent event          -> handleVty event
   where
     handleFeedResult, handleFeedInput :: MonadIO m
                                       => Text
@@ -141,33 +139,19 @@ eventHandler = \case
         modifying inputLines (|> expandedLine)
         pure (Continue Unchanged)
 
+delegateToWidget :: MonadIO m => Vty.Event -> StateT AppState (VgrepT m) Next
+delegateToWidget event = do
+    widget <- use appWidget
+    redraw <- zoom widgetState (Widget.handle widget event)
+    pure (Continue redraw)
+
+
 handleVty :: MonadIO m
-          => MainWidget
-          -> Vty.Event
-          -> StateT WidgetState (VgrepT m) Next
-handleVty widget = \case
-    EvKey (KChar 'q') [] -> pure (Interrupt Halt)
-    other         -> fmap Continue (Widget.delegate widget (fmap Just foo) other)
-  where
-    foo = zoomLeft resultsWidgetKeyBindings :|: zoomRight pagerWidgetKeyBindings
-    zoomLeft = fmap Just . ZoomLeft
-    zoomRight = fmap Just . ZoomRight
-
-resultsWidgetKeyBindings :: Vty.Event -> Maybe ResultsEvent
-resultsWidgetKeyBindings = fmap getFirst $ mconcat
-    [ EvKey KUp   [] `triggers` PrevLine
-    , EvKey KDown [] `triggers` NextLine
-    ]
-
-pagerWidgetKeyBindings :: Vty.Event -> Maybe PagerEvent
-pagerWidgetKeyBindings = fmap getFirst $ mconcat
-    [ EvKey KUp   [] `triggers` Scroll (-1)
-    , EvKey KDown [] `triggers` Scroll 1
-    ]
-
-triggers :: Eq e => e -> e' -> e -> First e'
-triggers expected trigger actual | expected == actual = First (Just trigger)
-                                 | otherwise          = First Nothing
+          => Vty.Event
+          -> StateT AppState (VgrepT m) Next
+handleVty = \case
+    EvKey (KChar 'q') [] -> pure (Interrupt Halt) -- FIXME this shadows other bindings!
+    otherEvent -> delegateToWidget otherEvent
 
 
 --
