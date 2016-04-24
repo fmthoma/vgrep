@@ -71,18 +71,17 @@ feedResult :: Monad m => FileLineReference -> StateT ResultsState (VgrepT m) Red
 feedResult line = do
     modify (feed line)
     resizeToWindow
-    pure Redraw -- FIXME only redraw if necessary
 
 pageUp, pageDown :: Monad m => StateT ResultsState (VgrepT m) ()
 pageUp = do
     unlessS (isJust . moveUp) $ do
         modify (repeatedly (hideNext >=> showPrev))
-        resizeToWindow
+        void resizeToWindow
     modify (repeatedly moveUp)
 pageDown = do
     unlessS (isJust . moveDown) $ do
         modify (repeatedly hidePrev)
-        resizeToWindow
+        void resizeToWindow
     modify (repeatedly moveDown)
 
 repeatedly :: (a -> Maybe a) -> a -> a
@@ -93,8 +92,8 @@ repeatedly f = go
 
 
 prevLine, nextLine :: Monad m => StateT ResultsState (VgrepT m) ()
-prevLine = maybeModify tryPrevLine >> resizeToWindow
-nextLine = maybeModify tryNextLine >> resizeToWindow
+prevLine = maybeModify tryPrevLine >> void resizeToWindow
+nextLine = maybeModify tryNextLine >> void resizeToWindow
 
 tryPrevLine, tryNextLine :: Buffer -> Maybe Buffer
 tryPrevLine buf = moveUp   buf <|> (showPrev buf >>= tryPrevLine)
@@ -153,10 +152,13 @@ renderLine (width, lineNumberWidth) displayLine = do
                         . padWithSpace (width - lineNumberWidth)
 
 
-resizeToWindow :: Monad m => StateT ResultsState (VgrepT m) ()
+resizeToWindow :: Monad m => StateT ResultsState (VgrepT m) Redraw
 resizeToWindow = do
     height <- views region regionHeight
-    modify (Buffer.resize height)
+    currentBuffer <- get
+    case Buffer.resize height currentBuffer of
+        Just resizedBuffer -> put resizedBuffer >> pure Redraw
+        Nothing            -> pure Unchanged
 
 
 currentFileName :: Getter ResultsState (Maybe Text)
