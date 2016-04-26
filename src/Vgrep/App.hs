@@ -11,7 +11,7 @@ module Vgrep.App
 import Control.Concurrent.Async
 import Control.Exception
 import Control.Monad.Reader
-import Control.Monad.State (StateT (..), execStateT, get)
+import Control.Monad.State (StateT (..), execStateT)
 import Graphics.Vty (Vty)
 import qualified Graphics.Vty as Vty
 import Pipes hiding (next)
@@ -28,7 +28,7 @@ data App e s = App
     { initialize   :: forall m. MonadIO m => m s
     , liftEvent    :: Vty.Event -> e
     , handleEvent  :: forall m. MonadIO m => e -> StateT s (VgrepT m) Next
-    , render       :: forall m. Monad m => s -> VgrepT m Vty.Picture }
+    , render       :: forall m. Monad m => StateT s (VgrepT m) Vty.Picture }
 
 
 runApp_ :: App e s -> Config -> Producer e IO () -> IO ()
@@ -78,7 +78,7 @@ appEventLoop app evSource evSink =
                                     continueEventLoop >>= suspendAndResume
 
     refresh :: Vty -> StateT s (VgrepT IO) ()
-    refresh vty = get >>= lift . render app >>= lift . lift . Vty.update vty
+    refresh vty = render app >>= lift . lift . Vty.update vty
     vtyEventSink = P.map (liftEvent app) >-> toOutput evSink
     handleAppEvent = handleEvent app
 

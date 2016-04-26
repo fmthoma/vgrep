@@ -14,5 +14,5 @@ import Vgrep.Type
 
 data Widget s = Widget
     { initialize :: s
-    , draw       :: forall m. Monad m => s -> VgrepT m Image
+    , draw       :: forall m. Monad m =>          StateT s (VgrepT m) Image
     , handle     :: forall m. Monad m => Event -> StateT s (VgrepT m) Redraw }

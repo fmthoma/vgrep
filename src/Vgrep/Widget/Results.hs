@@ -107,22 +107,26 @@ maybeModify f = do
         Nothing -> pure ()
 
 
-renderResultList :: Monad m => ResultsState -> VgrepT m Image
-renderResultList buffer = do
-      width <- views region regionWidth
-      renderedLines <- renderLines width (toLines buffer)
-      pure (vertCat renderedLines)
-
-renderLines :: Monad m => Int -> [DisplayLine] -> VgrepT m [Image]
-renderLines width ls = traverse (renderLine (width, lineNumberWidth)) ls
-  where lineNumberWidth = foldl' max 0
-                        . map (twoExtraSpaces . length . show)
-                        . catMaybes
-                        $ map lineNumber ls
+renderResultList :: Monad m => StateT ResultsState (VgrepT m) Image
+renderResultList = do
+    visibleLines <- use (to toLines)
+    width <- views region regionWidth
+    let render = renderLine width (lineNumberWidth visibleLines)
+    renderedLines <- traverse render visibleLines
+    pure (vertCat renderedLines)
+  where lineNumberWidth
+            = foldl' max 0
+            . map (twoExtraSpaces . length . show)
+            . catMaybes
+            . map lineNumber
         twoExtraSpaces = (+ 2)
 
-renderLine :: Monad m => (Int, Int) -> DisplayLine -> VgrepT m Image
-renderLine (width, lineNumberWidth) displayLine = do
+renderLine :: Monad m
+          => Int
+          -> Int
+          -> DisplayLine
+          -> StateT ResultsState (VgrepT m) Image
+renderLine width lineNumberWidth displayLine = lift $ do
     fileHeaderStyle <- view (config . colors . fileHeaders)
     lineNumberStyle <- view (config . colors . lineNumbers)
     resultLineStyle <- view (config . colors . normal)

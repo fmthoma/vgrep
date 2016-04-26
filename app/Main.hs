@@ -107,9 +107,8 @@ app = App
     initSplitView = pure $ AppState
             { _widgetState = Widget.initialize mainWidget
             , _inputLines  = S.empty }
-    renderMainWidget s =
-        let mainWidgetState = view widgetState s
-        in  fmap picForImage (draw mainWidget mainWidgetState)
+    renderMainWidget :: Monad m => StateT AppState (VgrepT m) Vty.Picture
+    renderMainWidget = fmap picForImage (zoom widgetState (draw mainWidget))
 
 mainWidget :: MainWidget
 mainWidget = hSplitWidget resultsWidget pagerWidget

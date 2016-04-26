@@ -99,26 +99,34 @@ switchFocus = use split >>= \case
 drawWidgets :: Monad m
             => Widget s
             -> Widget t
-            -> HSplitState s t
-            -> VgrepT m Image
-drawWidgets left right state = case view split state of
-    LeftOnly  -> draw left  (view leftWidget  state)
-    RightOnly -> draw right (view rightWidget state)
-    Split _ _ -> liftA2 (<|>)
-        (local (leftRegion state)  (draw left  (view leftWidget  state)))
-        (local (rightRegion state) (draw right (view rightWidget state)))
+            -> StateT (HSplitState s t) (VgrepT m) Image
+drawWidgets left right = use split >>= \case
+    LeftOnly      -> zoom leftWidget  (draw left)
+    RightOnly     -> zoom rightWidget (draw right)
+    Split _ ratio -> liftA2 (<|>)
+        (runInLeftWidget  ratio (draw left))
+        (runInRightWidget ratio (draw right))
 
-leftRegion, rightRegion :: HSplitState s t -> Environment -> Environment
-leftRegion state = case view split state of
-    LeftOnly      -> id
-    RightOnly     -> id
-    Split _ ratio -> over region $ \(w, h) ->
-                            (ceiling (ratio * fromIntegral w), h)
-rightRegion state = case view split state of
-    LeftOnly      -> id
-    RightOnly     -> id
-    Split _ ratio -> over region $ \(w, h) ->
-                            (floor ((1 - ratio) * fromIntegral w), h)
+runInLeftWidget
+    :: Monad m
+    => Rational
+    -> StateT s (VgrepT m) Image
+    -> StateT (HSplitState s t) (VgrepT m) Image
+runInLeftWidget ratio action =
+    let leftRegion = over (region . _1) $ \w ->
+            ceiling (ratio * fromIntegral w)
+    in  zoom leftWidget (local leftRegion action)
+
+
+runInRightWidget
+    :: Monad m
+    => Rational
+    -> StateT t (VgrepT m) Image
+    -> StateT (HSplitState s t) (VgrepT m) Image
+runInRightWidget ratio action =
+    let rightRegion = over (region . _1) $ \w ->
+            floor ((1-ratio) * fromIntegral w)
+    in  zoom rightWidget (local rightRegion action)
 
 -- ------------------------------------------------------------------------
 -- Events & Keybindings

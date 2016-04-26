@@ -88,13 +88,14 @@ scrollPage n = view region >>= \displayRegion ->
                     -- gracefully leave one ^ line on the screen
 
 
-renderPager :: Monad m => PagerState -> VgrepT m Image
-renderPager state = do
+renderPager :: Monad m => StateT PagerState (VgrepT m) Image
+renderPager = do
     textColor       <- view (config . colors . normal)
     lineNumberColor <- view (config . colors . lineNumbers)
     (width, height) <- view region
-    let visibleLines = take height (view visible state)
-        image = renderLineNumbers lineNumberColor visibleLines
+    startPosition   <- use position
+    visibleLines    <- use (visible . to (take height))
+    let image = renderLineNumbers lineNumberColor startPosition (length visibleLines)
             <|> renderTextLines textColor visibleLines
     pure (resizeWidth width image)
   where
@@ -103,10 +104,9 @@ renderPager state = do
              . fmap padWithSpace
              . fmap T.unpack
 
-    renderLineNumbers attr visibleLines =
+    renderLineNumbers attr startPosition visibleLines =
         fold . fmap (string attr)
-             . take (length visibleLines)
              . fmap (padWithSpace . show)
-             $ [(view position state) ..]
+             $ [startPosition..visibleLines]
 
     padWithSpace s = ' ' : s ++ " "
