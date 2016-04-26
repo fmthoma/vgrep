@@ -73,8 +73,7 @@ main = do
 type MainWidget  = HSplitWidget ResultsState PagerState
 type WidgetState = HSplitState  ResultsState PagerState
 
-data AppState = AppState { _appWidget   :: MainWidget
-                         , _widgetState :: WidgetState
+data AppState = AppState { _widgetState :: WidgetState
                          , _inputLines  :: Seq Text }
 
 data Event = VtyEvent Vty.Event
@@ -104,17 +103,16 @@ app = App
     , App.handleEvent = eventHandler
     , App.render      = renderMainWidget }
   where
-    initSplitView :: MonadIO m => VgrepT m AppState
-    initSplitView = do
-        let mainWidget = hSplitWidget resultsWidget pagerWidget
-        liftIO . pure $ AppState
-            { _appWidget   = mainWidget
-            , _widgetState = Widget.initialize mainWidget
+    initSplitView :: MonadIO m => m AppState
+    initSplitView = pure $ AppState
+            { _widgetState = Widget.initialize mainWidget
             , _inputLines  = S.empty }
     renderMainWidget s =
-        let mainWidget      = view appWidget   s
-            mainWidgetState = view widgetState s
+        let mainWidgetState = view widgetState s
         in  fmap picForImage (draw mainWidget mainWidgetState)
+
+mainWidget :: MainWidget
+mainWidget = hSplitWidget resultsWidget pagerWidget
 
 
 ---------------------------------------------------------------------------
@@ -140,10 +138,8 @@ eventHandler = \case
         pure (Continue Unchanged)
 
 delegateToWidget :: MonadIO m => Vty.Event -> StateT AppState (VgrepT m) Next
-delegateToWidget event = do
-    widget <- use appWidget
-    redraw <- zoom widgetState (Widget.handle widget event)
-    pure (Continue redraw)
+delegateToWidget event = zoom widgetState $
+    fmap Continue (Widget.handle mainWidget event)
 
 
 handleVty :: MonadIO m
@@ -234,9 +230,6 @@ exec command args = liftIO $ do
 
 ---------------------------------------------------------------------------
 -- Lenses
-
-appWidget :: Lens' AppState MainWidget
-appWidget = lens _appWidget (\s w -> s { _appWidget = w })
 
 widgetState :: Lens' AppState WidgetState
 widgetState = lens _widgetState (\s ws -> s { _widgetState = ws })

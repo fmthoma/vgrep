@@ -25,7 +25,7 @@ import Vgrep.Event
 import Vgrep.Type
 
 data App e s = App
-    { initialize   :: forall m. MonadIO m => VgrepT m s
+    { initialize   :: forall m. MonadIO m => m s
     , liftEvent    :: Vty.Event -> e
     , handleEvent  :: forall m. MonadIO m => e -> StateT s (VgrepT m) Next
     , render       :: forall m. Monad m => s -> VgrepT m Vty.Picture }
