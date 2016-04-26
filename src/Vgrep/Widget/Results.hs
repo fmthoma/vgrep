@@ -109,6 +109,7 @@ maybeModify f = do
 
 renderResultList :: Monad m => StateT ResultsState (VgrepT m) Image
 renderResultList = do
+    void resizeToWindow
     visibleLines <- use (to toLines)
     width <- views region regionWidth
     let render = renderLine width (lineNumberWidth visibleLines)
