@@ -16,7 +16,6 @@ module Vgrep.Widget.HorizontalSplit
 import Control.Lens
 import Control.Monad.State.Extended (StateT)
 import Control.Monad.Reader (local)
-import Control.Monad.IO.Class
 import Graphics.Vty.Image hiding (resize)
 import Graphics.Vty.Input
 
@@ -126,7 +125,7 @@ rightRegion state = case view split state of
 -- ------------------------------------------------------------------------
 
 -- FIXME: local region!
-handleEvents :: MonadIO m
+handleEvents :: Monad m
              => Widget s
              -> Widget t
              -> Event
