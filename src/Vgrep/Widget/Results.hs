@@ -56,7 +56,7 @@ initResults = EmptyBuffer
 
 resultsKeyBindings :: Monad m
                    => Event
-                   -> StateT ResultsState (VgrepT m) Redraw
+                   -> VgrepT ResultsState m Redraw
 resultsKeyBindings = fromMaybe (pure Unchanged) . dispatch
     [ EvKey KPageUp     [] ==> (pageUp   >> pure Redraw)
     , EvKey KPageDown   [] ==> (pageDown >> pure Redraw)
@@ -67,12 +67,12 @@ resultsKeyBindings = fromMaybe (pure Unchanged) . dispatch
     , EvKey (KChar 'k') [] ==> (prevLine >> pure Redraw)
     , EvKey (KChar 'h') [] ==> (nextLine >> pure Redraw) ]
 
-feedResult :: Monad m => FileLineReference -> StateT ResultsState (VgrepT m) Redraw
+feedResult :: Monad m => FileLineReference -> VgrepT ResultsState m Redraw
 feedResult line = do
     modify (feed line)
     resizeToWindow
 
-pageUp, pageDown :: Monad m => StateT ResultsState (VgrepT m) ()
+pageUp, pageDown :: Monad m => VgrepT ResultsState m ()
 pageUp = do
     unlessS (isJust . moveUp) $ do
         modify (repeatedly (hideNext >=> showPrev))
@@ -91,7 +91,7 @@ repeatedly f = go
          | otherwise      = x
 
 
-prevLine, nextLine :: Monad m => StateT ResultsState (VgrepT m) ()
+prevLine, nextLine :: Monad m => VgrepT ResultsState m ()
 prevLine = maybeModify tryPrevLine >> void resizeToWindow
 nextLine = maybeModify tryNextLine >> void resizeToWindow
 
@@ -99,7 +99,7 @@ tryPrevLine, tryNextLine :: Buffer -> Maybe Buffer
 tryPrevLine buf = moveUp   buf <|> (showPrev buf >>= tryPrevLine)
 tryNextLine buf = moveDown buf <|> (showNext buf >>= tryNextLine)
 
-maybeModify :: Monad m => (s -> Maybe s) -> StateT s m ()
+maybeModify :: Monad m => (s -> Maybe s) -> VgrepT s m ()
 maybeModify f = do
     s <- get
     case f s of
@@ -107,7 +107,7 @@ maybeModify f = do
         Nothing -> pure ()
 
 
-renderResultList :: Monad m => StateT ResultsState (VgrepT m) Image
+renderResultList :: Monad m => VgrepT ResultsState m Image
 renderResultList = do
     void resizeToWindow
     visibleLines <- use (to toLines)
@@ -123,11 +123,11 @@ renderResultList = do
         twoExtraSpaces = (+ 2)
 
 renderLine :: Monad m
-          => Int
-          -> Int
-          -> DisplayLine
-          -> StateT ResultsState (VgrepT m) Image
-renderLine width lineNumberWidth displayLine = lift $ do
+           => Int
+           -> Int
+           -> DisplayLine
+           -> VgrepT ResultsState m Image
+renderLine width lineNumberWidth displayLine = do
     fileHeaderStyle <- view (config . colors . fileHeaders)
     lineNumberStyle <- view (config . colors . lineNumbers)
     resultLineStyle <- view (config . colors . normal)
@@ -157,7 +157,7 @@ renderLine width lineNumberWidth displayLine = lift $ do
                         . padWithSpace (width - lineNumberWidth)
 
 
-resizeToWindow :: Monad m => StateT ResultsState (VgrepT m) Redraw
+resizeToWindow :: Monad m => VgrepT ResultsState m Redraw
 resizeToWindow = do
     height <- views region regionHeight
     currentBuffer <- get

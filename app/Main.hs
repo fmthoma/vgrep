@@ -107,7 +107,7 @@ app = App
     initSplitView = pure $ AppState
             { _widgetState = Widget.initialize mainWidget
             , _inputLines  = S.empty }
-    renderMainWidget :: Monad m => StateT AppState (VgrepT m) Vty.Picture
+    renderMainWidget :: Monad m => VgrepT AppState m Vty.Picture
     renderMainWidget = fmap picForImage (zoom widgetState (draw mainWidget))
 
 mainWidget :: MainWidget
@@ -117,7 +117,7 @@ mainWidget = hSplitWidget resultsWidget pagerWidget
 ---------------------------------------------------------------------------
 -- Events
 
-eventHandler :: MonadIO m => Event -> StateT AppState (VgrepT m) Next
+eventHandler :: MonadIO m => Event -> VgrepT AppState m Next
 eventHandler = \case
     ReceiveInputEvent line  -> handleFeedInput line
     ReceiveResultEvent line -> handleFeedResult line
@@ -125,27 +125,27 @@ eventHandler = \case
   where
     handleFeedResult, handleFeedInput :: MonadIO m
                                       => Text
-                                      -> StateT AppState (VgrepT m) Next
+                                      -> VgrepT AppState m Next
     handleFeedResult line = do
-        expandedLine <- (lift . expandLineForDisplay) line
+        expandedLine <- expandLineForDisplay line
         fmap Continue $ case parseLine expandedLine of
             Just line -> zoom (widgetState . leftWidget) (feedResult line)
             Nothing   -> pure Unchanged
     handleFeedInput line = do
-        expandedLine <- (lift . expandLineForDisplay) line
+        expandedLine <- expandLineForDisplay line
         modifying inputLines (|> expandedLine)
         pure (Continue Unchanged)
 
-delegateToWidget :: MonadIO m => Vty.Event -> StateT AppState (VgrepT m) Next
+delegateToWidget :: MonadIO m => Vty.Event -> VgrepT AppState m Next
 delegateToWidget event = zoom widgetState $
     fmap Continue (Widget.handle mainWidget event)
 
 
 handleVty :: MonadIO m
           => Vty.Event
-          -> StateT AppState (VgrepT m) Next
+          -> VgrepT AppState m Next
 handleVty = \case
-    EvResize w h -> do lift (modifyEnvironment (set region (w, h)))
+    EvResize w h -> do modifyEnvironment (set region (w, h))
                     -- FIXME resizeToRegion
                        pure (Continue Redraw)
     EvKey (KChar 'q') [] -> pure (Interrupt Halt) -- FIXME this shadows other bindings!
@@ -210,7 +210,7 @@ handleVty = \case
 --    widget <- use appWidget
 --    zoom widgetState (Widget.handle widget (RightEvent (MoveToLine (fromMaybe 0 lineNumber))))
 
-invokeEditor :: FilePath -> Int -> StateT ResultsState (VgrepT IO) ()
+invokeEditor :: FilePath -> Int -> VgrepT ResultsState IO ()
 invokeEditor file lineNumber = do
     configuredEditor <- view (config . editor)
     liftIO $ doesFileExist file >>= \case

@@ -14,7 +14,6 @@ module Vgrep.Widget.HorizontalSplit
     ) where
 
 import Control.Lens
-import Control.Monad.State.Extended (StateT)
 import Control.Monad.Reader (local)
 import Graphics.Vty.Image hiding (resize)
 import Graphics.Vty.Input
@@ -75,20 +74,20 @@ initHSplit left right =
            , _split       = LeftOnly }
 
 
-leftOnly :: Monad m => StateT (HSplitState s t) m Redraw
+leftOnly :: Monad m => VgrepT (HSplitState s t) m Redraw
 leftOnly = use split >>= \case
     LeftOnly -> pure Unchanged
     _other   -> assign split LeftOnly >> pure Redraw
 
-rightOnly :: Monad m => StateT (HSplitState s t) m Redraw
+rightOnly :: Monad m => VgrepT (HSplitState s t) m Redraw
 rightOnly = use split >>= \case
     RightOnly -> pure Unchanged
     _other    -> assign split RightOnly >> pure Redraw
 
-splitView :: Monad m => Focus -> Rational -> StateT (HSplitState s t) m Redraw
+splitView :: Monad m => Focus -> Rational -> VgrepT (HSplitState s t) m Redraw
 splitView focus ratio = assign split (Split focus ratio) >> pure Redraw
 
-switchFocus :: Monad m => StateT (HSplitState s t) m Redraw
+switchFocus :: Monad m => VgrepT (HSplitState s t) m Redraw
 switchFocus = use split >>= \case
     Split focus ratio -> assign split (switch focus ratio) >> pure Redraw
     _otherwise        -> pure Unchanged
@@ -99,7 +98,7 @@ switchFocus = use split >>= \case
 drawWidgets :: Monad m
             => Widget s
             -> Widget t
-            -> StateT (HSplitState s t) (VgrepT m) Image
+            -> VgrepT (HSplitState s t) m Image
 drawWidgets left right = use split >>= \case
     LeftOnly      -> zoom leftWidget  (draw left)
     RightOnly     -> zoom rightWidget (draw right)
@@ -110,8 +109,8 @@ drawWidgets left right = use split >>= \case
 runInLeftWidget
     :: Monad m
     => Rational
-    -> StateT s (VgrepT m) Image
-    -> StateT (HSplitState s t) (VgrepT m) Image
+    -> VgrepT s m Image
+    -> VgrepT (HSplitState s t) m Image
 runInLeftWidget ratio action =
     let leftRegion = over (region . _1) $ \w ->
             ceiling (ratio * fromIntegral w)
@@ -121,8 +120,8 @@ runInLeftWidget ratio action =
 runInRightWidget
     :: Monad m
     => Rational
-    -> StateT t (VgrepT m) Image
-    -> StateT (HSplitState s t) (VgrepT m) Image
+    -> VgrepT t m Image
+    -> VgrepT (HSplitState s t) m Image
 runInRightWidget ratio action =
     let rightRegion = over (region . _1) $ \w ->
             floor ((1-ratio) * fromIntegral w)
@@ -137,7 +136,7 @@ handleEvents :: Monad m
              => Widget s
              -> Widget t
              -> Event
-             -> StateT (HSplitState s t) (VgrepT m) Redraw
+             -> VgrepT (HSplitState s t) m Redraw
 handleEvents left right e =
     use currentWidget >>= \case
         Left _ -> case hSplitKeyBindings_left e of
@@ -149,14 +148,14 @@ handleEvents left right e =
 
 hSplitKeyBindings_left :: Monad m
                        => Event
-                       -> Maybe (StateT (HSplitState s t) (VgrepT m) Redraw)
+                       -> Maybe (VgrepT (HSplitState s t) m Redraw)
 hSplitKeyBindings_left = dispatch
     [ EvKey (KChar '\t') [] ==> switchFocus
     , EvKey (KChar 'f')  [] ==> leftOnly ]
 
 hSplitKeyBindings_right :: Monad m
                         => Event
-                        -> Maybe (StateT (HSplitState s t) (VgrepT m) Redraw)
+                        -> Maybe (VgrepT (HSplitState s t) m Redraw)
 hSplitKeyBindings_right = dispatch
     [ EvKey (KChar '\t') [] ==> switchFocus
     , EvKey (KChar 'q')  [] ==> leftOnly

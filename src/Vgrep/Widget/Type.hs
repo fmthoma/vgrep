@@ -5,7 +5,6 @@ module Vgrep.Widget.Type
   , module Vgrep.Event
   ) where
 
-import Control.Monad.State.Extended
 import Graphics.Vty.Image (Image)
 import Graphics.Vty.Input
 
@@ -14,5 +13,5 @@ import Vgrep.Type
 
 data Widget s = Widget
     { initialize :: s
-    , draw       :: forall m. Monad m =>          StateT s (VgrepT m) Image
-    , handle     :: forall m. Monad m => Event -> StateT s (VgrepT m) Redraw }
+    , draw       :: forall m. Monad m =>          VgrepT s m Image
+    , handle     :: forall m. Monad m => Event -> VgrepT s m Redraw }

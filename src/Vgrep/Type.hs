@@ -1,5 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
 module Vgrep.Type
   ( VgrepT ()
   , Vgrep
@@ -17,6 +19,8 @@ module Vgrep.Type
 ) where
 
 import qualified Control.Exception as E
+import Control.Lens.Internal.Zoom
+import Control.Lens.Zoom
 import Control.Monad.Identity
 import Control.Monad.Morph
 import Control.Monad.Reader
@@ -24,38 +28,53 @@ import Control.Monad.State.Extended
 
 import Vgrep.Environment
 
-newtype VgrepT m a = VgrepT (StateT Environment m a)
+newtype VgrepT s m a = VgrepT (StateT s (StateT Environment m) a)
                 deriving ( Functor
                          , Applicative
                          , Monad
-                         , MonadTrans
-                         , MFunctor
                          , MonadIO )
 
-instance Monad m => MonadReader Environment (VgrepT m) where
-    ask = VgrepT get
-    local f action = mkVgrepT $ \env -> runVgrepT action (f env)
+instance Monad m => MonadReader Environment (VgrepT s m) where
+    ask = VgrepT (lift get)
+    local f action = mkVgrepT $ \s env -> runVgrepT action s (f env)
+
+instance Monad m => MonadState s (VgrepT s m) where
+    get = VgrepT get
+    put = VgrepT . put
+
+instance MonadTrans (VgrepT s) where
+    lift = VgrepT . lift . lift
+
+instance MFunctor (VgrepT s) where
+    hoist f (VgrepT action) = VgrepT (hoist (hoist f) action)
+
+type instance Zoomed (VgrepT s m) = Focusing (StateT Environment m)
+
+instance Monad m => Zoom (VgrepT s m) (VgrepT t m) s t where
+    zoom l (VgrepT m) = VgrepT (zoom l m)
 
 mkVgrepT :: Monad m
-         => (Environment -> m (a, Environment))
-         -> VgrepT m a
-mkVgrepT = VgrepT . StateT
+         => (s -> Environment -> m ((a, s), Environment)) -- TODO -> m (a, s)
+         -> VgrepT s m a
+mkVgrepT action = VgrepT (StateT (\s -> StateT (action s)))
 
 runVgrepT :: Monad m
-          => VgrepT m a
-          -> Environment -> m (a, Environment)
-runVgrepT (VgrepT action) = runStateT action
+          => VgrepT s m a
+          -> s
+          -> Environment
+          -> m ((a, s), Environment) -- TODO -> m (a, s)
+runVgrepT (VgrepT action) s env = runStateT (runStateT action s) env
 
-type Vgrep = VgrepT Identity
+type Vgrep s = VgrepT s Identity
 
 vgrepBracket :: IO a
              -> (a -> IO c)
-             -> (a -> VgrepT IO b)
-             -> VgrepT IO b
-vgrepBracket before after action = mkVgrepT $ \env ->
-    let baseAction a = runVgrepT (action a) env
+             -> (a -> VgrepT s IO b)
+             -> VgrepT s IO b
+vgrepBracket before after action = mkVgrepT $ \s env ->
+    let baseAction a = runVgrepT (action a) s env
     in  E.bracket before after baseAction
 
 
-modifyEnvironment :: Monad m => (Environment -> Environment) -> VgrepT m ()
-modifyEnvironment = VgrepT . modify
+modifyEnvironment :: Monad m => (Environment -> Environment) -> VgrepT s m ()
+modifyEnvironment = VgrepT . lift . modify

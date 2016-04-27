@@ -11,7 +11,7 @@ module Vgrep.Widget.Pager
     ) where
 
 import Control.Lens
-import Control.Monad.State.Extended (StateT, put, modify)
+import Control.Monad.State.Extended (put, modify)
 import Data.Foldable
 import Data.Maybe
 import Data.Text.Lazy (Text)
@@ -48,7 +48,7 @@ initPager = PagerState { _position = 0
 
 pagerKeyBindings :: Monad m
                  => Event
-                 -> StateT PagerState (VgrepT m) Redraw
+                 -> VgrepT PagerState m Redraw
 pagerKeyBindings = fromMaybe (pure Unchanged) . dispatch
     [ EvKey KUp         [] ==> scroll (-1)
     , EvKey KDown       [] ==> scroll 1
@@ -58,16 +58,16 @@ pagerKeyBindings = fromMaybe (pure Unchanged) . dispatch
     , EvKey KPageDown   [] ==> scrollPage 1
     ]
 
-replaceBufferContents :: Monad m => [Text] -> StateT PagerState (VgrepT m) ()
+replaceBufferContents :: Monad m => [Text] -> VgrepT PagerState m ()
 replaceBufferContents content = put (set visible content initPager)
 
-moveToLine :: Monad m => Int -> StateT PagerState (VgrepT m) Redraw
+moveToLine :: Monad m => Int -> VgrepT PagerState m Redraw
 moveToLine n = view region >>= \displayRegion -> do
     let height = regionHeight displayRegion
     pos    <- use position
     scroll (n - height `div` 2 - pos)
 
-scroll :: Monad m => Int -> StateT PagerState (VgrepT m) Redraw
+scroll :: Monad m => Int -> VgrepT PagerState m Redraw
 scroll n = view region >>= \displayRegion -> do
     let height = regionHeight displayRegion
     linesVisible <- uses visible (length . take (height + 1))
@@ -81,14 +81,14 @@ scroll n = view region >>= \displayRegion -> do
     goUp   (PagerState l (a:as) bs)     = PagerState (l - 1) as     (a:bs)
     goUp   (PagerState l []     bs)     = PagerState l       []     bs
 
-scrollPage :: Monad m => Int -> StateT PagerState (VgrepT m) Redraw
+scrollPage :: Monad m => Int -> VgrepT PagerState m Redraw
 scrollPage n = view region >>= \displayRegion ->
     let height = regionHeight displayRegion
     in  scroll (n * (height - 1))
                     -- gracefully leave one ^ line on the screen
 
 
-renderPager :: Monad m => StateT PagerState (VgrepT m) Image
+renderPager :: Monad m => VgrepT PagerState m Image
 renderPager = do
     textColor       <- view (config . colors . normal)
     lineNumberColor <- view (config . colors . lineNumbers)

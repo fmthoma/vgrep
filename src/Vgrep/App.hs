@@ -11,7 +11,6 @@ module Vgrep.App
 import Control.Concurrent.Async
 import Control.Exception
 import Control.Monad.Reader
-import Control.Monad.State (StateT (..), execStateT)
 import Graphics.Vty (Vty)
 import qualified Graphics.Vty as Vty
 import Pipes hiding (next)
@@ -27,8 +26,8 @@ import Vgrep.Type
 data App e s = App
     { initialize   :: forall m. MonadIO m => m s
     , liftEvent    :: Vty.Event -> e
-    , handleEvent  :: forall m. MonadIO m => e -> StateT s (VgrepT m) Next
-    , render       :: forall m. Monad m => StateT s (VgrepT m) Vty.Picture }
+    , handleEvent  :: forall m. MonadIO m => e -> VgrepT s m Next
+    , render       :: forall m. Monad m => VgrepT s m Vty.Picture }
 
 
 runApp_ :: App e s -> Config -> Producer e IO () -> IO ()
@@ -38,7 +37,9 @@ runApp :: App e s -> Config -> Producer e IO () -> IO s
 runApp app conf externalEvents = withSpawn unbounded $ \(evSink, evSource) -> do
     displayRegion <- displayRegionHack
     externalEventThread <- (async . runEffect) (externalEvents >-> toOutput evSink)
-    (finalState, _) <- runVgrepT (appEventLoop app evSource evSink)
+    initialState <- initialize app
+    ((_, finalState), _) <- runVgrepT (appEventLoop app evSource evSink)
+                                 initialState
                                  (Env conf displayRegion)
     cancel externalEventThread
     pure finalState
@@ -47,22 +48,21 @@ displayRegionHack :: IO DisplayRegion
 displayRegionHack = bracket initVty Vty.shutdown $ \vty ->
         Vty.displayBounds (Vty.outputIface vty)
 
-appEventLoop :: forall e s. App e s -> Input e -> Output e -> VgrepT IO s
-appEventLoop app evSource evSink =
-    initialize app >>= execStateT (startEventLoop >>= suspendAndResume)
+appEventLoop :: forall e s. App e s -> Input e -> Output e -> VgrepT s IO ()
+appEventLoop app evSource evSink = startEventLoop >>= suspendAndResume
 
   where
-    startEventLoop :: StateT s (VgrepT IO) Interrupt
-    startEventLoop = smurf vtyEventSink $ \vty -> do
+    startEventLoop :: VgrepT s IO Interrupt
+    startEventLoop = withVty vtyEventSink $ \vty -> do
         refresh vty
         runEffect ((fromInput evSource >> pure Halt) >-> eventLoop vty)
 
-    continueEventLoop :: StateT s (VgrepT IO) Interrupt
-    continueEventLoop = smurf vtyEventSink $ \vty -> do
+    continueEventLoop :: VgrepT s IO Interrupt
+    continueEventLoop = withVty vtyEventSink $ \vty -> do
         refresh vty
         runEffect ((fromInput evSource >> pure Halt) >-> eventLoop vty)
 
-    eventLoop :: Vty -> Consumer e (StateT s (VgrepT IO)) Interrupt
+    eventLoop :: Vty -> Consumer e (VgrepT s IO) Interrupt
     eventLoop vty = do
         event <- await
         lift (handleAppEvent event) >>= \case
@@ -71,26 +71,19 @@ appEventLoop app evSource evSink =
             Continue Redraw    -> lift (refresh vty) >> eventLoop vty
             Interrupt int      -> pure int
 
-    suspendAndResume :: Interrupt -> StateT s (VgrepT IO) ()
+    suspendAndResume :: Interrupt -> VgrepT s IO ()
     suspendAndResume = \case
         Halt                  -> pure ()
         Suspend outsideAction -> do liftIO outsideAction
                                     continueEventLoop >>= suspendAndResume
 
-    refresh :: Vty -> StateT s (VgrepT IO) ()
-    refresh vty = render app >>= lift . lift . Vty.update vty
+    refresh :: Vty -> VgrepT s IO ()
+    refresh vty = render app >>= lift . Vty.update vty
     vtyEventSink = P.map (liftEvent app) >-> toOutput evSink
     handleAppEvent = handleEvent app
 
 
-smurf :: Consumer Vty.Event IO ()
-      -> (Vty -> StateT s (VgrepT IO) a)
-      -> StateT s (VgrepT IO) a
-
-smurf sink action = StateT $ \s ->
-    withVty sink $ \vty -> runStateT (action vty) s
-
-withVty :: Consumer Vty.Event IO () -> (Vty -> VgrepT IO s) -> VgrepT IO s
+withVty :: Consumer Vty.Event IO () -> (Vty -> VgrepT s IO a) -> VgrepT s IO a
 withVty sink action = vgrepBracket before after (\(vty, _) -> action vty)
   where
     before = do
