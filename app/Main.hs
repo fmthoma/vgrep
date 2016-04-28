@@ -189,25 +189,25 @@ handleVty = \case
 --    keyEsc   = handleWidget LeftWidget
 
 
---loadSelectedFileToPager :: StateT AppState (VgrepT IO) ()
---loadSelectedFileToPager = do
---    maybeFileName <- uses (results . currentFileName)
---                          (fmap T.unpack)
---    case maybeFileName of
---        Just fileName -> do
---            fileExists <- liftIO (doesFileExist fileName)
---            fileContent <- if fileExists
---                then liftIO (fmap T.lines (T.readFile fileName))
---                else uses inputLines toList
---            displayContent <- lift (expandForDisplay fileContent)
---            liftState $ zoom pager (replaceBufferContents  displayContent)
---        Nothing -> pure ()
+loadSelectedFileToPager :: VgrepT AppState IO ()
+loadSelectedFileToPager = do
+    maybeFileName <- uses (results . currentFileName)
+                          (fmap T.unpack)
+    whenJust maybeFileName $ \fileName -> do
+        fileExists <- liftIO (doesFileExist fileName)
+        fileContent <- if fileExists
+            then liftIO (fmap T.lines (T.readFile fileName))
+            else uses inputLines toList
+        displayContent <- expandForDisplay fileContent
+        zoom pager (replaceBufferContents  displayContent)
 
---moveToSelectedLineNumber :: Monad m => StateT AppState m Redraw
---moveToSelectedLineNumber = do
---    lineNumber <- use (results . currentLineNumber)
---    widget <- use appWidget
---    zoom widgetState (Widget.handle widget (RightEvent (MoveToLine (fromMaybe 0 lineNumber))))
+moveToSelectedLineNumber :: Monad m => VgrepT AppState m ()
+moveToSelectedLineNumber =
+    use (results . currentLineNumber)
+    >>= (`whenJust` (void . zoom pager . moveToLine))
+
+whenJust :: Monad m => Maybe a -> (a -> m ()) -> m ()
+whenJust item action = maybe (pure ()) action item
 
 invokeEditor :: FilePath -> Int -> VgrepT ResultsState IO ()
 invokeEditor file lineNumber = do
