@@ -85,7 +85,7 @@ scrollPage :: Monad m => Int -> VgrepT PagerState m Redraw
 scrollPage n = view region >>= \displayRegion ->
     let height = regionHeight displayRegion
     in  scroll (n * (height - 1))
-                    -- gracefully leave one ^ line on the screen
+      -- gracefully leave one ^ line on the screen
 
 
 renderPager :: Monad m => VgrepT PagerState m Image

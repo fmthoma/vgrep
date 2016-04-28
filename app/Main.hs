@@ -146,7 +146,6 @@ handleVty :: MonadIO m
           -> VgrepT AppState m Next
 handleVty = \case
     EvResize w h -> do modifyEnvironment (set region (w, h))
-                    -- FIXME resizeToRegion
                        pure (Continue Redraw)
     EvKey (KChar 'q') [] -> pure (Interrupt Halt) -- FIXME this shadows other bindings!
     otherEvent -> delegateToWidget otherEvent
