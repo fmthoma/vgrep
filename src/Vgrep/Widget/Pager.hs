@@ -11,96 +11,103 @@ module Vgrep.Widget.Pager
     ) where
 
 import Control.Lens
-import Control.Monad.State.Extended (State)
+import Control.Monad.State.Extended (put, modify)
 import Data.Foldable
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
-import Graphics.Vty
+import Graphics.Vty.Image hiding (resize)
+import Graphics.Vty.Input
 import Graphics.Vty.Prelude
 
 import Vgrep.Environment
+import Vgrep.Event
 import Vgrep.Type
 import Vgrep.Widget.Type
 
 
-type Buffer = (Int, [Text], [Text])
+data PagerState = PagerState { _position :: Int
+                             , _above    :: [Text]
+                             , _visible  :: [Text] }
 
-data PagerState = PagerState { _buffer :: Buffer
-                             , _region :: DisplayRegion }
-
-makeLenses ''PagerState
+makeLensesFor [("_position", "position"), ("_visible", "visible")] ''PagerState
 
 type PagerWidget = Widget PagerState
 
-pagerWidget :: Text
-            -> DisplayRegion
-            -> PagerWidget
-pagerWidget items initialRegion =
-    Widget { _widgetState = initialPagerState items initialRegion
-           , _dimensions  = initialRegion
-           , _resize      = resizeToRegion
-           , _draw        = renderPager }
+pagerWidget :: PagerWidget
+pagerWidget =
+    Widget { initialize = initPager
+           , draw       = renderPager
+           , handle     = fmap const pagerKeyBindings }
+
+initPager :: PagerState
+initPager = PagerState { _position = 1
+                       , _above    = []
+                       , _visible  = [] }
 
 
-initialPagerState :: Text -> DisplayRegion-> PagerState
-initialPagerState initialContent initialRegion =
-    PagerState { _buffer          = (1, [], T.lines initialContent)
-               , _region          = initialRegion }
+pagerKeyBindings
+    :: Monad m
+    => Event
+    -> Next (VgrepT PagerState m Redraw)
+pagerKeyBindings = dispatchMap $ fromList
+    [ (EvKey KUp         [], scroll (-1)    )
+    , (EvKey KDown       [], scroll 1       )
+    , (EvKey (KChar 'j') [], scroll (-1)    )
+    , (EvKey (KChar 'k') [], scroll 1       )
+    , (EvKey KPageUp     [], scrollPage (-1))
+    , (EvKey KPageDown   [], scrollPage 1   )
+    ]
 
-replaceBufferContents :: [Text] -> State PagerState ()
-replaceBufferContents content = assign buffer (1, [], content)
+replaceBufferContents :: Monad m => [Text] -> VgrepT PagerState m ()
+replaceBufferContents content = put (set visible content initPager)
 
-moveToLine :: Int -> State PagerState ()
-moveToLine n = do
-    height <- use (region . to regionHeight)
-    pos    <- use (buffer . _1)
+moveToLine :: Monad m => Int -> VgrepT PagerState m Redraw
+moveToLine n = view region >>= \displayRegion -> do
+    let height = regionHeight displayRegion
+    pos <- use position
     scroll (n - height `div` 2 - pos)
 
-scroll :: Int -> State PagerState ()
-scroll n = do
-    height <- uses region regionHeight
-    linesVisible <- uses (buffer . _3) (length . take (height + 1))
+scroll :: Monad m => Int -> VgrepT PagerState m Redraw
+scroll n = view region >>= \displayRegion -> do
+    let height = regionHeight displayRegion
+    linesVisible <- uses visible (length . take (height + 1))
     if | n > 0 && linesVisible > height
-                   -> modifying buffer goDown >> scroll (n - 1)
-       | n < 0     -> modifying buffer goUp   >> scroll (n + 1)
-       | otherwise -> pure ()
+                   -> modify goDown >> scroll (n - 1)
+       | n < 0     -> modify goUp   >> scroll (n + 1)
+       | otherwise -> pure Redraw
   where
-    goDown (l, as, b:bs) = (l + 1, b:as, bs)
-    goDown (l, as, [])   = (l,     as,   [])
-    goUp   (l, a:as, bs) = (l - 1, as, a:bs)
-    goUp   (l, [],   bs) = (l,     [], bs)
+    goDown (PagerState l as     (b:bs)) = PagerState (l + 1) (b:as) bs
+    goDown (PagerState l as     [])     = PagerState l       as     []
+    goUp   (PagerState l (a:as) bs)     = PagerState (l - 1) as     (a:bs)
+    goUp   (PagerState l []     bs)     = PagerState l       []     bs
 
-scrollPage :: Int -> State PagerState ()
-scrollPage n = do height <- uses region regionHeight
-                  scroll (n * (height - 1))
-                -- gracefully leave one ^ line on the screen
+scrollPage :: Monad m => Int -> VgrepT PagerState m Redraw
+scrollPage n = view region >>= \displayRegion ->
+    let height = regionHeight displayRegion
+    in  scroll (n * (height - 1))
+      -- gracefully leave one ^ line on the screen
 
-renderPager :: PagerState -> Vgrep Image
-renderPager state = do
+
+renderPager :: Monad m => VgrepT PagerState m Image
+renderPager = do
     textColor       <- view (config . colors . normal)
     lineNumberColor <- view (config . colors . lineNumbers)
-    let image = renderLineNumbers lineNumberColor
-            <|> renderTextLines textColor
+    (width, height) <- view region
+    startPosition   <- use position
+    visibleLines    <- use (visible . to (take height))
+    let image = renderLineNumbers lineNumberColor startPosition (length visibleLines)
+            <|> renderTextLines textColor visibleLines
     pure (resizeWidth width image)
   where
-    (width, height) = view region state
-    (currentPosition, _, bufferLines) = view buffer state
-    visibleLines = take height bufferLines
-
     renderTextLines attr =
         fold . fmap (string attr)
-             . take height
              . fmap padWithSpace
              . fmap T.unpack
-             $ visibleLines
 
-    renderLineNumbers attr =
+    renderLineNumbers attr startPosition visibleLines =
         fold . fmap (string attr)
-             . take (length visibleLines)
              . fmap (padWithSpace . show)
-             $ [currentPosition ..]
+             . take visibleLines
+             $ [startPosition..]
 
     padWithSpace s = ' ' : s ++ " "
-
-resizeToRegion :: DisplayRegion -> State PagerState ()
-resizeToRegion newRegion = assign region newRegion

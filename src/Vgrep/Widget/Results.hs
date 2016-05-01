@@ -3,11 +3,11 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Vgrep.Widget.Results
-    ( ResultsState ()
+    ( ResultsState()
     , ResultsWidget
     , resultsWidget
-    , feedResult
 
+    , feedResult
     , prevLine
     , nextLine
     , pageUp
@@ -27,55 +27,63 @@ import Data.Maybe
 import Data.Monoid
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
-import Graphics.Vty hiding ((<|>))
+import Graphics.Vty.Image hiding ((<|>))
+import Graphics.Vty.Input
 import Graphics.Vty.Prelude
 import Prelude
 
 import Vgrep.Environment
+import Vgrep.Event
 import Vgrep.Results
 import Vgrep.Results.Buffer as Buffer
 import Vgrep.Type
 import Vgrep.Widget.Type
 
 
-data ResultsState = State { _files  :: Buffer
-                          , _region :: DisplayRegion }
-
-makeLenses ''ResultsState
-
+type ResultsState = Buffer
 
 type ResultsWidget = Widget ResultsState
 
-resultsWidget :: DisplayRegion
-              -> ResultsWidget
-resultsWidget initialDimensions =
-    Widget { _widgetState = initState initialDimensions
-           , _dimensions  = initialDimensions
-           , _resize      = resizeToRegion
-           , _draw        = renderResultList }
+resultsWidget :: ResultsWidget
+resultsWidget =
+    Widget { initialize = initResults
+           , draw       = renderResultList
+           , handle     = fmap const resultsKeyBindings }
 
-initState :: DisplayRegion
-          -> ResultsState
-initState initialDimensions = State { _files  = EmptyBuffer
-                                    , _region = initialDimensions }
+initResults :: ResultsState
+initResults = EmptyBuffer
 
-feedResult :: Monad m
-           => FileLineReference -> StateT ResultsWidget m ()
+
+resultsKeyBindings
+    :: Monad m
+    => Event
+    -> Next (VgrepT ResultsState m Redraw)
+resultsKeyBindings = dispatchMap $ fromList
+    [ (EvKey KPageUp     [], pageUp   >> pure Redraw)
+    , (EvKey KPageDown   [], pageDown >> pure Redraw)
+    , (EvKey KPageUp     [], pageUp   >> pure Redraw)
+    , (EvKey KPageDown   [], pageDown >> pure Redraw)
+    , (EvKey KUp         [], prevLine >> pure Redraw)
+    , (EvKey KDown       [], nextLine >> pure Redraw)
+    , (EvKey (KChar 'k') [], prevLine >> pure Redraw)
+    , (EvKey (KChar 'h') [], nextLine >> pure Redraw) ]
+
+feedResult :: Monad m => FileLineReference -> VgrepT ResultsState m Redraw
 feedResult line = do
-    zoom (widgetState . files) (modify (feed line))
-    zoom widgetState resizeToWindow
+    modify (feed line)
+    resizeToWindow
 
-pageUp, pageDown :: State ResultsState ()
+pageUp, pageDown :: Monad m => VgrepT ResultsState m ()
 pageUp = do
-    unlessS (isJust . moveUp . view files) $ do
-        modifying files (repeatedly (hideNext >=> showPrev))
-        resizeToWindow
-    modifying files (repeatedly moveUp)
+    unlessS (isJust . moveUp) $ do
+        modify (repeatedly (hideNext >=> showPrev))
+        void resizeToWindow
+    modify (repeatedly moveUp)
 pageDown = do
-    unlessS (isJust . moveDown . view files) $ do
-        modifying files (repeatedly hidePrev)
-        resizeToWindow
-    modifying files (repeatedly moveDown)
+    unlessS (isJust . moveDown) $ do
+        modify (repeatedly hidePrev)
+        void resizeToWindow
+    modify (repeatedly moveDown)
 
 repeatedly :: (a -> Maybe a) -> a -> a
 repeatedly f = go
@@ -84,15 +92,15 @@ repeatedly f = go
          | otherwise      = x
 
 
-prevLine, nextLine :: State ResultsState ()
-prevLine = zoom files (maybeModify tryPrevLine) >> resizeToWindow
-nextLine = zoom files (maybeModify tryNextLine) >> resizeToWindow
+prevLine, nextLine :: Monad m => VgrepT ResultsState m ()
+prevLine = maybeModify tryPrevLine >> void resizeToWindow
+nextLine = maybeModify tryNextLine >> void resizeToWindow
 
 tryPrevLine, tryNextLine :: Buffer -> Maybe Buffer
 tryPrevLine buf = moveUp   buf <|> (showPrev buf >>= tryPrevLine)
 tryNextLine buf = moveDown buf <|> (showNext buf >>= tryNextLine)
 
-maybeModify :: (s -> Maybe s) -> State s ()
+maybeModify :: Monad m => (s -> Maybe s) -> VgrepT s m ()
 maybeModify f = do
     s <- get
     case f s of
@@ -100,22 +108,28 @@ maybeModify f = do
         Nothing -> pure ()
 
 
-renderResultList :: ResultsState -> Vgrep Image
-renderResultList s = do
-      renderedLines <- renderLines width (toLines (view files s))
-      pure (vertCat renderedLines)
-  where width = regionWidth (view region s)
-
-renderLines :: Int -> [DisplayLine] -> Vgrep [Image]
-renderLines width ls = traverse (renderLine (width, lineNumberWidth)) ls
-  where lineNumberWidth = foldl' max 0
-                        . map (twoExtraSpaces . length . show)
-                        . catMaybes
-                        $ map lineNumber ls
+renderResultList :: Monad m => VgrepT ResultsState m Image
+renderResultList = do
+    void resizeToWindow
+    visibleLines <- use (to toLines)
+    width <- views region regionWidth
+    let render = renderLine width (lineNumberWidth visibleLines)
+    renderedLines <- traverse render visibleLines
+    pure (vertCat renderedLines)
+  where lineNumberWidth
+            = foldl' max 0
+            . map (twoExtraSpaces . length . show)
+            . catMaybes
+            . map lineNumber
         twoExtraSpaces = (+ 2)
 
-renderLine :: (Int, Int) -> DisplayLine -> Vgrep Image
-renderLine (width, lineNumberWidth) displayLine = do
+renderLine
+    :: Monad m
+    => Int
+    -> Int
+    -> DisplayLine
+    -> VgrepT ResultsState m Image
+renderLine width lineNumberWidth displayLine = do
     fileHeaderStyle <- view (config . colors . fileHeaders)
     lineNumberStyle <- view (config . colors . lineNumbers)
     resultLineStyle <- view (config . colors . normal)
@@ -145,21 +159,19 @@ renderLine (width, lineNumberWidth) displayLine = do
                         . padWithSpace (width - lineNumberWidth)
 
 
-resizeToRegion :: DisplayRegion -> State ResultsState ()
-resizeToRegion newRegion = do
-    assign region newRegion
-    resizeToWindow
-
-resizeToWindow :: Monad m => StateT ResultsState m ()
+resizeToWindow :: Monad m => VgrepT ResultsState m Redraw
 resizeToWindow = do
-    height <- uses region regionHeight
-    modifying files (Buffer.resize height)
+    height <- views region regionHeight
+    currentBuffer <- get
+    case Buffer.resize height currentBuffer of
+        Just resizedBuffer -> put resizedBuffer >> pure Redraw
+        Nothing            -> pure Unchanged
 
 
 currentFileName :: Getter ResultsState (Maybe Text)
 currentFileName =
-    pre (files . to (current) . _Just . _1 . to getFileName)
+    pre (to (current) . _Just . _1 . to getFileName)
 
 currentLineNumber :: Getter ResultsState (Maybe Int)
 currentLineNumber =
-    pre (files . to current . _Just . _2 . _1 . _Just)
+    pre (to current . _Just . _2 . _1 . _Just)

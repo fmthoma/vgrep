@@ -1,23 +1,24 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Vgrep.Text
     ( expandForDisplay
     , expandLineForDisplay
     ) where
 
 import Control.Lens
+import Control.Monad.Reader.Class
 import Data.Char
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 
 import Vgrep.Environment
-import Vgrep.Type
 
 
-expandForDisplay :: Monad m => [Text] -> VgrepT m [Text]
+expandForDisplay :: MonadReader Environment m => [Text] -> m [Text]
 expandForDisplay inputLines = do
     tabWidth <- view (config . tabstop)
     pure (map (expandText tabWidth) inputLines)
 
-expandLineForDisplay :: Monad m => Text -> VgrepT m Text
+expandLineForDisplay :: MonadReader Environment m => Text -> m Text
 expandLineForDisplay inputLine = do
     tabWidth <- view (config . tabstop)
     pure (expandText tabWidth inputLine)

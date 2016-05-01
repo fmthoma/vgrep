@@ -1,23 +1,17 @@
-{-# LANGUAGE TemplateHaskell #-}
-module Vgrep.Widget.Type where
+{-# LANGUAGE Rank2Types #-}
+module Vgrep.Widget.Type
+  ( Widget (..)
 
-import Control.Lens
-import Control.Monad.State.Extended
-import Graphics.Vty hiding (resize)
+  , module Vgrep.Event
+  ) where
 
+import Graphics.Vty.Image (Image)
+import Graphics.Vty.Input
+
+import Vgrep.Event (Redraw (..), Next (..))
 import Vgrep.Type
 
-data Widget s = Widget { _widgetState :: s
-                       , _dimensions  :: DisplayRegion
-                       , _resize      :: DisplayRegion -> State s ()
-                       , _draw        :: s -> Vgrep Image }
-
-makeLenses ''Widget
-
-drawWidget :: Widget s -> Vgrep Image
-drawWidget widget = (view draw widget) (view widgetState widget)
-
-resizeWidget :: DisplayRegion -> State (Widget s) ()
-resizeWidget newRegion = do
-    resizeTo <- use resize
-    zoom widgetState (resizeTo newRegion)
+data Widget s = Widget
+    { initialize :: s
+    , draw       :: forall m. Monad m => VgrepT s m Image
+    , handle     :: forall m. Monad m => Event -> s -> Next (VgrepT s m Redraw) }

@@ -1,43 +1,88 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Vgrep.Type where
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TypeFamilies #-}
+module Vgrep.Type
+  ( VgrepT ()
+  , Vgrep
+
+  , mkVgrepT
+  , runVgrepT
+  , vgrepBracket
+
+  , modifyEnvironment
+
+  -- Re-exports
+  , lift
+  , hoist
+  , module Vgrep.Environment
+) where
 
 import qualified Control.Exception as E
+import Control.Lens.Internal.Zoom
+import Control.Lens.Zoom
 import Control.Monad.Identity
 import Control.Monad.Morph
 import Control.Monad.Reader
+import Control.Monad.State.Extended
 
 import Vgrep.Environment
 
-newtype VgrepT m a = VgrepT (ReaderT Environment m a)
+newtype VgrepT s m a = VgrepT (StateT s (StateT Environment m) a)
                 deriving ( Functor
                          , Applicative
                          , Monad
-                         , MonadTrans
-                         , MFunctor
-                         , MonadReader Environment
                          , MonadIO )
 
-mkVgrepT :: Monad m => (Environment -> m a) -> VgrepT m a
-mkVgrepT action = VgrepT (ReaderT action)
+instance Monad m => MonadReader Environment (VgrepT s m) where
+    ask = VgrepT (lift get)
+    local f action = mkVgrepT $ \s env -> runVgrepT action s (f env)
 
-runVgrepT :: Monad m => Environment -> VgrepT m a -> m a
-runVgrepT env (VgrepT action) = runReaderT action env
+instance Monad m => MonadState s (VgrepT s m) where
+    get = VgrepT get
+    put = VgrepT . put
 
-type Vgrep = VgrepT Identity
+instance MonadTrans (VgrepT s) where
+    lift = VgrepT . lift . lift
 
-mkVgrep :: (Environment -> a) -> Vgrep a
-mkVgrep = mkVgrepT . fmap Identity
+instance MFunctor (VgrepT s) where
+    hoist f (VgrepT action) = VgrepT (hoist (hoist f) action)
 
-runVgrep :: Environment -> Vgrep a -> a
-runVgrep env = runIdentity . runVgrepT env
+type instance Zoomed (VgrepT s m) = Focusing (StateT Environment m)
 
-liftVgrep :: Monad m => Vgrep (m a) -> VgrepT m a
-liftVgrep = mkVgrepT . flip runVgrep
+instance Monad m => Zoom (VgrepT s m) (VgrepT t m) s t where
+    zoom l (VgrepT m) = VgrepT (zoom l m)
 
-bracket :: IO a
-        -> (a -> IO c)
-        -> (a -> VgrepT IO b)
-        -> VgrepT IO b
-bracket before after action = mkVgrepT $ \env ->
-    let baseAction a = runVgrepT env (action a)
+mkVgrepT
+    :: Monad m
+    => (s -> Environment -> m (a, s))
+    -> VgrepT s m a
+mkVgrepT action =
+    let action' s env = fmap (, env) (action s env)
+    in  VgrepT (StateT (\s -> StateT (action' s)))
+
+runVgrepT
+    :: Monad m
+    => VgrepT s m a
+    -> s
+    -> Environment
+    -> m (a, s)
+runVgrepT (VgrepT action) s env = do
+    ((a, s'), _env') <- runStateT (runStateT action s) env
+    pure (a, s')
+
+type Vgrep s = VgrepT s Identity
+
+vgrepBracket
+    :: IO a
+    -> (a -> IO c)
+    -> (a -> VgrepT s IO b)
+    -> VgrepT s IO b
+vgrepBracket before after action = mkVgrepT $ \s env ->
+    let baseAction a = runVgrepT (action a) s env
     in  E.bracket before after baseAction
+
+
+modifyEnvironment :: Monad m => (Environment -> Environment) -> VgrepT s m ()
+modifyEnvironment = VgrepT . lift . modify
