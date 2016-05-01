@@ -4,7 +4,6 @@ module Main (main) where
 import Control.Concurrent.Async
 import Control.Lens
 import Control.Monad.Reader
-import Control.Monad.State.Extended
 import Data.Foldable
 import Data.Maybe
 import Data.Monoid
@@ -16,7 +15,6 @@ import qualified Data.Text.Lazy as T
 import qualified Data.Text.Lazy.IO as T
 import qualified Graphics.Vty as Vty
 import Graphics.Vty.Input.Events hiding (Event)
-import Graphics.Vty.Output
 import Graphics.Vty.Picture
 import Pipes as P
 import Pipes.Concurrent
@@ -79,21 +77,6 @@ data AppState = AppState { _widgetState :: WidgetState
 data Event = VtyEvent Vty.Event
            | ReceiveInputEvent  Text
            | ReceiveResultEvent Text
-
-vtyEvent :: Prism' Event Vty.Event
-vtyEvent = prism VtyEvent $ \case
-    VtyEvent e -> Right e
-    other      -> Left other
-
-receiveInputEvent :: Prism' Event Text
-receiveInputEvent = prism ReceiveInputEvent $ \case
-    ReceiveInputEvent e -> Right e
-    other               -> Left other
-
-receiveResultEvent :: Prism' Event Text
-receiveResultEvent = prism ReceiveResultEvent $ \case
-    ReceiveResultEvent e -> Right e
-    other                -> Left other
 
 
 app :: App Event AppState
@@ -239,10 +222,3 @@ results = widgetState . leftWidget
 
 pager :: Lens' AppState PagerState
 pager = widgetState . rightWidget
-
-
-resultsFocused :: Traversal' AppState ResultsState
-resultsFocused = widgetState . leftWidgetFocused
-
-pagerFocused :: Traversal' AppState PagerState
-pagerFocused = widgetState . rightWidgetFocused
