@@ -43,7 +43,7 @@ main :: IO ()
 main = do
     hSetBuffering stdin  LineBuffering
     hSetBuffering stdout LineBuffering
-    config <- defaultConfig
+    cfg <- defaultConfig
     inputFromTerminal <- hIsTerminalDevice stdin
     outputToTerminal  <- hIsTerminalDevice stdout
     args <- getArgs
@@ -51,20 +51,20 @@ main = do
         (True,  False)  -> runHeadless (const recursiveGrep)
         (False, False)  -> runHeadless grep
         (False, True)
-            | null args -> runGui config id
-            | otherwise -> runGui config grepForApp
-        (True,  True)   -> runGui config (const recursiveGrep)
+            | null args -> runGui cfg id
+            | otherwise -> runGui cfg grepForApp
+        (True,  True)   -> runGui cfg (const recursiveGrep)
   where
     stdinText  = P.stdinLn  >-> P.map T.pack
     stdoutText = P.stdoutLn <-< P.map T.unpack
     runHeadless grepCommand = runEffect (grepCommand stdinText >-> stdoutText)
-    runGui config  grepCommand = withSpawn unbounded $
+    runGui cfg  grepCommand = withSpawn unbounded $
       \(evSink, evSource) -> do
         let stdinText' = stdinText >-> P.tee (P.map ReceiveInputEvent >-> toOutput evSink)
         grepThread <- async . runEffect $
             grepCommand stdinText' >-> P.map ReceiveResultEvent
                                    >-> toOutput evSink
-        runApp_ app config (fromInput evSource)
+        runApp_ app cfg (fromInput evSource)
         cancel grepThread
 
 
@@ -117,7 +117,7 @@ eventHandler = \case
     handleFeedResult line = Continue $ do
         expandedLine <- expandLineForDisplay line
         case parseLine expandedLine of
-            Just line -> zoom (widgetState . leftWidget) (feedResult line)
+            Just l -> zoom (widgetState . leftWidget) (feedResult l)
             Nothing   -> pure Unchanged
     handleFeedInput line = Continue $ do
         expandedLine <- expandLineForDisplay line
@@ -190,8 +190,8 @@ whenJust item action = maybe (pure mempty) action item
 
 invokeEditor :: MonadIO m => AppState -> Next (VgrepT AppState m Redraw)
 invokeEditor state = case views (results . currentFileName) (fmap T.unpack) state of
-    Just file -> Interrupt $ Suspend $ \env -> do
-        let configuredEditor = view (config . editor) env
+    Just file -> Interrupt $ Suspend $ \environment -> do
+        let configuredEditor = view (config . editor) environment
             lineNumber = views (results . currentLineNumber) (fromMaybe 0) state
         liftIO $ doesFileExist file >>= \case
             True  -> exec configuredEditor ['+' : show lineNumber, file]
