@@ -12,10 +12,11 @@ data Config = Config
     , _editor  :: String }
 
 data Colors = Colors
-    { _lineNumbers :: Attr
-    , _fileHeaders :: Attr
-    , _highlight   :: Attr
-    , _normal      :: Attr }
+    { _lineNumbers   :: Attr
+    , _lineNumbersHl :: Attr
+    , _fileHeaders   :: Attr
+    , _highlight     :: Attr
+    , _normal        :: Attr }
 
 makeLenses ''Config
 makeLenses ''Colors
@@ -25,9 +26,11 @@ defaultConfig = do
     defaultEditor <- lookupEnv "EDITOR"
     pure Config
         { _colors = Colors
-            { _lineNumbers = defAttr `withForeColor` blue
-            , _fileHeaders = defAttr `withBackColor` green
-            , _highlight   = defAttr `withStyle` standout
-            , _normal      = defAttr }
+            { _lineNumbers   = defAttr `withForeColor` blue
+            , _lineNumbersHl = defAttr `withForeColor` blue
+                                       `withStyle` bold
+            , _fileHeaders   = defAttr `withBackColor` green
+            , _highlight     = defAttr `withStyle` standout
+            , _normal        = defAttr }
         , _tabstop = 8
         , _editor = fromMaybe "vi" defaultEditor }

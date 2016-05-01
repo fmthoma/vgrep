@@ -14,6 +14,7 @@ module Vgrep.Widget.Results
 
     , currentFileName
     , currentLineNumber
+    , currentFileResultLineNumbers
 
     , module Vgrep.Results
     ) where
@@ -173,3 +174,7 @@ currentFileName =
 currentLineNumber :: Getter ResultsState (Maybe Int)
 currentLineNumber =
     pre (to current . _Just . _2 . _1 . _Just)
+
+currentFileResultLineNumbers :: Getter ResultsState [Int]
+currentFileResultLineNumbers =
+    to (mapMaybe fst . currentFile)

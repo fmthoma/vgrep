@@ -8,11 +8,13 @@ module Vgrep.Results.Buffer
     , moveUp, moveDown
     , resize
     , toLines
-    , current
     , lineNumber
+    , current
+    , currentFile
     ) where
 
 import           Control.Applicative
+import           Data.Maybe
 import           Data.Sequence ( Seq , (<|), (|>)
                                , ViewL(..), ViewR(..)
                                , viewl, viewr )
@@ -122,13 +124,24 @@ toLines (Buffer (_, bs, c, ds, _)) = linesBefore <> selected c <> linesAfter
     selected = pure . SelectedLine . snd
     pointsToSameFile = (==) `on` fst
 
+lineNumber :: DisplayLine -> Maybe Int
+lineNumber (FileHeader _)        = Nothing
+lineNumber (Line         (n, _)) = n
+lineNumber (SelectedLine (n, _)) = n
+
 
 current :: Buffer -> Maybe FileLineReference
 current = \case
     Buffer (_, _, c, _, _) -> Just c
     EmptyBuffer            -> Nothing
 
-lineNumber :: DisplayLine -> Maybe Int
-lineNumber (FileHeader _)        = Nothing
-lineNumber (Line         (n, _)) = n
-lineNumber (SelectedLine (n, _)) = n
+currentFile :: Buffer -> [LineReference]
+currentFile = do
+    let sameFileAs = (==) `on` fst
+    inCurrentFile <- sameFileAs . fromJust . current
+    map snd . filter inCurrentFile . bufferToList
+
+bufferToList :: Buffer -> [FileLineReference]
+bufferToList = \case
+    EmptyBuffer                -> []
+    Buffer (as, bs, c, ds, es) -> toList (as <> bs <> pure c <> ds <> es)

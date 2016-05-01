@@ -117,8 +117,8 @@ eventHandler = \case
     handleFeedResult line = Continue $ do
         expandedLine <- expandLineForDisplay line
         case parseLine expandedLine of
-            Just l -> zoom (widgetState . leftWidget) (feedResult l)
-            Nothing   -> pure Unchanged
+            Just l  -> zoom results (feedResult l)
+            Nothing -> pure Unchanged
     handleFeedInput line = Continue $ do
         expandedLine <- expandLineForDisplay line
         modifying inputLines (|> expandedLine)
@@ -176,7 +176,8 @@ loadSelectedFileToPager = do
             then liftIO (fmap T.lines (T.readFile fileName))
             else uses inputLines toList
         displayContent <- expandForDisplay fileContent
-        zoom pager (replaceBufferContents  displayContent)
+        highlightLineNumbers <- use (results . currentFileResultLineNumbers)
+        zoom pager (replaceBufferContents displayContent highlightLineNumbers)
         moveToSelectedLineNumber
         zoom widgetState (splitView FocusRight (1 % 3))
 

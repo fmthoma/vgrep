@@ -1,4 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE DeriveFunctor #-}
 module Vgrep.Widget.Pager
     ( PagerState ()
     , PagerWidget
@@ -13,6 +14,8 @@ module Vgrep.Widget.Pager
 import Control.Lens
 import Control.Monad.State.Extended (put, modify)
 import Data.Foldable
+import Data.Set (Set)
+import qualified Data.Set as S
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 import Graphics.Vty.Image hiding (resize)
@@ -25,11 +28,15 @@ import Vgrep.Type
 import Vgrep.Widget.Type
 
 
-data PagerState = PagerState { _position :: Int
-                             , _above    :: [Text]
-                             , _visible  :: [Text] }
+data PagerState = PagerState
+    { _position    :: Int
+    , _highlighted :: Set Int
+    , _above       :: [Text]
+    , _visible     :: [Text] }
 
-makeLensesFor [("_position", "position"), ("_visible", "visible")] ''PagerState
+makeLensesFor [ ("_position", "position")
+              , ("_visible", "visible")
+              , ("_highlighted", "highlighted") ] ''PagerState
 
 type PagerWidget = Widget PagerState
 
@@ -40,9 +47,11 @@ pagerWidget =
            , handle     = fmap const pagerKeyBindings }
 
 initPager :: PagerState
-initPager = PagerState { _position = 1
-                       , _above    = []
-                       , _visible  = [] }
+initPager = PagerState
+    { _position    = 1
+    , _highlighted = S.empty
+    , _above       = []
+    , _visible     = [] }
 
 
 pagerKeyBindings
@@ -58,8 +67,10 @@ pagerKeyBindings = dispatchMap $ fromList
     , (EvKey KPageDown   [], scrollPage 1   )
     ]
 
-replaceBufferContents :: Monad m => [Text] -> VgrepT PagerState m ()
-replaceBufferContents content = put (set visible content initPager)
+replaceBufferContents :: Monad m => [Text] -> [Int] -> VgrepT PagerState m ()
+replaceBufferContents newContent newHighlightedLines = put $
+    initPager { _visible     = newContent
+              , _highlighted = S.fromList newHighlightedLines }
 
 moveToLine :: Monad m => Int -> VgrepT PagerState m Redraw
 moveToLine n = view region >>= \displayRegion -> do
@@ -76,10 +87,10 @@ scroll n = view region >>= \displayRegion -> do
        | n < 0     -> modify goUp   >> scroll (n + 1)
        | otherwise -> pure Redraw
   where
-    goDown (PagerState l as     (b:bs)) = PagerState (l + 1) (b:as) bs
-    goDown (PagerState l as     [])     = PagerState l       as     []
-    goUp   (PagerState l (a:as) bs)     = PagerState (l - 1) as     (a:bs)
-    goUp   (PagerState l []     bs)     = PagerState l       []     bs
+    goDown (PagerState l h as     (b:bs)) = PagerState (l + 1) h (b:as) bs
+    goDown (PagerState l h as     [])     = PagerState l       h as     []
+    goUp   (PagerState l h (a:as) bs)     = PagerState (l - 1) h as     (a:bs)
+    goUp   (PagerState l h []     bs)     = PagerState l       h []     bs
 
 scrollPage :: Monad m => Int -> VgrepT PagerState m Redraw
 scrollPage n = view region >>= \displayRegion ->
@@ -90,20 +101,28 @@ scrollPage n = view region >>= \displayRegion ->
 
 renderPager :: Monad m => VgrepT PagerState m Image
 renderPager = do
-    textColor       <- view (config . colors . normal)
-    lineNumberColor <- view (config . colors . lineNumbers)
-    (width, height) <- view region
-    startPosition   <- use position
-    visibleLines    <- use (visible . to (take height))
+    textColor         <- view (config . colors . normal)
+    lineNumberColorHl <- view (config . colors . lineNumbersHl)
+    lineNumberColor   <- view (config . colors . lineNumbers)
+    (width, height)   <- view region
+    startPosition     <- use position
+    visibleLines      <- use (visible . to (take height))
+    highlightedLines  <- use highlighted
 
     let renderedTextLines =
             fold . fmap (string textColor . padWithSpace . T.unpack)
                  $ visibleLines
 
         renderedLineNumbers =
-            fold . fmap (string lineNumberColor . padWithSpace . show)
+            fold . fmap renderLineNumber
                  . take (length visibleLines)
                  $ [startPosition..]
+
+        renderLineNumber n =
+            let color = if n `S.member` highlightedLines
+                            then lineNumberColorHl
+                            else lineNumberColor
+            in  string color (padWithSpace (show n))
 
     pure (resizeWidth width (renderedLineNumbers <|> renderedTextLines))
 
