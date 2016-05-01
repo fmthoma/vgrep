@@ -11,6 +11,7 @@ module Vgrep.App
 import Control.Concurrent.Async
 import Control.Exception
 import Control.Monad.Reader
+import Control.Monad.State (get)
 import Graphics.Vty (Vty)
 import qualified Graphics.Vty as Vty
 import Pipes hiding (next)
@@ -26,7 +27,7 @@ import Vgrep.Type
 data App e s = App
     { initialize   :: forall m. MonadIO m => m s
     , liftEvent    :: Vty.Event -> e
-    , handleEvent  :: forall m. MonadIO m => e -> VgrepT s m Next
+    , handleEvent  :: forall m. MonadIO m => e -> s -> Next (VgrepT s m Redraw)
     , render       :: forall m. Monad m => VgrepT s m Vty.Picture }
 
 
@@ -65,11 +66,13 @@ appEventLoop app evSource evSink = startEventLoop >>= suspendAndResume
     eventLoop :: Vty -> Consumer e (VgrepT s IO) Interrupt
     eventLoop vty = do
         event <- await
-        lift (handleAppEvent event) >>= \case
-            Skip               -> eventLoop vty
-            Continue Unchanged -> eventLoop vty
-            Continue Redraw    -> lift (refresh vty) >> eventLoop vty
-            Interrupt int      -> pure int
+        currentState <- lift get
+        case handleAppEvent event currentState of
+            Skip            -> eventLoop vty
+            Continue action -> lift action >>= \case
+                Unchanged   -> eventLoop vty
+                Redraw      -> lift (refresh vty) >> eventLoop vty
+            Interrupt int   -> pure int
 
     suspendAndResume :: Interrupt -> VgrepT s IO ()
     suspendAndResume = \case

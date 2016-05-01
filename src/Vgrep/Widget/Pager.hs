@@ -13,7 +13,6 @@ module Vgrep.Widget.Pager
 import Control.Lens
 import Control.Monad.State.Extended (put, modify)
 import Data.Foldable
-import Data.Maybe
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy as T
 import Graphics.Vty.Image hiding (resize)
@@ -38,7 +37,7 @@ pagerWidget :: PagerWidget
 pagerWidget =
     Widget { initialize = initPager
            , draw       = renderPager
-           , handle     = pagerKeyBindings }
+           , handle     = fmap const pagerKeyBindings }
 
 initPager :: PagerState
 initPager = PagerState { _position = 0
@@ -48,14 +47,14 @@ initPager = PagerState { _position = 0
 
 pagerKeyBindings :: Monad m
                  => Event
-                 -> VgrepT PagerState m Redraw
-pagerKeyBindings = fromMaybe (pure Unchanged) . dispatch
-    [ EvKey KUp         [] ==> scroll (-1)
-    , EvKey KDown       [] ==> scroll 1
-    , EvKey (KChar 'j') [] ==> scroll (-1)
-    , EvKey (KChar 'k') [] ==> scroll 1
-    , EvKey KPageUp     [] ==> scrollPage (-1)
-    , EvKey KPageDown   [] ==> scrollPage 1
+                 -> Next (VgrepT PagerState m Redraw)
+pagerKeyBindings = dispatchMap $ fromList
+    [ (EvKey KUp         [], scroll (-1)    )
+    , (EvKey KDown       [], scroll 1       )
+    , (EvKey (KChar 'j') [], scroll (-1)    )
+    , (EvKey (KChar 'k') [], scroll 1       )
+    , (EvKey KPageUp     [], scrollPage (-1))
+    , (EvKey KPageDown   [], scrollPage 1   )
     ]
 
 replaceBufferContents :: Monad m => [Text] -> VgrepT PagerState m ()

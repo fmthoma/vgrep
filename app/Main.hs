@@ -117,39 +117,41 @@ mainWidget = hSplitWidget resultsWidget pagerWidget
 ---------------------------------------------------------------------------
 -- Events
 
-eventHandler :: MonadIO m => Event -> VgrepT AppState m Next
+eventHandler :: MonadIO m => Event -> AppState -> Next (VgrepT AppState m Redraw)
 eventHandler = \case
-    ReceiveInputEvent line  -> handleFeedInput line
-    ReceiveResultEvent line -> handleFeedResult line
+    ReceiveInputEvent line  -> const (handleFeedInput line)
+    ReceiveResultEvent line -> const (handleFeedResult line)
     VtyEvent event          -> handleVty event
   where
     handleFeedResult, handleFeedInput :: MonadIO m
                                       => Text
-                                      -> VgrepT AppState m Next
-    handleFeedResult line = do
+                                      -> Next (VgrepT AppState m Redraw)
+    handleFeedResult line = Continue $ do
         expandedLine <- expandLineForDisplay line
-        fmap Continue $ case parseLine expandedLine of
+        case parseLine expandedLine of
             Just line -> zoom (widgetState . leftWidget) (feedResult line)
             Nothing   -> pure Unchanged
-    handleFeedInput line = do
+    handleFeedInput line = Continue $ do
         expandedLine <- expandLineForDisplay line
         modifying inputLines (|> expandedLine)
-        pure (Continue Unchanged)
+        pure Unchanged
 
-delegateToWidget :: MonadIO m => Vty.Event -> VgrepT AppState m Next
-delegateToWidget event = zoom widgetState $
-    fmap Continue (Widget.handle mainWidget event)
+delegateToWidget :: MonadIO m => Vty.Event -> AppState -> Next (VgrepT AppState m Redraw)
+delegateToWidget event = fmap (zoom widgetState)
+                       . Widget.handle mainWidget event
+                       . view widgetState
 
 
 handleVty :: MonadIO m
           => Vty.Event
-          -> VgrepT AppState m Next
+          -> AppState
+          -> Next (VgrepT AppState m Redraw)
 handleVty = \case
-    EvResize w h -> do modifyEnvironment (set region (w, h))
-                       pure (Continue Redraw)
-    EvKey (KChar 'q') [] -> pure (Interrupt Halt) -- FIXME this shadows other bindings!
+    EvResize w h -> const . Continue $ do
+        modifyEnvironment (set region (w, h))
+        pure Redraw
+    EvKey (KChar 'q') [] -> const (Interrupt Halt) -- FIXME this shadows other bindings!
     otherEvent -> delegateToWidget otherEvent
-
 
 --
 --vtyEventHandler :: MonadIO m => Vty.Event -> NextT (StateT AppState (VgrepT m)) Redraw

@@ -48,7 +48,7 @@ resultsWidget :: ResultsWidget
 resultsWidget =
     Widget { initialize = initResults
            , draw       = renderResultList
-           , handle     = resultsKeyBindings }
+           , handle     = fmap const resultsKeyBindings }
 
 initResults :: ResultsState
 initResults = EmptyBuffer
@@ -56,16 +56,16 @@ initResults = EmptyBuffer
 
 resultsKeyBindings :: Monad m
                    => Event
-                   -> VgrepT ResultsState m Redraw
-resultsKeyBindings = fromMaybe (pure Unchanged) . dispatch
-    [ EvKey KPageUp     [] ==> (pageUp   >> pure Redraw)
-    , EvKey KPageDown   [] ==> (pageDown >> pure Redraw)
-    , EvKey KPageUp     [] ==> (pageUp   >> pure Redraw)
-    , EvKey KPageDown   [] ==> (pageDown >> pure Redraw)
-    , EvKey KUp         [] ==> (prevLine >> pure Redraw)
-    , EvKey KDown       [] ==> (nextLine >> pure Redraw)
-    , EvKey (KChar 'k') [] ==> (prevLine >> pure Redraw)
-    , EvKey (KChar 'h') [] ==> (nextLine >> pure Redraw) ]
+                   -> Next (VgrepT ResultsState m Redraw)
+resultsKeyBindings = dispatchMap $ fromList
+    [ (EvKey KPageUp     [], pageUp   >> pure Redraw)
+    , (EvKey KPageDown   [], pageDown >> pure Redraw)
+    , (EvKey KPageUp     [], pageUp   >> pure Redraw)
+    , (EvKey KPageDown   [], pageDown >> pure Redraw)
+    , (EvKey KUp         [], prevLine >> pure Redraw)
+    , (EvKey KDown       [], nextLine >> pure Redraw)
+    , (EvKey (KChar 'k') [], prevLine >> pure Redraw)
+    , (EvKey (KChar 'h') [], nextLine >> pure Redraw) ]
 
 feedResult :: Monad m => FileLineReference -> VgrepT ResultsState m Redraw
 feedResult line = do

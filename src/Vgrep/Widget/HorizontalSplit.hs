@@ -15,6 +15,7 @@ module Vgrep.Widget.HorizontalSplit
 
 import Control.Lens
 import Control.Monad.Reader (local)
+import Data.Monoid
 import Graphics.Vty.Image hiding (resize)
 import Graphics.Vty.Input
 
@@ -136,28 +137,24 @@ handleEvents :: Monad m
              => Widget s
              -> Widget t
              -> Event
-             -> VgrepT (HSplitState s t) m Redraw
-handleEvents left right e =
-    use currentWidget >>= \case
-        Left _ -> case hSplitKeyBindings_left e of
-            Just leftHSplitEvent -> leftHSplitEvent
-            Nothing              -> zoom leftWidget (handle left e)
-        Right _ -> case hSplitKeyBindings_right e of
-            Just rightHSplitEvent -> rightHSplitEvent
-            Nothing               -> zoom rightWidget (handle right e)
+             -> HSplitState s t
+             -> Next (VgrepT (HSplitState s t) m Redraw)
+handleEvents left right e s = case view currentWidget s of
+    Left  ls -> hSplitKeyBindings_left  e <> fmap (zoom leftWidget)  (handle left  e ls)
+    Right rs -> hSplitKeyBindings_right e <> fmap (zoom rightWidget) (handle right e rs)
 
 hSplitKeyBindings_left :: Monad m
                        => Event
-                       -> Maybe (VgrepT (HSplitState s t) m Redraw)
-hSplitKeyBindings_left = dispatch
-    [ EvKey (KChar '\t') [] ==> switchFocus
-    , EvKey (KChar 'f')  [] ==> leftOnly ]
+                       -> Next (VgrepT (HSplitState s t) m Redraw)
+hSplitKeyBindings_left = dispatchMap $ fromList
+    [ (EvKey (KChar '\t') [], switchFocus)
+    , (EvKey (KChar 'f')  [], leftOnly) ]
 
 hSplitKeyBindings_right :: Monad m
                         => Event
-                        -> Maybe (VgrepT (HSplitState s t) m Redraw)
-hSplitKeyBindings_right = dispatch
-    [ EvKey (KChar '\t') [] ==> switchFocus
-    , EvKey (KChar 'q')  [] ==> leftOnly
-    , EvKey (KChar 'f')  [] ==> rightOnly ]
+                        -> Next (VgrepT (HSplitState s t) m Redraw)
+hSplitKeyBindings_right = dispatchMap $ fromList
+    [ (EvKey (KChar '\t') [], switchFocus)
+    , (EvKey (KChar 'q')  [], leftOnly)
+    , (EvKey (KChar 'f')  [], rightOnly) ]
 

@@ -4,39 +4,46 @@ module Vgrep.Event
     , Redraw (..)
     , Interrupt (..)
 
-    , (==>)
     , dispatch
+    , dispatchMap
+
+    , module Data.Map
     ) where
 
 import Control.Monad.IO.Class
-import Data.Monoid (First (..))
+import Data.Map (Map, fromList)
+import qualified Data.Map as M
 
 
 data Redraw = Redraw | Unchanged
 
-data Interrupt = Suspend (forall io. MonadIO io => io ())
-               | Halt
+data Interrupt
+    = Suspend (forall io. MonadIO io => io ())
+    | Halt
 
-data Next = Skip
-          | Continue Redraw
-          | Interrupt Interrupt
+data Next a
+    = Skip
+    | Continue a
+    | Interrupt Interrupt
 
 
 instance Monoid Redraw where
     mempty = Unchanged
     Unchanged `mappend` Unchanged = Unchanged
-    Redraw    `mappend` _         = Redraw
-    _         `mappend` Redraw    = Redraw
+    _         `mappend` _         = Redraw
 
-instance Monoid Next where
+instance Monoid (Next a) where
     mempty = Skip
-    Continue l  `mappend` Continue r = Continue (l `mappend` r)
     Skip        `mappend` next       = next
     next        `mappend` _other     = next
 
-(==>) :: Eq e => e -> e' -> e -> First e'
-(==>) expected trigger actual | expected == actual = First (Just trigger)
-                              | otherwise          = First Nothing
+instance Functor Next where
+    fmap f = \case Skip        -> Skip
+                   Continue a  -> Continue (f a)
+                   Interrupt i -> Interrupt i
 
-dispatch :: [e -> First e'] -> e -> Maybe e'
-dispatch = fmap getFirst . mconcat
+dispatch :: (e -> Maybe e') -> e -> Next e'
+dispatch f = maybe Skip Continue . f
+
+dispatchMap :: Ord e => Map e e' -> e -> Next e'
+dispatchMap m = dispatch (`M.lookup` m)
