@@ -53,24 +53,27 @@ type instance Zoomed (VgrepT s m) = Focusing (StateT Environment m)
 instance Monad m => Zoom (VgrepT s m) (VgrepT t m) s t where
     zoom l (VgrepT m) = VgrepT (zoom l m)
 
-mkVgrepT :: Monad m
-         => (s -> Environment -> m ((a, s), Environment)) -- TODO -> m (a, s)
-         -> VgrepT s m a
+mkVgrepT
+    :: Monad m
+    => (s -> Environment -> m ((a, s), Environment)) -- TODO -> m (a, s)
+    -> VgrepT s m a
 mkVgrepT action = VgrepT (StateT (\s -> StateT (action s)))
 
-runVgrepT :: Monad m
-          => VgrepT s m a
-          -> s
-          -> Environment
-          -> m ((a, s), Environment) -- TODO -> m (a, s)
+runVgrepT
+    :: Monad m
+    => VgrepT s m a
+    -> s
+    -> Environment
+    -> m ((a, s), Environment) -- TODO -> m (a, s)
 runVgrepT (VgrepT action) s env = runStateT (runStateT action s) env
 
 type Vgrep s = VgrepT s Identity
 
-vgrepBracket :: IO a
-             -> (a -> IO c)
-             -> (a -> VgrepT s IO b)
-             -> VgrepT s IO b
+vgrepBracket
+    :: IO a
+    -> (a -> IO c)
+    -> (a -> VgrepT s IO b)
+    -> VgrepT s IO b
 vgrepBracket before after action = mkVgrepT $ \s env ->
     let baseAction a = runVgrepT (action a) s env
     in  E.bracket before after baseAction

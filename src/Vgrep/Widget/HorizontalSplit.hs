@@ -60,9 +60,10 @@ rightWidgetFocused = currentWidget . _Right
 
 type HSplitWidget s t = Widget (HSplitState s t)
 
-hSplitWidget :: Widget s
-             -> Widget t
-             -> HSplitWidget s t
+hSplitWidget
+    :: Widget s
+    -> Widget t
+    -> HSplitWidget s t
 hSplitWidget left right =
     Widget { initialize = initHSplit   left right
            , draw       = drawWidgets  left right
@@ -96,10 +97,11 @@ switchFocus = use split >>= \case
     switch FocusLeft  ratio = Split FocusRight (1 - ratio)
     switch FocusRight ratio = Split FocusLeft  (1 - ratio)
 
-drawWidgets :: Monad m
-            => Widget s
-            -> Widget t
-            -> VgrepT (HSplitState s t) m Image
+drawWidgets
+    :: Monad m
+    => Widget s
+    -> Widget t
+    -> VgrepT (HSplitState s t) m Image
 drawWidgets left right = use split >>= \case
     LeftOnly      -> zoom leftWidget  (draw left)
     RightOnly     -> zoom rightWidget (draw right)
@@ -133,26 +135,29 @@ runInRightWidget ratio action =
 -- ------------------------------------------------------------------------
 
 -- FIXME: local region!
-handleEvents :: Monad m
-             => Widget s
-             -> Widget t
-             -> Event
-             -> HSplitState s t
-             -> Next (VgrepT (HSplitState s t) m Redraw)
+handleEvents
+    :: Monad m
+    => Widget s
+    -> Widget t
+    -> Event
+    -> HSplitState s t
+    -> Next (VgrepT (HSplitState s t) m Redraw)
 handleEvents left right e s = case view currentWidget s of
     Left  ls -> hSplitKeyBindings_left  e <> fmap (zoom leftWidget)  (handle left  e ls)
     Right rs -> hSplitKeyBindings_right e <> fmap (zoom rightWidget) (handle right e rs)
 
-hSplitKeyBindings_left :: Monad m
-                       => Event
-                       -> Next (VgrepT (HSplitState s t) m Redraw)
+hSplitKeyBindings_left
+    :: Monad m
+    => Event
+    -> Next (VgrepT (HSplitState s t) m Redraw)
 hSplitKeyBindings_left = dispatchMap $ fromList
     [ (EvKey (KChar '\t') [], switchFocus)
     , (EvKey (KChar 'f')  [], leftOnly) ]
 
-hSplitKeyBindings_right :: Monad m
-                        => Event
-                        -> Next (VgrepT (HSplitState s t) m Redraw)
+hSplitKeyBindings_right
+    :: Monad m
+    => Event
+    -> Next (VgrepT (HSplitState s t) m Redraw)
 hSplitKeyBindings_right = dispatchMap $ fromList
     [ (EvKey (KChar '\t') [], switchFocus)
     , (EvKey (KChar 'q')  [], leftOnly)

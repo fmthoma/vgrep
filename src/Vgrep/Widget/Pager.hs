@@ -45,9 +45,10 @@ initPager = PagerState { _position = 0
                        , _visible  = [] }
 
 
-pagerKeyBindings :: Monad m
-                 => Event
-                 -> Next (VgrepT PagerState m Redraw)
+pagerKeyBindings
+    :: Monad m
+    => Event
+    -> Next (VgrepT PagerState m Redraw)
 pagerKeyBindings = dispatchMap $ fromList
     [ (EvKey KUp         [], scroll (-1)    )
     , (EvKey KDown       [], scroll 1       )

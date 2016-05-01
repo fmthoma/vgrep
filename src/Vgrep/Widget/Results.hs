@@ -54,9 +54,10 @@ initResults :: ResultsState
 initResults = EmptyBuffer
 
 
-resultsKeyBindings :: Monad m
-                   => Event
-                   -> Next (VgrepT ResultsState m Redraw)
+resultsKeyBindings
+    :: Monad m
+    => Event
+    -> Next (VgrepT ResultsState m Redraw)
 resultsKeyBindings = dispatchMap $ fromList
     [ (EvKey KPageUp     [], pageUp   >> pure Redraw)
     , (EvKey KPageDown   [], pageDown >> pure Redraw)
@@ -122,11 +123,12 @@ renderResultList = do
             . map lineNumber
         twoExtraSpaces = (+ 2)
 
-renderLine :: Monad m
-           => Int
-           -> Int
-           -> DisplayLine
-           -> VgrepT ResultsState m Image
+renderLine
+    :: Monad m
+    => Int
+    -> Int
+    -> DisplayLine
+    -> VgrepT ResultsState m Image
 renderLine width lineNumberWidth displayLine = do
     fileHeaderStyle <- view (config . colors . fileHeaders)
     lineNumberStyle <- view (config . colors . lineNumbers)

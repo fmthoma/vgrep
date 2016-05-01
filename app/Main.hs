@@ -117,15 +117,20 @@ mainWidget = hSplitWidget resultsWidget pagerWidget
 ---------------------------------------------------------------------------
 -- Events
 
-eventHandler :: MonadIO m => Event -> AppState -> Next (VgrepT AppState m Redraw)
+eventHandler
+    :: MonadIO m
+    => Event
+    -> AppState
+    -> Next (VgrepT AppState m Redraw)
 eventHandler = \case
     ReceiveInputEvent line  -> const (handleFeedInput line)
     ReceiveResultEvent line -> const (handleFeedResult line)
     VtyEvent event          -> handleVty event
   where
-    handleFeedResult, handleFeedInput :: MonadIO m
-                                      => Text
-                                      -> Next (VgrepT AppState m Redraw)
+    handleFeedResult, handleFeedInput
+        :: MonadIO m
+        => Text
+        -> Next (VgrepT AppState m Redraw)
     handleFeedResult line = Continue $ do
         expandedLine <- expandLineForDisplay line
         case parseLine expandedLine of
@@ -136,22 +141,27 @@ eventHandler = \case
         modifying inputLines (|> expandedLine)
         pure Unchanged
 
-delegateToWidget :: MonadIO m => Vty.Event -> AppState -> Next (VgrepT AppState m Redraw)
-delegateToWidget event = fmap (zoom widgetState)
-                       . Widget.handle mainWidget event
-                       . view widgetState
-
-
-handleVty :: MonadIO m
-          => Vty.Event
-          -> AppState
-          -> Next (VgrepT AppState m Redraw)
+handleVty
+    :: MonadIO m
+    => Vty.Event
+    -> AppState
+    -> Next (VgrepT AppState m Redraw)
 handleVty = \case
     EvResize w h -> const . Continue $ do
         modifyEnvironment (set region (w, h))
         pure Redraw
     EvKey (KChar 'q') [] -> const (Interrupt Halt) -- FIXME this shadows other bindings!
     otherEvent -> delegateToWidget otherEvent
+
+delegateToWidget
+    :: MonadIO m
+    => Vty.Event
+    -> AppState
+    -> Next (VgrepT AppState m Redraw)
+delegateToWidget event = fmap (zoom widgetState)
+                       . Widget.handle mainWidget event
+                       . view widgetState
+
 
 --
 --vtyEventHandler :: MonadIO m => Vty.Event -> NextT (StateT AppState (VgrepT m)) Redraw
