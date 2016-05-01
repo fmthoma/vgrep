@@ -1,6 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
 module Vgrep.Type
   ( VgrepT ()
@@ -55,17 +56,21 @@ instance Monad m => Zoom (VgrepT s m) (VgrepT t m) s t where
 
 mkVgrepT
     :: Monad m
-    => (s -> Environment -> m ((a, s), Environment)) -- TODO -> m (a, s)
+    => (s -> Environment -> m (a, s))
     -> VgrepT s m a
-mkVgrepT action = VgrepT (StateT (\s -> StateT (action s)))
+mkVgrepT action =
+    let action' s env = fmap (, env) (action s env)
+    in  VgrepT (StateT (\s -> StateT (action' s)))
 
 runVgrepT
     :: Monad m
     => VgrepT s m a
     -> s
     -> Environment
-    -> m ((a, s), Environment) -- TODO -> m (a, s)
-runVgrepT (VgrepT action) s env = runStateT (runStateT action s) env
+    -> m (a, s)
+runVgrepT (VgrepT action) s env = do
+    ((a, s'), _env') <- runStateT (runStateT action s) env
+    pure (a, s')
 
 type Vgrep s = VgrepT s Identity
 

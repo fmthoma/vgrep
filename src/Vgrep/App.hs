@@ -39,7 +39,7 @@ runApp app conf externalEvents = withSpawn unbounded $ \(evSink, evSource) -> do
     displayRegion <- displayRegionHack
     externalEventThread <- (async . runEffect) (externalEvents >-> toOutput evSink)
     initialState <- initialize app
-    ((_, finalState), _) <- runVgrepT (appEventLoop app evSource evSink)
+    (_, finalState) <- runVgrepT (appEventLoop app evSource evSink)
                                  initialState
                                  (Env conf displayRegion)
     cancel externalEventThread
