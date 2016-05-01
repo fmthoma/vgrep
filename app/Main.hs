@@ -146,16 +146,11 @@ handleVty
     => Vty.Event
     -> AppState
     -> Next (VgrepT AppState m Redraw)
-handleVty = \case
-    EvResize w h -> const . Continue $ do
-        modifyEnvironment (set region (w, h))
-        pure Redraw
-    EvKey (KChar 'q') [] -> const (Interrupt Halt) -- FIXME this shadows other bindings!
-    otherEvent -> do
-        localKeyBindings <- view (widgetState . currentWidget) >>= \case
-            Left  _ -> pure resultsKeyBindings
-            Right _ -> pure pagerKeyBindings
-        (pure . localKeyBindings <> delegateToWidget <> globalKeyBindings) otherEvent
+handleVty event = do
+    localKeyBindings <- view (widgetState . currentWidget) >>= \case
+        Left  _ -> pure resultsKeyBindings
+        Right _ -> pure pagerKeyBindings
+    (pure . localKeyBindings <> delegateToWidget <> globalEventBindings) event
 
 delegateToWidget
     :: MonadIO m
@@ -174,12 +169,15 @@ pagerKeyBindings :: MonadIO m => Vty.Event -> Next (VgrepT AppState m Redraw)
 pagerKeyBindings = dispatchMap $ fromList
     []
 
-globalKeyBindings
+globalEventBindings
     :: MonadIO m
     => Vty.Event
     -> AppState
     -> Next (VgrepT AppState m Redraw)
-globalKeyBindings = \case
+globalEventBindings = \case
+    EvResize w h         -> const . Continue $ do
+        modifyEnvironment (set region (w, h))
+        pure Redraw
     EvKey (KChar 'q') [] -> const (Interrupt Halt)
     EvKey (KChar 'e') [] -> invokeEditor
     _otherwise           -> const Skip
