@@ -95,19 +95,16 @@ renderPager = do
     (width, height) <- view region
     startPosition   <- use position
     visibleLines    <- use (visible . to (take height))
-    let image = renderLineNumbers lineNumberColor startPosition (length visibleLines)
-            <|> renderTextLines textColor visibleLines
-    pure (resizeWidth width image)
-  where
-    renderTextLines attr =
-        fold . fmap (string attr)
-             . fmap padWithSpace
-             . fmap T.unpack
 
-    renderLineNumbers attr startPosition visibleLines =
-        fold . fmap (string attr)
-             . fmap (padWithSpace . show)
-             . take visibleLines
-             $ [startPosition..]
+    let renderedTextLines =
+            fold . fmap (string textColor . padWithSpace . T.unpack)
+                 $ visibleLines
 
-    padWithSpace s = ' ' : s ++ " "
+        renderedLineNumbers =
+            fold . fmap (string lineNumberColor . padWithSpace . show)
+                 . take (length visibleLines)
+                 $ [startPosition..]
+
+    pure (resizeWidth width (renderedLineNumbers <|> renderedTextLines))
+
+  where padWithSpace s = ' ' : s ++ " "
