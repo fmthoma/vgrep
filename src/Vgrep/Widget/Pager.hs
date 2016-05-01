@@ -40,7 +40,7 @@ pagerWidget =
            , handle     = fmap const pagerKeyBindings }
 
 initPager :: PagerState
-initPager = PagerState { _position = 0
+initPager = PagerState { _position = 1
                        , _above    = []
                        , _visible  = [] }
 
@@ -64,7 +64,7 @@ replaceBufferContents content = put (set visible content initPager)
 moveToLine :: Monad m => Int -> VgrepT PagerState m Redraw
 moveToLine n = view region >>= \displayRegion -> do
     let height = regionHeight displayRegion
-    pos    <- use position
+    pos <- use position
     scroll (n - height `div` 2 - pos)
 
 scroll :: Monad m => Int -> VgrepT PagerState m Redraw
@@ -107,6 +107,7 @@ renderPager = do
     renderLineNumbers attr startPosition visibleLines =
         fold . fmap (string attr)
              . fmap (padWithSpace . show)
-             $ [startPosition..visibleLines]
+             . take visibleLines
+             $ [startPosition..]
 
     padWithSpace s = ' ' : s ++ " "
