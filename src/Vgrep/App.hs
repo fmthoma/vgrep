@@ -66,7 +66,7 @@ appEventLoop app evSource evSink = startEventLoop >>= suspendAndResume
     eventLoop :: Vty -> Consumer e (VgrepT s IO) Interrupt
     eventLoop vty = do
         event <- await
-        currentState <- lift get
+        currentState <- get
         case handleAppEvent event currentState of
             Skip            -> eventLoop vty
             Continue action -> lift action >>= \case
@@ -77,7 +77,8 @@ appEventLoop app evSource evSink = startEventLoop >>= suspendAndResume
     suspendAndResume :: Interrupt -> VgrepT s IO ()
     suspendAndResume = \case
         Halt                  -> pure ()
-        Suspend outsideAction -> do liftIO outsideAction
+        Suspend outsideAction -> do env <- ask
+                                    outsideAction env
                                     continueEventLoop >>= suspendAndResume
 
     refresh :: Vty -> VgrepT s IO ()

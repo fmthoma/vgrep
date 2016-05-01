@@ -151,7 +151,11 @@ handleVty = \case
         modifyEnvironment (set region (w, h))
         pure Redraw
     EvKey (KChar 'q') [] -> const (Interrupt Halt) -- FIXME this shadows other bindings!
-    otherEvent -> delegateToWidget otherEvent
+    otherEvent -> do
+        localKeyBindings <- view (widgetState . currentWidget) >>= \case
+            Left  _ -> pure resultsKeyBindings
+            Right _ -> pure pagerKeyBindings
+        (pure . localKeyBindings <> delegateToWidget <> globalKeyBindings) otherEvent
 
 delegateToWidget
     :: MonadIO m
@@ -162,46 +166,26 @@ delegateToWidget event = fmap (zoom widgetState)
                        . Widget.handle mainWidget event
                        . view widgetState
 
+resultsKeyBindings :: MonadIO m => Vty.Event -> Next (VgrepT AppState m Redraw)
+resultsKeyBindings = dispatchMap $ fromList
+    [ (EvKey KEnter      [], loadSelectedFileToPager) ]
 
---
---vtyEventHandler :: MonadIO m => Vty.Event -> NextT (StateT AppState (VgrepT m)) Redraw
---vtyEventHandler = mconcat
---    [ handle (keyCharEvent 'q'   []) (const (interrupt Halt))
---    , handle resizeEvent             resizeMainWidget
---    , handle (keyCharEvent '\t'  []) (const (continue keyTab))
---    , handle (keyEvent KUp       []) (const (continue keyUp))
---    , handle (keyEvent KDown     []) (const (continue keyDown))
---    , handle (keyCharEvent 'k'   []) (const (continue keyUp))
---    , handle (keyCharEvent 'j'   []) (const (continue keyDown))
---    , handle (keyEvent KPageUp   []) (const (continue keyPgUp))
---    , handle (keyEvent KPageDown []) (const (continue keyPgDn))
---    , handle (keyEvent KEnter    []) (const (continue keyEnter))
---    , handle (keyCharEvent 'e'   []) (const (interrupt (Suspend keyEdit)))
---    , handle (keyEvent KEsc      []) (const (continue keyEsc)) ]
---  where
---    handleWidget e = use appWidget >>= \w -> zoom widgetState (Widget.handle w e)
---    resizeMainWidget newRegion = continue $ do
---        lift (modifyEnvironment (set region newRegion))
---        pure Unchanged
---    keyTab   = handleWidget SwitchFocus
---    keyUp    = handleWidget (FocusedWidgetEvent PrevLine (Scroll (-1)))
---    keyDown  = handleWidget (FocusedWidgetEvent NextLine (Scroll 1))
---    keyPgUp  = handleWidget (FocusedWidgetEvent PageUp   (ScrollPage (-1)))
---    keyPgDn  = handleWidget (FocusedWidgetEvent PageDown (ScrollPage 1))
---    keyEnter = whenS (has resultsFocused) $ do
---                  loadSelectedFileToPager
---                  liftState $ do
---                      moveToSelectedLineNumber
---                      use appWidget >>= zoom widgetState . _splitFocusRight (1 % 3)
---    keyEdit  = zoom results $ do
---                  maybeFileName <- uses currentFileName (fmap T.unpack)
---                  when (isJust maybeFileName) $ do
---                      lineNumber <- uses currentLineNumber (fromMaybe 0)
---                      invokeEditor (fromJust maybeFileName) lineNumber
---    keyEsc   = handleWidget LeftWidget
+pagerKeyBindings :: MonadIO m => Vty.Event -> Next (VgrepT AppState m Redraw)
+pagerKeyBindings = dispatchMap $ fromList
+    []
+
+globalKeyBindings
+    :: MonadIO m
+    => Vty.Event
+    -> AppState
+    -> Next (VgrepT AppState m Redraw)
+globalKeyBindings = \case
+    EvKey (KChar 'q') [] -> const (Interrupt Halt)
+    EvKey (KChar 'e') [] -> invokeEditor
+    _otherwise           -> const Skip
 
 
-loadSelectedFileToPager :: VgrepT AppState IO ()
+loadSelectedFileToPager :: MonadIO m => VgrepT AppState m Redraw
 loadSelectedFileToPager = do
     maybeFileName <- uses (results . currentFileName)
                           (fmap T.unpack)
@@ -212,21 +196,26 @@ loadSelectedFileToPager = do
             else uses inputLines toList
         displayContent <- expandForDisplay fileContent
         zoom pager (replaceBufferContents  displayContent)
+        moveToSelectedLineNumber
+        zoom widgetState (splitView FocusRight (1 % 3))
 
 moveToSelectedLineNumber :: Monad m => VgrepT AppState m ()
 moveToSelectedLineNumber =
     use (results . currentLineNumber)
     >>= (`whenJust` (void . zoom pager . moveToLine))
 
-whenJust :: Monad m => Maybe a -> (a -> m ()) -> m ()
-whenJust item action = maybe (pure ()) action item
+whenJust :: (Monoid r, Monad m) => Maybe a -> (a -> m r) -> m r
+whenJust item action = maybe (pure mempty) action item
 
-invokeEditor :: FilePath -> Int -> VgrepT ResultsState IO ()
-invokeEditor file lineNumber = do
-    configuredEditor <- view (config . editor)
-    liftIO $ doesFileExist file >>= \case
-        True  -> exec configuredEditor ['+' : show lineNumber, file]
-        False -> hPutStrLn stderr ("File not found: " ++ show file)
+invokeEditor :: MonadIO m => AppState -> Next (VgrepT AppState m Redraw)
+invokeEditor state = case views (results . currentFileName) (fmap T.unpack) state of
+    Just file -> Interrupt $ Suspend $ \env -> do
+        let configuredEditor = view (config . editor) env
+            lineNumber = views (results . currentLineNumber) (fromMaybe 0) state
+        liftIO $ doesFileExist file >>= \case
+            True  -> exec configuredEditor ['+' : show lineNumber, file]
+            False -> hPutStrLn stderr ("File not found: " ++ show file)
+    Nothing -> Skip
 
 exec :: MonadIO io => FilePath -> [String] -> io ()
 exec command args = liftIO $ do

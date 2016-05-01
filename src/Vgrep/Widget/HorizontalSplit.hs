@@ -2,9 +2,12 @@
 
 module Vgrep.Widget.HorizontalSplit
     ( HSplitState ()
+    , Focus (..)
     , initHSplit
     , HSplitWidget
     , hSplitWidget
+
+    , splitView
 
     , leftWidget
     , rightWidget

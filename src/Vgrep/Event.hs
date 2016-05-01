@@ -14,11 +14,13 @@ import Control.Monad.IO.Class
 import Data.Map (Map, fromList)
 import qualified Data.Map as M
 
+import Vgrep.Environment
+
 
 data Redraw = Redraw | Unchanged
 
 data Interrupt
-    = Suspend (forall io. MonadIO io => io ())
+    = Suspend (forall m. MonadIO m => Environment -> m ())
     | Halt
 
 data Next a
