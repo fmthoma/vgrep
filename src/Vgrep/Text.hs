@@ -25,7 +25,7 @@ expandLineForDisplay inputLine = do
 
 expandText :: Int -> Text -> Text
 expandText tabWidth =
-    (T.pack . expandSpecialChars . expandTabs tabWidth . T.unpack)
+    T.pack . expandSpecialChars . expandTabs tabWidth . T.unpack
 
 expandTabs :: Int -> String -> String
 expandTabs tabWidth = go 0

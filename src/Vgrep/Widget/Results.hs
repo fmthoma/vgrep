@@ -1,5 +1,4 @@
 {-# LANGUAGE Rank2Types        #-}
-{-# LANGUAGE TemplateHaskell   #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Vgrep.Widget.Results
@@ -119,8 +118,7 @@ renderResultList = do
   where lineNumberWidth
             = foldl' max 0
             . map (twoExtraSpaces . length . show)
-            . catMaybes
-            . map lineNumber
+            . mapMaybe lineNumber
         twoExtraSpaces = (+ 2)
 
 renderLine
@@ -170,7 +168,7 @@ resizeToWindow = do
 
 currentFileName :: Getter ResultsState (Maybe Text)
 currentFileName =
-    pre (to (current) . _Just . _1 . to getFileName)
+    pre (to current . _Just . _1 . to getFileName)
 
 currentLineNumber :: Getter ResultsState (Maybe Int)
 currentLineNumber =

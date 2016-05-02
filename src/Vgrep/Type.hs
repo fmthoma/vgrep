@@ -60,7 +60,7 @@ mkVgrepT
     -> VgrepT s m a
 mkVgrepT action =
     let action' s env = fmap (, env) (action s env)
-    in  VgrepT (StateT (\s -> StateT (action' s)))
+    in  VgrepT (StateT (StateT . action'))
 
 runVgrepT
     :: Monad m

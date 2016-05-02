@@ -87,7 +87,7 @@ app = App
     , App.render      = renderMainWidget }
   where
     initSplitView :: MonadIO m => m AppState
-    initSplitView = pure $ AppState
+    initSplitView = pure AppState
             { _widgetState = Widget.initialize mainWidget
             , _inputLines  = S.empty }
     renderMainWidget :: Monad m => VgrepT AppState m Vty.Picture

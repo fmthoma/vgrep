@@ -23,7 +23,7 @@ makeLenses ''Colors
 defaultConfig :: IO Config
 defaultConfig = do
     defaultEditor <- lookupEnv "EDITOR"
-    pure $ Config
+    pure Config
         { _colors = Colors
             { _lineNumbers = defAttr `withForeColor` blue
             , _fileHeaders = defAttr `withBackColor` green
