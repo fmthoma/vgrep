@@ -102,6 +102,7 @@ scrollPage n = view region >>= \displayRegion ->
 renderPager :: Monad m => VgrepT PagerState m Image
 renderPager = do
     textColor         <- view (config . colors . normal)
+    textColorHl       <- view (config . colors . normal)
     lineNumberColorHl <- view (config . colors . lineNumbersHl)
     lineNumberColor   <- view (config . colors . lineNumbers)
     (width, height)   <- view region
@@ -109,20 +110,17 @@ renderPager = do
     visibleLines      <- use (visible . to (take height))
     highlightedLines  <- use highlighted
 
-    let renderedTextLines =
-            fold . fmap (string textColor . padWithSpace . T.unpack)
-                 $ visibleLines
+    let renderLine (num, txt) =
+            let (numColor, txtColor) = if num `S.member` highlightedLines
+                    then (lineNumberColorHl, textColorHl)
+                    else (lineNumberColor,   textColor)
+            in  ( string numColor (padWithSpace (show num))
+                , string txtColor (padWithSpace (T.unpack txt)) )
 
-        renderedLineNumbers =
-            fold . fmap renderLineNumber
-                 . take (length visibleLines)
-                 $ [startPosition..]
-
-        renderLineNumber n =
-            let color = if n `S.member` highlightedLines
-                            then lineNumberColorHl
-                            else lineNumberColor
-            in  string color (padWithSpace (show n))
+        (renderedLineNumbers, renderedTextLines)
+            = over both fold . unzip
+            . map renderLine
+            $ zip [startPosition..] visibleLines
 
     pure (resizeWidth width (renderedLineNumbers <|> renderedTextLines))
 
