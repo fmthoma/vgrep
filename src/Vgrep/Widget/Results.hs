@@ -66,7 +66,7 @@ resultsKeyBindings = dispatchMap $ fromList
     , (EvKey KUp         [], prevLine >> pure Redraw)
     , (EvKey KDown       [], nextLine >> pure Redraw)
     , (EvKey (KChar 'k') [], prevLine >> pure Redraw)
-    , (EvKey (KChar 'h') [], nextLine >> pure Redraw) ]
+    , (EvKey (KChar 'j') [], nextLine >> pure Redraw) ]
 
 feedResult :: Monad m => FileLineReference -> VgrepT ResultsState m Redraw
 feedResult line = do
