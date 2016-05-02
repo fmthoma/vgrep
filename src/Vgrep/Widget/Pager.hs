@@ -102,9 +102,9 @@ scrollPage n = view region >>= \displayRegion ->
 renderPager :: Monad m => VgrepT PagerState m Image
 renderPager = do
     textColor         <- view (config . colors . normal)
-    textColorHl       <- view (config . colors . normal)
-    lineNumberColorHl <- view (config . colors . lineNumbersHl)
+    textColorHl       <- view (config . colors . normalHl)
     lineNumberColor   <- view (config . colors . lineNumbers)
+    lineNumberColorHl <- view (config . colors . lineNumbersHl)
     (width, height)   <- view region
     startPosition     <- use position
     visibleLines      <- use (visible . to (take height))

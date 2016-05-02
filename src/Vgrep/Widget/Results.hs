@@ -132,13 +132,13 @@ renderLine width lineNumberWidth displayLine = do
     fileHeaderStyle <- view (config . colors . fileHeaders)
     lineNumberStyle <- view (config . colors . lineNumbers)
     resultLineStyle <- view (config . colors . normal)
-    highlightStyle  <- view (config . colors . highlight)
+    selectedStyle   <- view (config . colors . selected)
     pure $ case displayLine of
         FileHeader file     -> renderFileHeader fileHeaderStyle file
         Line         (n, t) -> horizCat [ renderLineNumber lineNumberStyle n
                                         , renderLineText   resultLineStyle t ]
         SelectedLine (n, t) -> horizCat [ renderLineNumber lineNumberStyle n
-                                        , renderLineText   highlightStyle  t ]
+                                        , renderLineText   selectedStyle   t ]
   where
     padWithSpace w = T.take (fromIntegral w)
                    . T.justifyLeft (fromIntegral w) ' '
