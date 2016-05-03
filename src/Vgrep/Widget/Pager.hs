@@ -52,8 +52,8 @@ pagerKeyBindings
 pagerKeyBindings = dispatchMap $ fromList
     [ (EvKey KUp         [], scroll (-1)    )
     , (EvKey KDown       [], scroll 1       )
-    , (EvKey (KChar 'j') [], scroll (-1)    )
-    , (EvKey (KChar 'k') [], scroll 1       )
+    , (EvKey (KChar 'k') [], scroll (-1)    )
+    , (EvKey (KChar 'j') [], scroll 1       )
     , (EvKey KPageUp     [], scrollPage (-1))
     , (EvKey KPageDown   [], scrollPage 1   )
     ]
