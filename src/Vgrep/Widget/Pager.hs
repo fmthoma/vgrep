@@ -48,7 +48,7 @@ pagerWidget =
 
 initPager :: PagerState
 initPager = PagerState
-    { _position    = 1
+    { _position    = 0
     , _highlighted = S.empty
     , _above       = []
     , _visible     = [] }
@@ -120,7 +120,7 @@ renderPager = do
         (renderedLineNumbers, renderedTextLines)
             = over both fold . unzip
             . map renderLine
-            $ zip [startPosition..] visibleLines
+            $ zip [startPosition+1..] visibleLines
 
     pure (resizeWidth width (renderedLineNumbers <|> renderedTextLines))
 
