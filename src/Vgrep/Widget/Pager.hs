@@ -62,17 +62,17 @@ pagerKeyBindings
     => Event
     -> Next (VgrepT PagerState m Redraw)
 pagerKeyBindings = dispatchMap $ fromList
-    [ (EvKey KUp         [], scroll (-1)    )
-    , (EvKey KDown       [], scroll 1       )
-    , (EvKey (KChar 'k') [], scroll (-1)    )
-    , (EvKey (KChar 'j') [], scroll 1       )
-    , (EvKey KLeft       [], hScroll (-1)   )
-    , (EvKey KRight      [], hScroll 1      )
-    , (EvKey (KChar 'h') [], hScroll (-1)   )
-    , (EvKey (KChar 'l') [], hScroll 1      )
-    , (EvKey KPageUp     [], scrollPage (-1))
-    , (EvKey KPageDown   [], scrollPage 1   )
-    ]
+    [ (EvKey KUp         [], scroll up      )
+    , (EvKey KDown       [], scroll down    )
+    , (EvKey (KChar 'k') [], scroll up      )
+    , (EvKey (KChar 'j') [], scroll down    )
+    , (EvKey KLeft       [], hScroll left   )
+    , (EvKey KRight      [], hScroll right  )
+    , (EvKey (KChar 'h') [], hScroll left   )
+    , (EvKey (KChar 'l') [], hScroll right  )
+    , (EvKey KPageUp     [], scrollPage up  )
+    , (EvKey KPageDown   [], scrollPage down) ]
+  where up = (-1); down = 1; left = (-1); right = 1
 
 replaceBufferContents :: Monad m => [Text] -> [Int] -> VgrepT PagerState m ()
 replaceBufferContents newContent newHighlightedLines = put $
