@@ -30,12 +30,14 @@ import Vgrep.Widget.Type
 
 data PagerState = PagerState
     { _position    :: Int
+    , _column      :: Int
     , _highlighted :: Set Int
     , _above       :: [Text]
     , _visible     :: [Text] }
 
-makeLensesFor [ ("_position", "position")
-              , ("_visible", "visible")
+makeLensesFor [ ("_position",    "position")
+              , ("_column",      "column")
+              , ("_visible",     "visible")
               , ("_highlighted", "highlighted") ] ''PagerState
 
 type PagerWidget = Widget PagerState
@@ -48,7 +50,8 @@ pagerWidget =
 
 initPager :: PagerState
 initPager = PagerState
-    { _position    = 1
+    { _position    = 0
+    , _column      = 0
     , _highlighted = S.empty
     , _above       = []
     , _visible     = [] }
@@ -59,13 +62,17 @@ pagerKeyBindings
     => Event
     -> Next (VgrepT PagerState m Redraw)
 pagerKeyBindings = dispatchMap $ fromList
-    [ (EvKey KUp         [], scroll (-1)    )
-    , (EvKey KDown       [], scroll 1       )
-    , (EvKey (KChar 'k') [], scroll (-1)    )
-    , (EvKey (KChar 'j') [], scroll 1       )
-    , (EvKey KPageUp     [], scrollPage (-1))
-    , (EvKey KPageDown   [], scrollPage 1   )
-    ]
+    [ (EvKey KUp         [], scroll up      )
+    , (EvKey KDown       [], scroll down    )
+    , (EvKey (KChar 'k') [], scroll up      )
+    , (EvKey (KChar 'j') [], scroll down    )
+    , (EvKey KLeft       [], hScroll left   )
+    , (EvKey KRight      [], hScroll right  )
+    , (EvKey (KChar 'h') [], hScroll left   )
+    , (EvKey (KChar 'l') [], hScroll right  )
+    , (EvKey KPageUp     [], scrollPage up  )
+    , (EvKey KPageDown   [], scrollPage down) ]
+  where up = (-1); down = 1; left = (-1); right = 1
 
 replaceBufferContents :: Monad m => [Text] -> [Int] -> VgrepT PagerState m ()
 replaceBufferContents newContent newHighlightedLines = put $
@@ -87,16 +94,24 @@ scroll n = view region >>= \displayRegion -> do
        | n < 0     -> modify goUp   >> scroll (n + 1)
        | otherwise -> pure Redraw
   where
-    goDown (PagerState l h as     (b:bs)) = PagerState (l + 1) h (b:as) bs
-    goDown (PagerState l h as     [])     = PagerState l       h as     []
-    goUp   (PagerState l h (a:as) bs)     = PagerState (l - 1) h as     (a:bs)
-    goUp   (PagerState l h []     bs)     = PagerState l       h []     bs
+    goDown (PagerState l c h as     (b:bs)) = PagerState (l + 1) c h (b:as) bs
+    goDown (PagerState l c h as     [])     = PagerState l       c h as     []
+    goUp   (PagerState l c h (a:as) bs)     = PagerState (l - 1) c h as     (a:bs)
+    goUp   (PagerState l c h []     bs)     = PagerState l       c h []     bs
 
 scrollPage :: Monad m => Int -> VgrepT PagerState m Redraw
 scrollPage n = view region >>= \displayRegion ->
     let height = regionHeight displayRegion
     in  scroll (n * (height - 1))
       -- gracefully leave one ^ line on the screen
+
+hScroll :: Monad m => Int -> VgrepT PagerState m Redraw
+hScroll n = do
+    tabWidth <- view (config . tabstop)
+    modifying column $ \currentColumn ->
+        let newColumn = currentColumn + n * tabWidth
+        in  if newColumn > 0 then newColumn else 0
+    pure Redraw
 
 
 renderPager :: Monad m => VgrepT PagerState m Image
@@ -107,6 +122,7 @@ renderPager = do
     lineNumberColorHl <- view (config . colors . lineNumbersHl)
     (width, height)   <- view region
     startPosition     <- use position
+    startColumn       <- use (column . to fromIntegral)
     visibleLines      <- use (visible . to (take height))
     highlightedLines  <- use highlighted
 
@@ -114,13 +130,14 @@ renderPager = do
             let (numColor, txtColor) = if num `S.member` highlightedLines
                     then (lineNumberColorHl, textColorHl)
                     else (lineNumberColor,   textColor)
+                visibleCharacters = T.unpack (T.drop startColumn txt)
             in  ( string numColor (padWithSpace (show num))
-                , string txtColor (padWithSpace (T.unpack txt)) )
+                , string txtColor (padWithSpace visibleCharacters) )
 
         (renderedLineNumbers, renderedTextLines)
             = over both fold . unzip
             . map renderLine
-            $ zip [startPosition..] visibleLines
+            $ zip [startPosition+1..] visibleLines
 
     pure (resizeWidth width (renderedLineNumbers <|> renderedTextLines))
 
