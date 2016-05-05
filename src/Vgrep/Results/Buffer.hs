@@ -1,7 +1,8 @@
 module Vgrep.Results.Buffer
     ( module Vgrep.Results
     , DisplayLine(..)
-    , Buffer(..)
+    , Buffer()
+    , emptyBuffer
     , feed
     , showPrev, showNext
     , hidePrev, hideNext
@@ -28,12 +29,17 @@ import           Prelude hiding (reverse)
 import Vgrep.Results
 
 
-data Buffer = EmptyBuffer
-            | Buffer ( Seq FileLineReference   -- above screen (reversed)
-                     , Seq FileLineReference   -- top of screen (reversed)
-                     , FileLineReference       -- currently selected
-                     , Seq FileLineReference   -- bottom of screen
-                     , Seq FileLineReference ) -- below screen
+data Buffer
+    = EmptyBuffer
+    | Buffer
+        (Seq FileLineReference) -- above screen (reversed)
+        (Seq FileLineReference) -- top of screen (reversed)
+        FileLineReference       -- currently selected
+        (Seq FileLineReference) -- bottom of screen
+        (Seq FileLineReference) -- below screen
+
+emptyBuffer :: Buffer
+emptyBuffer = EmptyBuffer
 
 data DisplayLine = FileHeader   File
                  | Line         LineReference
@@ -43,38 +49,38 @@ data DisplayLine = FileHeader   File
 
 feed :: FileLineReference -> Buffer -> Buffer
 feed l = \case
-    EmptyBuffer                -> Buffer (empty, empty, l, empty, empty)
-    Buffer (as, bs, c, ds, es) -> Buffer (as, bs, c, ds, es |> l)
+    EmptyBuffer          -> Buffer empty empty l empty empty
+    Buffer as bs c ds es -> Buffer as bs c ds (es |> l)
 
 
 reverse :: Buffer -> Buffer
 reverse = \case
-    Buffer (as, bs, c, ds, es) -> Buffer (es, ds, c, bs, as)
-    EmptyBuffer                -> EmptyBuffer
+    Buffer as bs c ds es -> Buffer es ds c bs as
+    EmptyBuffer          -> EmptyBuffer
 
 showNext :: Buffer -> Maybe Buffer
 showNext = \case
-    Buffer (as, bs, c, ds, es) -> do e :< es' <- Just (viewl es)
-                                     Just (Buffer (as, bs, c, ds |> e, es'))
-    EmptyBuffer                -> Nothing
+    Buffer as bs c ds es -> do e :< es' <- Just (viewl es)
+                               Just (Buffer as bs c (ds |> e) es')
+    EmptyBuffer          -> Nothing
 
 showPrev :: Buffer -> Maybe Buffer
 showPrev = fmap reverse . showNext . reverse
 
 hideNext :: Buffer -> Maybe Buffer
 hideNext = \case
-    Buffer (as, bs, c, ds, es) -> do ds' :> d <- Just (viewr ds)
-                                     Just (Buffer (as, bs, c, ds', d <| es))
-    EmptyBuffer                -> Nothing
+    Buffer as bs c ds es -> do ds' :> d <- Just (viewr ds)
+                               Just (Buffer as bs c ds' (d <| es))
+    EmptyBuffer          -> Nothing
 
 hidePrev :: Buffer -> Maybe Buffer
 hidePrev = fmap reverse . hideNext . reverse
 
 moveDown :: Buffer -> Maybe Buffer
 moveDown = \case
-    Buffer (as, bs, c, ds, es) -> do d :< ds' <- Just (viewl ds)
-                                     Just (Buffer (as, c <| bs, d, ds', es))
-    EmptyBuffer                -> Nothing
+    Buffer as bs c ds es -> do d :< ds' <- Just (viewl ds)
+                               Just (Buffer as (c <| bs) d ds' es)
+    EmptyBuffer          -> Nothing
 
 moveUp :: Buffer -> Maybe Buffer
 moveUp = fmap reverse . moveDown . reverse
@@ -104,8 +110,8 @@ visibleHeight :: Buffer -> Int
 visibleHeight = length . toLines
 
 toLines :: Buffer -> [DisplayLine]
-toLines EmptyBuffer = []
-toLines (Buffer (_, bs, c, ds, _)) = linesBefore <> selected c <> linesAfter
+toLines EmptyBuffer          = []
+toLines (Buffer _ bs c ds _) = linesBefore <> selected c <> linesAfter
 
   where
     linesBefore = case viewl bs of
@@ -132,8 +138,8 @@ lineNumber (SelectedLine (n, _)) = n
 
 current :: Buffer -> Maybe FileLineReference
 current = \case
-    Buffer (_, _, c, _, _) -> Just c
-    EmptyBuffer            -> Nothing
+    Buffer _ _ c _ _ -> Just c
+    EmptyBuffer      -> Nothing
 
 currentFile :: Buffer -> [LineReference]
 currentFile = do
@@ -144,4 +150,4 @@ currentFile = do
 bufferToList :: Buffer -> [FileLineReference]
 bufferToList = \case
     EmptyBuffer                -> []
-    Buffer (as, bs, c, ds, es) -> toList (as <> bs <> pure c <> ds <> es)
+    Buffer as bs c ds es -> toList (as <> bs <> pure c <> ds <> es)

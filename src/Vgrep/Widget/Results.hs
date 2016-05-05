@@ -51,7 +51,7 @@ resultsWidget =
            , handle     = fmap const resultsKeyBindings }
 
 initResults :: ResultsState
-initResults = EmptyBuffer
+initResults = emptyBuffer
 
 
 resultsKeyBindings
