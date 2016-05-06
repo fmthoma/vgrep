@@ -1,3 +1,4 @@
+-- | Utilities for invoking @grep@
 {-# LANGUAGE Rank2Types #-}
 module Vgrep.System.Grep
     ( grep
@@ -21,6 +22,10 @@ import Vgrep.Parser
 
 import System.IO
 
+-- | Like 'grep', but if the input is not prefixed with a file and line
+-- number, i. e. is not valid @grep -nH@ output, then adds @-nH@ (@-n@:
+-- with line number, @-H@: with file name) to the @grep@ command line
+-- arguments.
 grepForApp :: Producer Text IO () -> Producer Text IO ()
 grepForApp input = do
     (firstInputLine, input') <- peek input
@@ -34,6 +39,9 @@ grepWithFileAndLineNumber input = do
     args <- liftIO getArgs
     grepPipe (withFileName : withLineNumber : args) input
 
+-- | Takes a 'Text' stream and runs it through a @grep@ process, returning
+-- a stream of results. The original command line arguments are passed to
+-- the process.
 grep :: Producer Text IO () -> Producer Text IO ()
 grep input = do
     args <- liftIO getArgs
@@ -47,6 +55,10 @@ grepPipe args input = do
     when (isNothing maybeFirstLine) (lift exitFailure)
     grepOutput
 
+-- | Invokes @grep -nH -rI@ (@-n@: with line number, @-H@: with file name,
+-- @-r@: recursive, @-I@: ignore binary files) and returns the results as a
+-- stream. More arguments (e. g. pattern and directory) are taken from the
+-- command line.
 recursiveGrep :: Producer Text IO ()
 recursiveGrep = do
     args <- lift getArgs
