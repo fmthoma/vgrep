@@ -30,6 +30,7 @@ library
                      , Vgrep.Type
                      , Vgrep.Widget
                      , Vgrep.Widget.HorizontalSplit
+                     , Vgrep.Widget.HorizontalSplit.Internal
                      , Vgrep.Widget.Pager
                      , Vgrep.Widget.Results
                      , Vgrep.Widget.Results.Buffer
