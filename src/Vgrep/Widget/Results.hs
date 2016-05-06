@@ -35,8 +35,8 @@ import Prelude
 import Vgrep.Environment
 import Vgrep.Event
 import Vgrep.Results
-import Vgrep.Results.Buffer as Buffer
 import Vgrep.Type
+import Vgrep.Widget.Results.Buffer as Buffer
 import Vgrep.Widget.Type
 
 

@@ -1,4 +1,4 @@
-module Vgrep.Results.Buffer
+module Vgrep.Widget.Results.Buffer
     ( module Vgrep.Results
     , DisplayLine(..)
     , Buffer()

@@ -25,7 +25,6 @@ library
                      , Vgrep.Environment.Config
                      , Vgrep.Parser
                      , Vgrep.Results
-                     , Vgrep.Results.Buffer
                      , Vgrep.System.Grep
                      , Vgrep.Text
                      , Vgrep.Type
@@ -33,6 +32,7 @@ library
                      , Vgrep.Widget.HorizontalSplit
                      , Vgrep.Widget.Pager
                      , Vgrep.Widget.Results
+                     , Vgrep.Widget.Results.Buffer
                      , Vgrep.Widget.Type
   build-depends:       base >= 4.7 && < 5
                      , async
