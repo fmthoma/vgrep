@@ -1,5 +1,5 @@
 name:                vgrep
-version:             0.1.0.0
+version:             0.1.2.0
 synopsis:            A pager for grep
 description:         Please see README.md
 homepage:            http://github.com/fmthoma/vgrep#readme
