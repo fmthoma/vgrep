@@ -6,7 +6,7 @@ module Vgrep.Widget.Pager (
     , PagerWidget
 
     -- ** Internal state
-    , PagerState ()
+    , Pager ()
 
     -- ** Widget actions
     , moveToLine
@@ -35,7 +35,7 @@ import Vgrep.Widget.Type
 
 -- | Keeps track of the lines of text to display, the current scroll
 -- positions, and the set of highlighted line numbers.
-data PagerState = PagerState
+data Pager = Pager
     { _position    :: Int
     , _column      :: Int
     , _highlighted :: Set Int
@@ -45,9 +45,9 @@ data PagerState = PagerState
 makeLensesFor [ ("_position",    "position")
               , ("_column",      "column")
               , ("_visible",     "visible")
-              , ("_highlighted", "highlighted") ] ''PagerState
+              , ("_highlighted", "highlighted") ] ''Pager
 
-type PagerWidget = Widget PagerState
+type PagerWidget = Widget Pager
 
 -- | Display lines of text with line numbers
 --
@@ -75,8 +75,8 @@ pagerWidget = Widget
     , draw       = renderPager
     , handle     = fmap const pagerKeyBindings }
 
-initPager :: PagerState
-initPager = PagerState
+initPager :: Pager
+initPager = Pager
     { _position    = 0
     , _column      = 0
     , _highlighted = S.empty
@@ -87,7 +87,7 @@ initPager = PagerState
 pagerKeyBindings
     :: Monad m
     => Event
-    -> Next (VgrepT PagerState m Redraw)
+    -> Next (VgrepT Pager m Redraw)
 pagerKeyBindings = dispatchMap $ fromList
     [ (EvKey KUp         [], scroll up      )
     , (EvKey KDown       [], scroll down    )
@@ -106,13 +106,13 @@ replaceBufferContents
     :: Monad m
     => [Text] -- ^ Lines of text to display in the pager (starting with line 1)
     -> [Int]  -- ^ List of line numbers that should be highlighted
-    -> VgrepT PagerState m ()
+    -> VgrepT Pager m ()
 replaceBufferContents newContent newHighlightedLines = put initPager
     { _visible     = newContent
     , _highlighted = S.fromList newHighlightedLines }
 
 -- | Scroll to the given line number.
-moveToLine :: Monad m => Int -> VgrepT PagerState m Redraw
+moveToLine :: Monad m => Int -> VgrepT Pager m Redraw
 moveToLine n = view region >>= \displayRegion -> do
     let height = regionHeight displayRegion
     pos <- use position
@@ -122,7 +122,7 @@ moveToLine n = view region >>= \displayRegion -> do
 --
 -- >>> scroll (-1)  -- scroll one line up
 -- >>> scroll 1     -- scroll one line down
-scroll :: Monad m => Int -> VgrepT PagerState m Redraw
+scroll :: Monad m => Int -> VgrepT Pager m Redraw
 scroll n = view region >>= \displayRegion -> do
     let height = regionHeight displayRegion
     linesVisible <- uses visible (length . take (height + 1))
@@ -131,17 +131,17 @@ scroll n = view region >>= \displayRegion -> do
        | n < 0     -> modify goUp   >> scroll (n + 1)
        | otherwise -> pure Redraw
   where
-    goDown (PagerState l c h as     (b:bs)) = PagerState (l + 1) c h (b:as) bs
-    goDown (PagerState l c h as     [])     = PagerState l       c h as     []
-    goUp   (PagerState l c h (a:as) bs)     = PagerState (l - 1) c h as     (a:bs)
-    goUp   (PagerState l c h []     bs)     = PagerState l       c h []     bs
+    goDown (Pager l c h as     (b:bs)) = Pager (l + 1) c h (b:as) bs
+    goDown (Pager l c h as     [])     = Pager l       c h as     []
+    goUp   (Pager l c h (a:as) bs)     = Pager (l - 1) c h as     (a:bs)
+    goUp   (Pager l c h []     bs)     = Pager l       c h []     bs
 
 -- | Scroll up or down one page. The first line on the current screen will
 -- be the last line on the scrolled screen and vice versa.
 --
 -- >>> scrollPage (-1)  -- scroll one page up
 -- >>> scrollPage 1     -- scroll one page down
-scrollPage :: Monad m => Int -> VgrepT PagerState m Redraw
+scrollPage :: Monad m => Int -> VgrepT Pager m Redraw
 scrollPage n = view region >>= \displayRegion ->
     let height = regionHeight displayRegion
     in  scroll (n * (height - 1))
@@ -151,7 +151,7 @@ scrollPage n = view region >>= \displayRegion ->
 --
 -- >>> hScroll (-1)  -- scroll one tabstop left
 -- >>> hScroll 1     -- scroll one tabstop right
-hScroll :: Monad m => Int -> VgrepT PagerState m Redraw
+hScroll :: Monad m => Int -> VgrepT Pager m Redraw
 hScroll n = do
     tabWidth <- view (config . tabstop)
     modifying column $ \currentColumn ->
@@ -160,7 +160,7 @@ hScroll n = do
     pure Redraw
 
 
-renderPager :: Monad m => VgrepT PagerState m Image
+renderPager :: Monad m => VgrepT Pager m Image
 renderPager = do
     textColor         <- view (config . colors . normal)
     textColorHl       <- view (config . colors . normalHl)
