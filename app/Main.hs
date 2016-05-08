@@ -69,7 +69,7 @@ main = do
 
 
 type MainWidget  = HSplitWidget ResultsState PagerState
-type WidgetState = HSplitState  ResultsState PagerState
+type WidgetState = HSplit ResultsState PagerState
 
 data AppState = AppState { _widgetState :: WidgetState
                          , _inputLines  :: Seq Text }

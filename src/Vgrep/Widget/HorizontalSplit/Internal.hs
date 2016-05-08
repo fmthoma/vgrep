@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Vgrep.Widget.HorizontalSplit.Internal (
     -- * Split-view widget state
-      HSplitState (..)
+      HSplit (..)
     , Layout (..)
     , Focus (..)
 
@@ -21,7 +21,7 @@ import Control.Lens
 
 -- | The internal state of the split-view widget. Tracks the state of both
 -- child widgets and the current layout.
-data HSplitState s t = State
+data HSplit s t = HSplit
     { _leftWidget  :: s
     -- ^ State of the left widget
 
@@ -35,14 +35,14 @@ data HSplitState s t = State
 data Focus = FocusLeft | FocusRight deriving (Eq)
 data Layout = LeftOnly | RightOnly | Split Focus Rational deriving (Eq)
 
-makeLenses ''HSplitState
+makeLenses ''HSplit
 
 
 -- | The currently focused child widget
 --
 -- >>> view currentWidget $ State { _leftWidget = foo, _layout = LeftOnly }
 -- Left foo
-currentWidget :: Lens' (HSplitState s t) (Either s t)
+currentWidget :: Lens' (HSplit s t) (Either s t)
 currentWidget = lens getCurrentWidget setCurrentWidget
   where
     getCurrentWidget state = case view layout state of
@@ -68,7 +68,7 @@ currentWidget = lens getCurrentWidget setCurrentWidget
 --
 -- >>> has leftWidgetFocused $ State { _layout = Split FocusLeft 1%2 }
 -- False
-leftWidgetFocused :: Traversal' (HSplitState s t) s
+leftWidgetFocused :: Traversal' (HSplit s t) s
 leftWidgetFocused = currentWidget . _Left
 
 -- | Traverses the right widget if focused
@@ -81,5 +81,5 @@ leftWidgetFocused = currentWidget . _Left
 --
 -- >>> has rightWidgetFocused $ State { _layout = Split FocusRight 1%2 }
 -- True
-rightWidgetFocused :: Traversal' (HSplitState s t) t
+rightWidgetFocused :: Traversal' (HSplit s t) t
 rightWidgetFocused = currentWidget . _Right
