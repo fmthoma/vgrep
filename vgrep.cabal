@@ -33,7 +33,7 @@ library
                      , Vgrep.Widget.HorizontalSplit.Internal
                      , Vgrep.Widget.Pager
                      , Vgrep.Widget.Results
-                     , Vgrep.Widget.Results.Buffer
+                     , Vgrep.Widget.Results.Internal
                      , Vgrep.Widget.Type
   build-depends:       base >= 4.7 && < 5
                      , async
