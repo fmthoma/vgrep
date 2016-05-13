@@ -1,42 +1,42 @@
 {-# LANGUAGE FlexibleContexts #-}
 module Main (main) where
 
-import Control.Concurrent.Async
-import Control.Lens
-import Control.Monad.Reader
-import Data.Foldable
-import Data.Maybe
-import Data.Monoid
-import Data.Ratio
-import Data.Sequence (Seq)
-import qualified Data.Sequence as S
-import Data.Text.Lazy (Text)
-import qualified Data.Text.Lazy as T
-import qualified Data.Text.Lazy.IO as T
-import qualified Graphics.Vty as Vty
-import Graphics.Vty.Input.Events hiding (Event)
-import Graphics.Vty.Picture
-import Pipes as P
-import Pipes.Concurrent
-import qualified Pipes.Prelude as P
-import System.Directory
-import System.Environment (getArgs)
-import System.IO
-import System.Posix.IO
-import System.Process
+import           Control.Concurrent.Async
+import           Control.Lens
+import           Control.Monad.Reader
+import           Data.Foldable
+import           Data.Maybe
+import           Data.Monoid
+import           Data.Ratio
+import           Data.Sequence             (Seq)
+import qualified Data.Sequence             as S
+import           Data.Text.Lazy            (Text)
+import qualified Data.Text.Lazy            as T
+import qualified Data.Text.Lazy.IO         as T
+import qualified Graphics.Vty              as Vty
+import           Graphics.Vty.Input.Events hiding (Event)
+import           Graphics.Vty.Picture
+import           Pipes                     as P
+import           Pipes.Concurrent
+import qualified Pipes.Prelude             as P
+import           System.Directory
+import           System.Environment        (getArgs)
+import           System.IO
+import           System.Posix.IO
+import           System.Process
 
-import Vgrep.App as App
-import Vgrep.Event
-import Vgrep.Environment
-import Vgrep.Parser
-import Vgrep.System.Grep
-import Vgrep.Text
-import Vgrep.Type
-import Vgrep.Widget hiding (handle)
-import qualified Vgrep.Widget as Widget
-import Vgrep.Widget.HorizontalSplit
-import Vgrep.Widget.Pager
-import Vgrep.Widget.Results
+import           Vgrep.App                    as App
+import           Vgrep.Environment
+import           Vgrep.Event
+import           Vgrep.Parser
+import           Vgrep.System.Grep
+import           Vgrep.Text
+import           Vgrep.Type
+import           Vgrep.Widget                 hiding (handle)
+import qualified Vgrep.Widget                 as Widget
+import           Vgrep.Widget.HorizontalSplit
+import           Vgrep.Widget.Pager
+import           Vgrep.Widget.Results
 
 
 main :: IO ()

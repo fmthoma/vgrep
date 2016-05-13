@@ -9,17 +9,17 @@ module Vgrep.App
     , ttyOut
     ) where
 
-import Control.Concurrent.Async
-import Control.Exception
-import Control.Monad.Reader
-import Control.Monad.State (get)
-import Graphics.Vty (Vty)
-import qualified Graphics.Vty as Vty
-import Pipes hiding (next)
-import Pipes.Concurrent
-import Pipes.Prelude as P
-import System.Posix.IO
-import System.Posix.Types (Fd)
+import           Control.Concurrent.Async
+import           Control.Exception
+import           Control.Monad.Reader
+import           Control.Monad.State      (get)
+import           Graphics.Vty             (Vty)
+import qualified Graphics.Vty             as Vty
+import           Pipes                    hiding (next)
+import           Pipes.Concurrent
+import           Pipes.Prelude            as P
+import           System.Posix.IO
+import           System.Posix.Types       (Fd)
 
 import Vgrep.Environment
 import Vgrep.Event

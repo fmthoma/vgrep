@@ -10,7 +10,7 @@ module Vgrep.Widget.Type
 import Graphics.Vty.Image (Image)
 import Graphics.Vty.Input
 
-import Vgrep.Event (Redraw (..), Next (..))
+import Vgrep.Event (Next (..), Redraw (..))
 import Vgrep.Type
 
 -- | A 'Widget' is a unit that is displayed on the screen. It is associated

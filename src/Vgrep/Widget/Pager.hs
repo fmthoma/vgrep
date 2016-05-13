@@ -1,5 +1,5 @@
+{-# LANGUAGE DeriveFunctor   #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE DeriveFunctor #-}
 module Vgrep.Widget.Pager (
     -- * Pager widget
       pagerWidget
@@ -16,16 +16,16 @@ module Vgrep.Widget.Pager (
     , replaceBufferContents
     ) where
 
-import Control.Lens
-import Control.Monad.State.Extended (put, modify)
-import Data.Foldable
-import Data.Set (Set)
-import qualified Data.Set as S
-import Data.Text.Lazy (Text)
-import qualified Data.Text.Lazy as T
-import Graphics.Vty.Image hiding (resize)
-import Graphics.Vty.Input
-import Graphics.Vty.Prelude
+import           Control.Lens
+import           Control.Monad.State.Extended (modify, put)
+import           Data.Foldable
+import           Data.Set                     (Set)
+import qualified Data.Set                     as S
+import           Data.Text.Lazy               (Text)
+import qualified Data.Text.Lazy               as T
+import           Graphics.Vty.Image           hiding (resize)
+import           Graphics.Vty.Input
+import           Graphics.Vty.Prelude
 
 import Vgrep.Environment
 import Vgrep.Event

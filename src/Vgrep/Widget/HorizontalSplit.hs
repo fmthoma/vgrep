@@ -25,14 +25,14 @@ module Vgrep.Widget.HorizontalSplit (
 import Control.Lens
 import Control.Monad.Reader (local)
 import Data.Monoid
-import Graphics.Vty.Image hiding (resize)
+import Graphics.Vty.Image   hiding (resize)
 import Graphics.Vty.Input
 
 import Vgrep.Environment
 import Vgrep.Event
 import Vgrep.Type
-import Vgrep.Widget.Type
 import Vgrep.Widget.HorizontalSplit.Internal
+import Vgrep.Widget.Type
 
 
 type HSplitWidget s t = Widget (HSplit s t)

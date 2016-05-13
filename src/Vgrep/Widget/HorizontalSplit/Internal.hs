@@ -20,7 +20,7 @@ module Vgrep.Widget.HorizontalSplit.Internal (
     ) where
 
 import Control.Lens
-import Data.Ratio ((%))
+import Data.Ratio   ((%))
 
 
 -- $setup
@@ -66,7 +66,7 @@ currentWidget = lens getCurrentWidget setCurrentWidget
         (_,                  _            ) -> state
 
 -- | Traverses the left widget if focused
--- 
+--
 -- >>> has leftWidgetFocused $ HSplit { _layout = LeftOnly }
 -- True
 --
@@ -79,7 +79,7 @@ leftWidgetFocused :: Traversal' (HSplit s t) s
 leftWidgetFocused = currentWidget . _Left
 
 -- | Traverses the right widget if focused
--- 
+--
 -- >>> has rightWidgetFocused $ HSplit { _layout = RightOnly }
 -- True
 --

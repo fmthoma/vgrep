@@ -8,11 +8,11 @@ module Vgrep.Text (
     , expandLineForDisplay
     ) where
 
-import Control.Lens
-import Control.Monad.Reader.Class
-import Data.Char
-import Data.Text.Lazy (Text)
-import qualified Data.Text.Lazy as T
+import           Control.Lens
+import           Control.Monad.Reader.Class
+import           Data.Char
+import           Data.Text.Lazy             (Text)
+import qualified Data.Text.Lazy             as T
 
 import Vgrep.Environment
 

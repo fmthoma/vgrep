@@ -1,4 +1,4 @@
-module Vgrep.Widget.Results.Internal ( 
+module Vgrep.Widget.Results.Internal (
     -- * Results widget state
       Results (..)
 
@@ -30,10 +30,17 @@ import           Data.Function
 import           Data.List           (groupBy)
 import           Data.Maybe
 import           Data.Monoid
-import           Data.Sequence       (Seq, ViewL (..), ViewR (..), viewl, viewr,
-                                      (<|), (|>))
+import           Data.Sequence
+    ( Seq
+    , ViewL (..)
+    , ViewR (..)
+    , viewl
+    , viewr
+    , (<|)
+    , (|>)
+    )
 import qualified Data.Sequence       as S
-import           Data.Text.Lazy (Text)
+import           Data.Text.Lazy      (Text)
 import           Prelude             hiding (reverse)
 
 import Vgrep.Results
