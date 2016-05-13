@@ -1,14 +1,22 @@
 module Vgrep.Results
-    ( File(..)
-    , LineReference
-    , FileLineReference
+    ( File (..)
+    , LineReference (..)
+    , FileLineReference (..)
     ) where
 
 import           Data.Text.Lazy (Text)
 
 
-newtype File = File { getFileName :: Text } deriving (Eq, Show)
+newtype File = File
+    { getFileName :: Text
+    } deriving (Eq, Show)
 
-type LineReference = (Maybe Int, Text)
+data LineReference = LineReference
+    { getLineNumber :: Maybe Int
+    , getLineText   :: Text
+    } deriving (Eq, Show)
 
-type FileLineReference = (File, LineReference)
+data FileLineReference = FileLineReference
+    { getFile          :: File
+    , getLineReference :: LineReference
+    } deriving (Eq, Show)

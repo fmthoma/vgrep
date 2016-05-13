@@ -164,19 +164,22 @@ renderLine width lineNumberWidth displayLine = do
     resultLineStyle <- view (config . colors . normal)
     selectedStyle   <- view (config . colors . selected)
     pure $ case displayLine of
-        FileHeader file     -> renderFileHeader fileHeaderStyle file
-        Line         (n, t) -> horizCat [ renderLineNumber lineNumberStyle n
-                                        , renderLineText   resultLineStyle t ]
-        SelectedLine (n, t) -> horizCat [ renderLineNumber lineNumberStyle n
-                                        , renderLineText   selectedStyle   t ]
+        FileHeader (File file)
+            -> renderFileHeader fileHeaderStyle file
+        Line         (LineReference n t)
+            -> horizCat [ renderLineNumber lineNumberStyle n
+                        , renderLineText   resultLineStyle t ]
+        SelectedLine (LineReference n t)
+            -> horizCat [ renderLineNumber lineNumberStyle n
+                        , renderLineText   selectedStyle   t ]
   where
     padWithSpace w = T.take (fromIntegral w)
                    . T.justifyLeft (fromIntegral w) ' '
                    . T.cons ' '
     justifyRight w s = T.justifyRight (fromIntegral w) ' ' (s <> " ")
 
-    renderFileHeader :: Attr -> File -> Image
-    renderFileHeader attr = text attr . padWithSpace width . getFileName
+    renderFileHeader :: Attr -> Text -> Image
+    renderFileHeader attr = text attr . padWithSpace width
 
     renderLineNumber :: Attr -> Maybe Int -> Image
     renderLineNumber attr = text attr

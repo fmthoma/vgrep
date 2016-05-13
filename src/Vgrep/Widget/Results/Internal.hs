@@ -24,7 +24,7 @@ module Vgrep.Widget.Results.Internal (
     ) where
 
 import           Control.Applicative
-import           Control.Lens        (Getter, pre, to, _Just, _1, _2)
+import           Control.Lens        (Getter, pre, to, _Just)
 import           Data.Foldable
 import           Data.Function
 import           Data.List           (groupBy)
@@ -170,28 +170,29 @@ toLines (Results _ bs c ds _) = linesBefore <> selected c <> linesAfter
 
     go refs = do
         fileResults <- groupBy pointsToSameFile (toList refs)
-        header (head fileResults) <> fmap (Line . snd) fileResults
+        header (head fileResults) <> fmap (Line . getLineReference) fileResults
 
-    header   = pure . FileHeader   . fst
-    selected = pure . SelectedLine . snd
-    pointsToSameFile = (==) `on` fst
+    header   = pure . FileHeader   . getFile
+    selected = pure . SelectedLine . getLineReference
+    pointsToSameFile = (==) `on` getFile
 
 -- | The line number of a 'DisplayLine'. 'Nothing' for 'FileHeader's.
 lineNumber :: DisplayLine -> Maybe Int
-lineNumber (FileHeader _)        = Nothing
-lineNumber (Line         (n, _)) = n
-lineNumber (SelectedLine (n, _)) = n
+lineNumber = \case
+    FileHeader _                     -> Nothing
+    Line         (LineReference n _) -> n
+    SelectedLine (LineReference n _) -> n
 
 
 -- | The file name of the currently selected item
 currentFileName :: Getter Results (Maybe Text)
 currentFileName =
-    pre (to current . _Just . _1 . to getFileName)
+    pre (to current . _Just . to getFile . to getFileName)
 
 -- | The line number of the currently selected item
 currentLineNumber :: Getter Results (Maybe Int)
 currentLineNumber =
-    pre (to current . _Just . _2 . _1 . _Just)
+    pre (to current . _Just . to getLineReference . to getLineNumber . _Just)
 
 current :: Results -> Maybe FileLineReference
 current = \case
@@ -202,14 +203,14 @@ current = \case
 -- item
 currentFileResultLineNumbers :: Getter Results [Int]
 currentFileResultLineNumbers =
-    to (mapMaybe fst . currentFile)
+    to (mapMaybe getLineNumber . currentFile)
   where
     currentFile = do
-        let sameFileAs = (==) `on` fst
+        let sameFileAs = (==) `on` getFile
         inCurrentFile <- sameFileAs . fromJust . current
-        map snd . filter inCurrentFile . bufferToList
+        map getLineReference . filter inCurrentFile . bufferToList
 
 bufferToList :: Results -> [FileLineReference]
 bufferToList = \case
-    EmptyResults                -> []
+    EmptyResults          -> []
     Results as bs c ds es -> toList (as <> bs <> pure c <> ds <> es)

@@ -27,12 +27,12 @@ parseGrepOutput = catMaybes . fmap parseLine
 -- separated by colons:
 --
 -- >>> parseLine "path/to/file:123:foobar"
--- Just (File {getFileName = "path/to/file"},(Just 123,"foobar"))
+-- Just (FileLineReference {getFile = File {getFileName = "path/to/file"}, getLineReference = LineReference {getLineNumber = Just 123, getLineText = "foobar"}})
 --
 -- Omitting the line number still produces valid output:
 --
 -- >>> parseLine "path/to/file:foobar"
--- Just (File {getFileName = "path/to/file"},(Nothing,"foobar"))
+-- Just (FileLineReference {getFile = File {getFileName = "path/to/file"}, getLineReference = LineReference {getLineNumber = Nothing, getLineText = "foobar"}})
 --
 -- However, an file name must be present:
 --
@@ -46,4 +46,9 @@ lineParser = do
     file       <- manyTill anyChar (char ':')
     lineNumber <- optional (decimal <* char ':')
     result     <- takeLazyText
-    return (File (pack file), (lineNumber, result))
+    pure FileLineReference
+        { getFile = File
+            { getFileName = pack file }
+        , getLineReference = LineReference
+            { getLineNumber = lineNumber
+            , getLineText   = result } }
