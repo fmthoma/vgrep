@@ -1,10 +1,10 @@
 -- | The 'VgrepT' monad transformer allows reading from the 'Environment'
 -- and changing the state of the 'Vgrep.App.App' or a 'Vgrep.Widget.Widget'.
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TupleSections #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE TupleSections              #-}
+{-# LANGUAGE TypeFamilies               #-}
 module Vgrep.Type
   ( -- * The 'VgrepT' monad transformer
     VgrepT ()
@@ -25,13 +25,13 @@ module Vgrep.Type
   , module Vgrep.Environment
 ) where
 
-import qualified Control.Exception as E
-import Control.Lens.Internal.Zoom
-import Control.Lens.Zoom
-import Control.Monad.Identity
-import Control.Monad.Morph
-import Control.Monad.Reader
-import Control.Monad.State.Extended
+import qualified Control.Exception            as E
+import           Control.Lens.Internal.Zoom
+import           Control.Lens.Zoom
+import           Control.Monad.Identity
+import           Control.Monad.Morph
+import           Control.Monad.Reader
+import           Control.Monad.State.Extended
 
 import Vgrep.Environment
 

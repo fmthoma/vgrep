@@ -1,5 +1,5 @@
-{-# LANGUAGE Rank2Types        #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE Rank2Types        #-}
 
 module Vgrep.Widget.Results (
     -- * Results list widget
@@ -25,18 +25,18 @@ module Vgrep.Widget.Results (
     , module Vgrep.Results
     ) where
 
-import Control.Applicative
-import Control.Lens
-import Control.Monad.State.Extended
-import Data.Foldable
-import Data.Maybe
-import Data.Monoid
-import Data.Text.Lazy (Text)
-import qualified Data.Text.Lazy as T
-import Graphics.Vty.Image hiding ((<|>))
-import Graphics.Vty.Input
-import Graphics.Vty.Prelude
-import Prelude
+import           Control.Applicative
+import           Control.Lens
+import           Control.Monad.State.Extended
+import           Data.Foldable
+import           Data.Maybe
+import           Data.Monoid
+import           Data.Text.Lazy               (Text)
+import qualified Data.Text.Lazy               as T
+import           Graphics.Vty.Image           hiding ((<|>))
+import           Graphics.Vty.Input
+import           Graphics.Vty.Prelude
+import           Prelude
 
 import Vgrep.Environment
 import Vgrep.Event

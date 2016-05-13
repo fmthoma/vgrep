@@ -38,9 +38,9 @@ module Vgrep.Event (
     , module Data.Map
     ) where
 
-import Control.Monad.IO.Class
-import Data.Map (Map, fromList)
-import qualified Data.Map as M
+import           Control.Monad.IO.Class
+import           Data.Map               (Map, fromList)
+import qualified Data.Map               as M
 
 import Vgrep.Environment
 
