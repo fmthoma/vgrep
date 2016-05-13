@@ -1,7 +1,10 @@
-module Vgrep.Parser
-    ( parseGrepOutput
+module Vgrep.Parser (
+    -- * Parsing @grep@ output
+      parseGrepOutput
     , parseLine
-    , FileLineReference -- reexport from Vgrep.Results
+
+    -- ** Re-export
+    , FileLineReference
     ) where
 
 import Control.Applicative
@@ -11,9 +14,29 @@ import Data.Text.Lazy
 
 import Vgrep.Results
 
+-- | Parses lines of 'Text', skipping lines that are not valid @grep@
+-- output.
 parseGrepOutput :: [Text] -> [FileLineReference]
 parseGrepOutput = catMaybes . fmap parseLine
 
+-- | Parses a line of @grep@ output. Returns 'Nothing' if the line cannot
+-- be parsed.
+--
+-- The output should consist of a file name, line number and the content,
+-- separated by colons:
+--
+-- >>> parseLine "path/to/file:123:foobar"
+-- Just (File "path/to/file", (Just 123, "foobar"))
+--
+-- Omitting the line number still produces valid output:
+--
+-- >>> parseLine "path/to/file:foobar"
+-- Just (File "path/to/file", (Nothing, "foobar"))
+--
+-- However, an file name must be present:
+--
+-- >>> parseLine "foobar"
+-- Nothing
 parseLine :: Text -> Maybe FileLineReference
 parseLine line = maybeResult (parse lineParser line)
 
