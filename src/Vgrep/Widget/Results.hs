@@ -1,21 +1,27 @@
 {-# LANGUAGE Rank2Types        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Vgrep.Widget.Results
-    ( ResultsState()
+module Vgrep.Widget.Results (
+    -- * Results list widget
+      resultsWidget
     , ResultsWidget
-    , resultsWidget
 
+    -- ** Internal widget state
+    , Results ()
+
+    -- ** Widget actions
     , feedResult
     , prevLine
     , nextLine
     , pageUp
     , pageDown
 
+    -- ** Lenses
     , currentFileName
     , currentLineNumber
     , currentFileResultLineNumbers
 
+    -- * Re-exports
     , module Vgrep.Results
     ) where
 
@@ -35,29 +41,48 @@ import Prelude
 import Vgrep.Environment
 import Vgrep.Event
 import Vgrep.Results
-import Vgrep.Results.Buffer as Buffer
 import Vgrep.Type
+import Vgrep.Widget.Results.Internal as Internal
 import Vgrep.Widget.Type
 
 
-type ResultsState = Buffer
+type ResultsWidget = Widget Results
 
-type ResultsWidget = Widget ResultsState
-
+-- | The results widget displays a list of lines with line numbers, grouped
+-- by files.
+--
+-- * __Initial state__
+--
+--     The initial buffer is empty and can be filled line by line using
+--     'feedResult'.
+--
+-- * __Drawing the results list__
+--
+--     Found matches are grouped by file name. Each file group has a header
+--     and a list of result lines with line numbers. The result lines can
+--     be selected with the cursor, the file group headers are skipped.
+--     When only part of a file group is shown at the top of the screen,
+--     the header is shown nevertheless.
+--
+-- * __Default keybindings__
+--
+--     @
+--     jk, ↓↑      'nextLine', 'prevLine'
+--     PgDn, PgUp  'pageDown', 'pageUp'
+--     @
 resultsWidget :: ResultsWidget
 resultsWidget =
     Widget { initialize = initResults
            , draw       = renderResultList
            , handle     = fmap const resultsKeyBindings }
 
-initResults :: ResultsState
-initResults = EmptyBuffer
-
+initResults :: Results
+initResults = EmptyResults
 
 resultsKeyBindings
     :: Monad m
     => Event
-    -> Next (VgrepT ResultsState m Redraw)
+    -> Next (VgrepT Results m Redraw)
 resultsKeyBindings = dispatchMap $ fromList
     [ (EvKey KPageUp     [], pageUp   >> pure Redraw)
     , (EvKey KPageDown   [], pageDown >> pure Redraw)
@@ -68,12 +93,17 @@ resultsKeyBindings = dispatchMap $ fromList
     , (EvKey (KChar 'k') [], prevLine >> pure Redraw)
     , (EvKey (KChar 'j') [], nextLine >> pure Redraw) ]
 
-feedResult :: Monad m => FileLineReference -> VgrepT ResultsState m Redraw
+
+-- | Add a line to the results list. If the result is found in the same
+-- file as the current last result, it will be added to the same results
+-- group, otherwise a new group will be opened.
+feedResult :: Monad m => FileLineReference -> VgrepT Results m Redraw
 feedResult line = do
     modify (feed line)
     resizeToWindow
 
-pageUp, pageDown :: Monad m => VgrepT ResultsState m ()
+-- | Move up/down one results page. File group headers will be skipped.
+pageUp, pageDown :: Monad m => VgrepT Results m ()
 pageUp = do
     unlessS (isJust . moveUp) $ do
         modify (repeatedly (hideNext >=> showPrev))
@@ -91,12 +121,12 @@ repeatedly f = go
     go x | Just x' <- f x = go x'
          | otherwise      = x
 
-
-prevLine, nextLine :: Monad m => VgrepT ResultsState m ()
+-- | Move up/down one results line. File group headers will be skipped.
+prevLine, nextLine :: Monad m => VgrepT Results m ()
 prevLine = maybeModify tryPrevLine >> void resizeToWindow
 nextLine = maybeModify tryNextLine >> void resizeToWindow
 
-tryPrevLine, tryNextLine :: Buffer -> Maybe Buffer
+tryPrevLine, tryNextLine :: Results -> Maybe Results
 tryPrevLine buf = moveUp   buf <|> (showPrev buf >>= tryPrevLine)
 tryNextLine buf = moveDown buf <|> (showNext buf >>= tryNextLine)
 
@@ -108,7 +138,7 @@ maybeModify f = do
         Nothing -> pure ()
 
 
-renderResultList :: Monad m => VgrepT ResultsState m Image
+renderResultList :: Monad m => VgrepT Results m Image
 renderResultList = do
     void resizeToWindow
     visibleLines <- use (to toLines)
@@ -127,26 +157,29 @@ renderLine
     => Int
     -> Int
     -> DisplayLine
-    -> VgrepT ResultsState m Image
+    -> VgrepT Results m Image
 renderLine width lineNumberWidth displayLine = do
     fileHeaderStyle <- view (config . colors . fileHeaders)
     lineNumberStyle <- view (config . colors . lineNumbers)
     resultLineStyle <- view (config . colors . normal)
     selectedStyle   <- view (config . colors . selected)
     pure $ case displayLine of
-        FileHeader file     -> renderFileHeader fileHeaderStyle file
-        Line         (n, t) -> horizCat [ renderLineNumber lineNumberStyle n
-                                        , renderLineText   resultLineStyle t ]
-        SelectedLine (n, t) -> horizCat [ renderLineNumber lineNumberStyle n
-                                        , renderLineText   selectedStyle   t ]
+        FileHeader (File file)
+            -> renderFileHeader fileHeaderStyle file
+        Line         (LineReference n t)
+            -> horizCat [ renderLineNumber lineNumberStyle n
+                        , renderLineText   resultLineStyle t ]
+        SelectedLine (LineReference n t)
+            -> horizCat [ renderLineNumber lineNumberStyle n
+                        , renderLineText   selectedStyle   t ]
   where
     padWithSpace w = T.take (fromIntegral w)
                    . T.justifyLeft (fromIntegral w) ' '
                    . T.cons ' '
     justifyRight w s = T.justifyRight (fromIntegral w) ' ' (s <> " ")
 
-    renderFileHeader :: Attr -> File -> Image
-    renderFileHeader attr = text attr . padWithSpace width . getFileName
+    renderFileHeader :: Attr -> Text -> Image
+    renderFileHeader attr = text attr . padWithSpace width
 
     renderLineNumber :: Attr -> Maybe Int -> Image
     renderLineNumber attr = text attr
@@ -158,23 +191,10 @@ renderLine width lineNumberWidth displayLine = do
                         . padWithSpace (width - lineNumberWidth)
 
 
-resizeToWindow :: Monad m => VgrepT ResultsState m Redraw
+resizeToWindow :: Monad m => VgrepT Results m Redraw
 resizeToWindow = do
     height <- views region regionHeight
     currentBuffer <- get
-    case Buffer.resize height currentBuffer of
+    case Internal.resize height currentBuffer of
         Just resizedBuffer -> put resizedBuffer >> pure Redraw
         Nothing            -> pure Unchanged
-
-
-currentFileName :: Getter ResultsState (Maybe Text)
-currentFileName =
-    pre (to current . _Just . _1 . to getFileName)
-
-currentLineNumber :: Getter ResultsState (Maybe Int)
-currentLineNumber =
-    pre (to current . _Just . _2 . _1 . _Just)
-
-currentFileResultLineNumbers :: Getter ResultsState [Int]
-currentFileResultLineNumbers =
-    to (mapMaybe fst . currentFile)

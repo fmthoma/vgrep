@@ -25,14 +25,15 @@ library
                      , Vgrep.Environment.Config
                      , Vgrep.Parser
                      , Vgrep.Results
-                     , Vgrep.Results.Buffer
                      , Vgrep.System.Grep
                      , Vgrep.Text
                      , Vgrep.Type
                      , Vgrep.Widget
                      , Vgrep.Widget.HorizontalSplit
+                     , Vgrep.Widget.HorizontalSplit.Internal
                      , Vgrep.Widget.Pager
                      , Vgrep.Widget.Results
+                     , Vgrep.Widget.Results.Internal
                      , Vgrep.Widget.Type
   build-depends:       base >= 4.7 && < 5
                      , async
@@ -78,6 +79,14 @@ test-suite vgrep-test
   main-is:             Spec.hs
   build-depends:       base
                      , vgrep
+  ghc-options:         -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+
+test-suite doctest
+  type:                exitcode-stdio-1.0
+  hs-source-dirs:      test
+  main-is:             Doctest.hs
+  build-depends:       base, doctest
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N
   default-language:    Haskell2010
 

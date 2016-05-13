@@ -68,8 +68,8 @@ main = do
         cancel grepThread
 
 
-type MainWidget  = HSplitWidget ResultsState PagerState
-type WidgetState = HSplitState  ResultsState PagerState
+type MainWidget  = HSplitWidget Results Pager
+type WidgetState = HSplit Results Pager
 
 data AppState = AppState { _widgetState :: WidgetState
                          , _inputLines  :: Seq Text }
@@ -218,8 +218,8 @@ widgetState = lens _widgetState (\s ws -> s { _widgetState = ws })
 inputLines :: Lens' AppState (Seq Text)
 inputLines = lens _inputLines (\s l -> s { _inputLines = l })
 
-results :: Lens' AppState ResultsState
+results :: Lens' AppState Results
 results = widgetState . leftWidget
 
-pager :: Lens' AppState PagerState
+pager :: Lens' AppState Pager
 pager = widgetState . rightWidget

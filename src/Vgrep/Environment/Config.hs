@@ -6,21 +6,56 @@ import Data.Maybe
 import Graphics.Vty.Image
 import System.Environment
 
+
+--------------------------------------------------------------------------
+-- * Types
+--------------------------------------------------------------------------
+
 data Config = Config
     { _colors  :: Colors
+    -- ^ Color configuration
+
     , _tabstop :: Int
-    , _editor  :: String }
+    -- ^ Tabstop width (default: 8)
+
+    , _editor  :: String
+    -- ^ Executable for @e@ key (default: environment variable @$EDITOR@,
+    -- or @vi@ if @$EDITOR@ is not set)
+    }
 
 data Colors = Colors
     { _lineNumbers   :: Attr
+    -- ^ Line numbers (default: blue)
+
     , _lineNumbersHl :: Attr
+    -- ^ Highlighted line numbers (default: bold blue)
+
     , _normal        :: Attr
+    -- ^ Normal text (default: terminal default)
+
     , _normalHl      :: Attr
+    -- ^ Highlighted text (default: bold)
+
     , _fileHeaders   :: Attr
-    , _selected      :: Attr }
+    -- ^ File names in results view (default: terminal default color on
+    -- green background)
+
+    , _selected      :: Attr
+    -- ^ Selected entry (default: terminal default, inverted)
+    }
+
+
+--------------------------------------------------------------------------
+-- * Auto-generated Lenses
+--------------------------------------------------------------------------
 
 makeLenses ''Config
 makeLenses ''Colors
+
+
+--------------------------------------------------------------------------
+-- * Default Config
+--------------------------------------------------------------------------
 
 defaultConfig :: IO Config
 defaultConfig = do
