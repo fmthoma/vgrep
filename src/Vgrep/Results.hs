@@ -7,7 +7,7 @@ module Vgrep.Results
 import           Data.Text.Lazy (Text)
 
 
-newtype File = File { getFileName :: Text } deriving (Eq)
+newtype File = File { getFileName :: Text } deriving (Eq, Show)
 
 type LineReference = (Maybe Int, Text)
 

@@ -14,6 +14,7 @@ import Data.Text.Lazy
 
 import Vgrep.Results
 
+
 -- | Parses lines of 'Text', skipping lines that are not valid @grep@
 -- output.
 parseGrepOutput :: [Text] -> [FileLineReference]
@@ -26,12 +27,12 @@ parseGrepOutput = catMaybes . fmap parseLine
 -- separated by colons:
 --
 -- >>> parseLine "path/to/file:123:foobar"
--- Just (File "path/to/file", (Just 123, "foobar"))
+-- Just (File {getFileName = "path/to/file"},(Just 123,"foobar"))
 --
 -- Omitting the line number still produces valid output:
 --
 -- >>> parseLine "path/to/file:foobar"
--- Just (File "path/to/file", (Nothing, "foobar"))
+-- Just (File {getFileName = "path/to/file"},(Nothing,"foobar"))
 --
 -- However, an file name must be present:
 --

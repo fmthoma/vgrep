@@ -14,10 +14,17 @@ module Vgrep.Widget.HorizontalSplit.Internal (
     , currentWidget
     , leftWidgetFocused
     , rightWidgetFocused
+
+    -- ** Re-exports
+    , (%)
     ) where
 
 import Control.Lens
+import Data.Ratio ((%))
 
+
+-- $setup
+-- >>> :set -fno-warn-missing-fields
 
 -- | The internal state of the split-view widget. Tracks the state of both
 -- child widgets and the current layout.
@@ -40,8 +47,8 @@ makeLenses ''HSplit
 
 -- | The currently focused child widget
 --
--- >>> view currentWidget $ State { _leftWidget = foo, _layout = LeftOnly }
--- Left foo
+-- >>> view currentWidget $ HSplit { _leftWidget = "foo", _layout = LeftOnly }
+-- Left "foo"
 currentWidget :: Lens' (HSplit s t) (Either s t)
 currentWidget = lens getCurrentWidget setCurrentWidget
   where
@@ -60,26 +67,26 @@ currentWidget = lens getCurrentWidget setCurrentWidget
 
 -- | Traverses the left widget if focused
 -- 
--- >>> has leftWidgetFocused $ State { _layout = LeftOnly }
+-- >>> has leftWidgetFocused $ HSplit { _layout = LeftOnly }
 -- True
 --
--- >>> has leftWidgetFocused $ State { _layout = RightOnly }
+-- >>> has leftWidgetFocused $ HSplit { _layout = RightOnly }
 -- False
 --
--- >>> has leftWidgetFocused $ State { _layout = Split FocusLeft 1%2 }
--- False
+-- >>> has leftWidgetFocused $ HSplit { _layout = Split FocusLeft (1 % 2) }
+-- True
 leftWidgetFocused :: Traversal' (HSplit s t) s
 leftWidgetFocused = currentWidget . _Left
 
 -- | Traverses the right widget if focused
 -- 
--- >>> has rightWidgetFocused $ State { _layout = RightOnly }
+-- >>> has rightWidgetFocused $ HSplit { _layout = RightOnly }
 -- True
 --
--- >>> has rightWidgetFocused $ State { _layout = LeftOnly }
+-- >>> has rightWidgetFocused $ HSplit { _layout = LeftOnly }
 -- False
 --
--- >>> has rightWidgetFocused $ State { _layout = Split FocusRight 1%2 }
+-- >>> has rightWidgetFocused $ HSplit { _layout = Split FocusRight (1 % 2) }
 -- True
 rightWidgetFocused :: Traversal' (HSplit s t) t
 rightWidgetFocused = currentWidget . _Right

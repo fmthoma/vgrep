@@ -120,8 +120,8 @@ moveToLine n = view region >>= \displayRegion -> do
 
 -- | Scroll up or down one line.
 --
--- >>> scroll (-1)  -- scroll one line up
--- >>> scroll 1     -- scroll one line down
+-- > scroll (-1)  -- scroll one line up
+-- > scroll 1     -- scroll one line down
 scroll :: Monad m => Int -> VgrepT Pager m Redraw
 scroll n = view region >>= \displayRegion -> do
     let height = regionHeight displayRegion
@@ -139,8 +139,8 @@ scroll n = view region >>= \displayRegion -> do
 -- | Scroll up or down one page. The first line on the current screen will
 -- be the last line on the scrolled screen and vice versa.
 --
--- >>> scrollPage (-1)  -- scroll one page up
--- >>> scrollPage 1     -- scroll one page down
+-- > scrollPage (-1)  -- scroll one page up
+-- > scrollPage 1     -- scroll one page down
 scrollPage :: Monad m => Int -> VgrepT Pager m Redraw
 scrollPage n = view region >>= \displayRegion ->
     let height = regionHeight displayRegion
@@ -149,8 +149,8 @@ scrollPage n = view region >>= \displayRegion ->
 
 -- | Horizontal scrolling. Increment is one 'tabstop'.
 --
--- >>> hScroll (-1)  -- scroll one tabstop left
--- >>> hScroll 1     -- scroll one tabstop right
+-- > hScroll (-1)  -- scroll one tabstop left
+-- > hScroll 1     -- scroll one tabstop right
 hScroll :: Monad m => Int -> VgrepT Pager m Redraw
 hScroll n = do
     tabWidth <- view (config . tabstop)
