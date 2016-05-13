@@ -1,6 +1,10 @@
 {-# LANGUAGE FlexibleContexts #-}
-module Vgrep.Text
-    ( expandForDisplay
+module Vgrep.Text (
+    -- * Utilities for rendering 'Text'
+    -- | Tabs and other characters below ASCII 32 cause problems in
+    -- "Graphics.Vty", so we expand them to readable characters, e.g. @\\r@
+    -- to @^13@. Tabs are expanded toh the configured 'tabWidth'.
+      expandForDisplay
     , expandLineForDisplay
     ) where
 
@@ -13,11 +17,13 @@ import qualified Data.Text.Lazy as T
 import Vgrep.Environment
 
 
+-- | Expand a list of lines
 expandForDisplay :: MonadReader Environment m => [Text] -> m [Text]
 expandForDisplay inputLines = do
     tabWidth <- view (config . tabstop)
     pure (map (expandText tabWidth) inputLines)
 
+-- | Expand a single line
 expandLineForDisplay :: MonadReader Environment m => Text -> m Text
 expandLineForDisplay inputLine = do
     tabWidth <- view (config . tabstop)
