@@ -43,7 +43,7 @@ main :: IO ()
 main = do
     hSetBuffering stdin  LineBuffering
     hSetBuffering stdout LineBuffering
-    cfg <- defaultConfig
+    cfg <- withConfiguredEditor defaultConfig
     inputFromTerminal <- hIsTerminalDevice stdin
     outputToTerminal  <- hIsTerminalDevice stdout
     args <- getArgs

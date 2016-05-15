@@ -25,6 +25,6 @@ data Environment = Env
     , _region :: DisplayRegion
     -- ^ The bounds (width and height) of the display region where the
     -- 'Vgrep.App.App' or the current 'Vgrep.Widget.Widget' is displayed
-    }
+    } deriving (Eq, Show)
 
 makeLenses ''Environment
