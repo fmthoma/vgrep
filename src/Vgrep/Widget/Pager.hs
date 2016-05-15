@@ -17,13 +17,12 @@ module Vgrep.Widget.Pager (
     ) where
 
 import           Control.Lens
-import           Control.Monad.State.Extended (modify, put)
 import           Data.Foldable
-import           Data.Set                     (Set)
-import qualified Data.Set                     as S
-import           Data.Text.Lazy               (Text)
-import qualified Data.Text.Lazy               as T
-import           Graphics.Vty.Image           hiding (resize)
+import           Data.Set             (Set)
+import qualified Data.Set             as S
+import           Data.Text.Lazy       (Text)
+import qualified Data.Text.Lazy       as T
+import           Graphics.Vty.Image   hiding (resize)
 import           Graphics.Vty.Input
 import           Graphics.Vty.Prelude
 

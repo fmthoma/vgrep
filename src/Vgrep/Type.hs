@@ -23,6 +23,7 @@ module Vgrep.Type
   , lift
   , hoist
   , module Vgrep.Environment
+  , module Export
 ) where
 
 import qualified Control.Exception            as E
@@ -31,7 +32,18 @@ import           Control.Lens.Zoom
 import           Control.Monad.Identity
 import           Control.Monad.Morph
 import           Control.Monad.Reader
+import qualified Control.Monad.Reader         as Export
+    ( MonadReader
+    , ask
+    , local
+    )
 import           Control.Monad.State.Extended
+import qualified Control.Monad.State.Extended as Export
+    ( MonadState
+    , get
+    , modify
+    , put
+    )
 
 import Vgrep.Environment
 
