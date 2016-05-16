@@ -18,8 +18,7 @@ instance Arbitrary Pager where
             [] -> pure 0
             _  -> choose (0, length linesOfText - 1)
         pure Pager
-            { _position    = pos
-            , _column      = 0
+            { _column      = 0
             , _highlighted = mempty
             , _above       = Seq.fromList (take pos linesOfText)
             , _visible     = Seq.fromList (drop pos linesOfText) }

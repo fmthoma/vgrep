@@ -63,8 +63,7 @@ pagerWidget = Widget
 
 initPager :: Pager
 initPager = Pager
-    { _position    = 0
-    , _column      = 0
+    { _column      = 0
     , _highlighted = Set.empty
     , _above       = Seq.empty
     , _visible     = Seq.empty }
@@ -123,8 +122,7 @@ setPosition n = views region regionHeight >>= \height -> do
     modify $ \pager@Pager{..} ->
         let (newAbove, newVisible) = Seq.splitAt newPosition (_above >< _visible)
         in  pager
-            { _position = newPosition
-            , _above    = newAbove
+            { _above    = newAbove
             , _visible  = newVisible }
 
 -- | Scroll up or down one page. The first line on the current screen will

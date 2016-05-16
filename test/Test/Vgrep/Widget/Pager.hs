@@ -29,22 +29,6 @@ test = runTestCases "Pager widget"
         , invariant = id
         }
     , TestProperty
-        { description = "Position is in sync with number of lines above"
-        , testData = arbitrary
-        , testCase = do
-            amounts :: [Int] <- pick arbitrary
-            run (for_ amounts scroll)
-        , assertion = const (position ~~ above . to length)
-        }
-    , TestProperty
-        { description = "Position is in sync with number of lines above"
-        , testData = arbitrary
-        , testCase = do
-            amounts :: [Int] <- pick arbitrary
-            run (for_ amounts scrollPage)
-        , assertion = const (position ~~ above . to length)
-        }
-    , TestProperty
         { description = "MoveToLine displays the line on screen"
         , testData = arbitrary `suchThat` (not . emptyPager)
         , testCase = do
