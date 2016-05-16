@@ -16,7 +16,7 @@ instance Arbitrary Pager where
         linesOfText <- arbitrary
         pos <- case linesOfText of
             [] -> pure 0
-            _  -> choose (1, length linesOfText)
+            _  -> choose (0, length linesOfText - 1)
         pure Pager
             { _position    = pos
             , _column      = 0

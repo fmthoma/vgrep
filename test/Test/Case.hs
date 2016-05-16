@@ -27,18 +27,18 @@ import Vgrep.Environment.Testable
 import Vgrep.Type
 
 data TestCase
-    = forall s prop. (Arbitrary s, Show s, Testable prop)
+    = forall s a prop. (Arbitrary s, Show s, Testable prop)
     => TestProperty
         { description :: TestName
         , testData    :: Gen (s, Environment)
-        , testCase    :: PropertyM (Vgrep s) ()
-        , assertion   :: PropertyM (Vgrep s) prop }
-    | forall s a. (Arbitrary s, Show s, Eq a, Show a)
+        , testCase    :: PropertyM (Vgrep s) a
+        , assertion   :: a -> PropertyM (Vgrep s) prop }
+    | forall s a r. (Arbitrary s, Show s, Eq r, Show r)
     => TestInvariant
         { description :: TestName
         , testData    :: Gen (s, Environment)
-        , testCase    :: PropertyM (Vgrep s) ()
-        , invariant   :: Getter s a }
+        , testCase    :: PropertyM (Vgrep s) a
+        , invariant   :: Getter s r }
 
 
 runTestCase :: TestCase -> TestTree
@@ -48,15 +48,15 @@ runTestCase = \case
         pure . monadic (`runVgrepForTest` (initialState, initialEnv)) $ do
             monitor (counterexample (show initialState))
             monitor (counterexample (show initialEnv))
-            testCase
-            stop =<< assertion
+            params <- testCase
+            stop =<< assertion params
     TestInvariant {..} -> testProperty description $ do
         (initialState, initialEnv) <- testData
         pure . monadic (`runVgrepForTest` (initialState, initialEnv)) $ do
             monitor (counterexample (show initialState))
             monitor (counterexample (show initialEnv))
             before <- use invariant
-            testCase
+            void testCase
             after <- use invariant
             stop (after === before)
 
@@ -68,6 +68,11 @@ runTestCases name cases = testGroup name (map runTestCase cases)
 instance Monad m => MonadState s (PropertyM (VgrepT s m)) where
     get = run get
     put = run . put
+
+instance Monad m => MonadReader Environment (PropertyM (VgrepT s m)) where
+    ask = run ask
+    local f action = undefined
+
 
 runVgrepForTest
     :: Vgrep s a

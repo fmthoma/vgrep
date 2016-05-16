@@ -99,33 +99,33 @@ replaceBufferContents newContent newHighlightedLines = put initPager
 
 -- | Scroll to the given line number.
 moveToLine :: Monad m => Int -> VgrepT Pager m Redraw
-moveToLine n = view region >>= \displayRegion -> do
-    let height = regionHeight displayRegion
-    pos <- use position
-    scroll (n - height `div` 2 - pos)
+moveToLine n = views region regionHeight >>= \height -> do
+    setPosition (n - height `div` 2)
+    pure Redraw
 
 -- | Scroll up or down one line.
 --
 -- > scroll (-1)  -- scroll one line up
 -- > scroll 1     -- scroll one line down
 scroll :: Monad m => Int -> VgrepT Pager m Redraw
-scroll n = view region >>= \displayRegion -> do
-    let height = regionHeight displayRegion
-    linesVisible <- uses visible length
-    linesAbove   <- uses above length
-    let actualScrollAmount = if
-            | linesAbove + linesVisible < height -> 0
-            | linesAbove + n   < 0               -> -linesAbove
-            | linesVisible - n < height          -> linesVisible - height
-            | otherwise                          -> n
+scroll n = do
+    pos <- use position
+    setPosition (pos + n)
+    pure Redraw
+
+setPosition :: Monad m => Int -> VgrepT Pager m ()
+setPosition n = views region regionHeight >>= \height -> do
+    allLines <- liftA2 (+) (uses visible length) (uses above length)
+    let newPosition = if
+            | n < 0 || allLines < height -> 0
+            | n > allLines - height      -> allLines - height
+            | otherwise                  -> n
     modify $ \pager@Pager{..} ->
-        let newPosition = _position + actualScrollAmount
-            (newAbove, newVisible) = Seq.splitAt newPosition (_above >< _visible)
+        let (newAbove, newVisible) = Seq.splitAt newPosition (_above >< _visible)
         in  pager
             { _position = newPosition
             , _above    = newAbove
             , _visible  = newVisible }
-    pure Redraw
 
 -- | Scroll up or down one page. The first line on the current screen will
 -- be the last line on the scrolled screen and vice versa.
