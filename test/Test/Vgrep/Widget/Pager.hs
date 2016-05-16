@@ -14,37 +14,37 @@ import Vgrep.Widget.Pager.Testable
 
 
 test :: TestTree
-test = testGroup "Pager widget"
-    [ runTestCase TestInvariant
+test = runTestCases "Pager widget"
+    [ TestInvariant
         { description = "Scrolling up and down leaves pager invariant"
         , testData = arbitrary `suchThat` (not . atTop)
                                `suchThat` coversScreen
         , testCase = run (void (scroll (-1) >> scroll 1))
-        , invariant = id }
-
-    , runTestCase TestInvariant
+        , invariant = id
+        }
+    , TestInvariant
         { description = "Scrolling right and left leaves pager invariant"
         , testData = arbitrary
         , testCase = run (void (hScroll 1 >> hScroll (-1)))
-        , invariant = id }
-
-    , runTestCase TestProperty
+        , invariant = id
+        }
+    , TestProperty
         { description = "Position is in sync with number of lines above"
         , testData = arbitrary
         , testCase = do
             amounts :: [Int] <- pick arbitrary
             run (for_ amounts scroll)
-        , assertion = const (position ~~ above . to length) }
-
-    , runTestCase TestProperty
+        , assertion = const (position ~~ above . to length)
+        }
+    , TestProperty
         { description = "Position is in sync with number of lines above"
         , testData = arbitrary
         , testCase = do
             amounts :: [Int] <- pick arbitrary
             run (for_ amounts scrollPage)
-        , assertion = const (position ~~ above . to length) }
-
-    , runTestCase TestProperty
+        , assertion = const (position ~~ above . to length)
+        }
+    , TestProperty
         { description = "MoveToLine displays the line on screen"
         , testData = arbitrary `suchThat` (not . emptyPager)
         , testCase = do
@@ -59,7 +59,20 @@ test = testGroup "Pager widget"
             height <- view (region . to regionHeight)
             pure $ counterexample
                 ("Failed: 0 <= " ++ show posOnScreen ++ " <= " ++ show height)
-                (posOnScreen >= 0 .&&. posOnScreen <= height) }
+                (posOnScreen >= 0 .&&. posOnScreen <= height)
+        }
+    , TestProperty
+        { description = "Scrolling stays within bounds"
+        , testData = arbitrary `suchThat` coversScreen
+        , testCase = do
+            amount <- pick (scale (*10) arbitrary)
+            run (void (scroll amount))
+        , assertion = const $ do
+            pos <- use position
+            linesVisible <- uses visible length
+            height <- view (region . to regionHeight)
+            pure (pos >= 0 .&&. linesVisible >= height)
+        }
     ]
 
 
