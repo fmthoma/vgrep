@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 module Test.Vgrep.Widget.Pager (test) where
 
 import Control.Lens
@@ -18,7 +18,7 @@ test = testGroup "Pager widget"
     [ runTestCase TestInvariant
         { description = "Scrolling up and down leaves pager invariant"
         , testData = arbitrary `suchThat` (not . emptyPager)
-                               `suchThat` coversScreen 
+                               `suchThat` coversScreen
         , testCase = run (void (scroll (-1) >> scroll 1))
         , invariant = id }
 

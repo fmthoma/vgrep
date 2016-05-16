@@ -55,7 +55,7 @@ runTestCase = \case
             testCase
             after <- use invariant
             stop (after === before)
-        
+
 
 runTestCases :: TestName -> [TestCase] -> TestTree
 runTestCases name cases = testGroup name (map runTestCase cases)
