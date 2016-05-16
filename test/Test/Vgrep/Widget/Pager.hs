@@ -2,13 +2,14 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Test.Vgrep.Widget.Pager (test) where
 
-import Control.Lens
-import Data.Foldable
-import Data.Text.Lazy.Testable ()
-import Test.Case
-import Test.QuickCheck.Monadic as Q
-import Test.Tasty
-import Test.Tasty.QuickCheck   as Q
+import           Control.Lens
+import qualified Data.Sequence           as S
+import           Data.Text.Lazy.Testable ()
+import qualified Data.Text.Lazy.Testable as T
+import           Test.Case
+import           Test.QuickCheck.Monadic as Q
+import           Test.Tasty
+import           Test.Tasty.QuickCheck   as Q
 
 import Vgrep.Widget.Pager.Testable
 
@@ -56,6 +57,17 @@ test = runTestCases "Pager widget"
             linesVisible <- uses visible length
             height <- view (region . to regionHeight)
             pure (pos >= 0 .&&. linesVisible >= height)
+        }
+    , TestProperty
+        { description = "After replaceBufferContents the new content is visible"
+        , testData = arbitrary
+        , testCase = do
+            newContent <- pick (fmap (S.fromList . map T.pack) arbitrary)
+            run (replaceBufferContents newContent [])
+            pure newContent
+        , assertion = \expectedContent -> do
+            actualContent <- use visible
+            pure (actualContent === expectedContent)
         }
     ]
 
