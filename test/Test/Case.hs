@@ -27,13 +27,13 @@ import Vgrep.Environment.Testable
 import Vgrep.Type
 
 data TestCase
-    = forall s prop. (Arbitrary s, Testable prop)
+    = forall s prop. (Arbitrary s, Show s, Testable prop)
     => TestProperty
         { description :: TestName
         , testData    :: Gen (s, Environment)
         , testCase    :: PropertyM (Vgrep s) ()
         , assertion   :: PropertyM (Vgrep s) prop }
-    | forall s a. (Arbitrary s, Eq a, Show a)
+    | forall s a. (Arbitrary s, Show s, Eq a, Show a)
     => TestInvariant
         { description :: TestName
         , testData    :: Gen (s, Environment)
@@ -46,11 +46,15 @@ runTestCase = \case
     TestProperty {..} -> testProperty description $ do
         (initialState, initialEnv) <- testData
         pure . monadic (`runVgrepForTest` (initialState, initialEnv)) $ do
+            monitor (counterexample (show initialState))
+            monitor (counterexample (show initialEnv))
             testCase
             stop =<< assertion
     TestInvariant {..} -> testProperty description $ do
         (initialState, initialEnv) <- testData
         pure . monadic (`runVgrepForTest` (initialState, initialEnv)) $ do
+            monitor (counterexample (show initialState))
+            monitor (counterexample (show initialEnv))
             before <- use invariant
             testCase
             after <- use invariant
