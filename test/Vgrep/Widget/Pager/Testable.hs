@@ -4,6 +4,7 @@ module Vgrep.Widget.Pager.Testable
     , module Vgrep.Widget.Pager.Internal
     ) where
 
+import Data.Sequence           as Seq (fromList)
 import Data.Text.Lazy.Testable ()
 import Test.QuickCheck
 
@@ -20,5 +21,5 @@ instance Arbitrary Pager where
             { _position    = pos
             , _column      = 0
             , _highlighted = mempty
-            , _above       = take pos linesOfText
-            , _visible     = drop pos linesOfText }
+            , _above       = Seq.fromList (take pos linesOfText)
+            , _visible     = Seq.fromList (drop pos linesOfText) }

@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 module Vgrep.Widget.Pager (
     -- * Pager widget
       pagerWidget
@@ -14,9 +15,11 @@ module Vgrep.Widget.Pager (
     , replaceBufferContents
     ) where
 
-import           Control.Lens
+import           Control.Lens         hiding ((:<), (:>))
 import           Data.Foldable
-import qualified Data.Set             as S
+import           Data.Sequence        (Seq, (><))
+import qualified Data.Sequence        as Seq
+import qualified Data.Set             as Set
 import           Data.Text.Lazy       (Text)
 import qualified Data.Text.Lazy       as T
 import           Graphics.Vty.Image   hiding (resize)
@@ -62,9 +65,9 @@ initPager :: Pager
 initPager = Pager
     { _position    = 0
     , _column      = 0
-    , _highlighted = S.empty
-    , _above       = []
-    , _visible     = [] }
+    , _highlighted = Set.empty
+    , _above       = Seq.empty
+    , _visible     = Seq.empty }
 
 
 pagerKeyBindings
@@ -87,12 +90,12 @@ pagerKeyBindings = dispatchMap $ fromList
 -- | Replace the currently displayed text.
 replaceBufferContents
     :: Monad m
-    => [Text] -- ^ Lines of text to display in the pager (starting with line 1)
-    -> [Int]  -- ^ List of line numbers that should be highlighted
+    => Seq Text -- ^ Lines of text to display in the pager (starting with line 1)
+    -> [Int]    -- ^ List of line numbers that should be highlighted
     -> VgrepT Pager m ()
 replaceBufferContents newContent newHighlightedLines = put initPager
     { _visible     = newContent
-    , _highlighted = S.fromList newHighlightedLines }
+    , _highlighted = Set.fromList newHighlightedLines }
 
 -- | Scroll to the given line number.
 moveToLine :: Monad m => Int -> VgrepT Pager m Redraw
@@ -108,16 +111,21 @@ moveToLine n = view region >>= \displayRegion -> do
 scroll :: Monad m => Int -> VgrepT Pager m Redraw
 scroll n = view region >>= \displayRegion -> do
     let height = regionHeight displayRegion
-    linesVisible <- uses visible (length . take (height + 1))
-    if | n > 0 && linesVisible > height
-                   -> modify goDown >> scroll (n - 1)
-       | n < 0     -> modify goUp   >> scroll (n + 1)
-       | otherwise -> pure Redraw
-  where
-    goDown (Pager l c h as     (b:bs)) = Pager (l + 1) c h (b:as) bs
-    goDown (Pager l c h as     [])     = Pager l       c h as     []
-    goUp   (Pager l c h (a:as) bs)     = Pager (l - 1) c h as     (a:bs)
-    goUp   (Pager l c h []     bs)     = Pager l       c h []     bs
+    linesVisible <- uses visible length
+    linesAbove   <- uses above length
+    let actualScrollAmount = if
+            | linesAbove + linesVisible < height -> 0
+            | linesAbove + n   < 0               -> -linesAbove
+            | linesVisible - n < height          -> linesVisible - height
+            | otherwise                          -> n
+    modify $ \pager@Pager{..} ->
+        let newPosition = _position + actualScrollAmount
+            (newAbove, newVisible) = Seq.splitAt newPosition (_above >< _visible)
+        in  pager
+            { _position = newPosition
+            , _above    = newAbove
+            , _visible  = newVisible }
+    pure Redraw
 
 -- | Scroll up or down one page. The first line on the current screen will
 -- be the last line on the scrolled screen and vice versa.
@@ -152,11 +160,11 @@ renderPager = do
     (width, height)   <- view region
     startPosition     <- use position
     startColumn       <- use (column . to fromIntegral)
-    visibleLines      <- use (visible . to (take height))
+    visibleLines      <- use (visible . to (Seq.take height) . to toList)
     highlightedLines  <- use highlighted
 
     let renderLine (num, txt) =
-            let (numColor, txtColor) = if num `S.member` highlightedLines
+            let (numColor, txtColor) = if num `Set.member` highlightedLines
                     then (lineNumberColorHl, textColorHl)
                     else (lineNumberColor,   textColor)
                 visibleCharacters = T.unpack (T.drop startColumn txt)

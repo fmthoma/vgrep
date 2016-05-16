@@ -12,6 +12,7 @@ module Vgrep.Widget.Pager.Internal (
     ) where
 
 import Control.Lens
+import Data.Sequence
 import Data.Set       (Set)
 import Data.Text.Lazy (Text)
 
@@ -22,8 +23,8 @@ data Pager = Pager
     { _position    :: Int
     , _column      :: Int
     , _highlighted :: Set Int
-    , _above       :: [Text]
-    , _visible     :: [Text] }
+    , _above       :: Seq Text
+    , _visible     :: Seq Text }
     deriving (Eq, Show)
 
 makeLenses ''Pager
