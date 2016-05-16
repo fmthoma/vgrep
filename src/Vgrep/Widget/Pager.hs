@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveFunctor   #-}
-{-# LANGUAGE TemplateHaskell #-}
 module Vgrep.Widget.Pager (
     -- * Pager widget
       pagerWidget
@@ -18,7 +16,6 @@ module Vgrep.Widget.Pager (
 
 import           Control.Lens
 import           Data.Foldable
-import           Data.Set             (Set)
 import qualified Data.Set             as S
 import           Data.Text.Lazy       (Text)
 import qualified Data.Text.Lazy       as T
@@ -29,22 +26,9 @@ import           Graphics.Vty.Prelude
 import Vgrep.Environment
 import Vgrep.Event
 import Vgrep.Type
+import Vgrep.Widget.Pager.Internal
 import Vgrep.Widget.Type
 
-
--- | Keeps track of the lines of text to display, the current scroll
--- positions, and the set of highlighted line numbers.
-data Pager = Pager
-    { _position    :: Int
-    , _column      :: Int
-    , _highlighted :: Set Int
-    , _above       :: [Text]
-    , _visible     :: [Text] }
-
-makeLensesFor [ ("_position",    "position")
-              , ("_column",      "column")
-              , ("_visible",     "visible")
-              , ("_highlighted", "highlighted") ] ''Pager
 
 type PagerWidget = Widget Pager
 

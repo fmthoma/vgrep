@@ -32,6 +32,7 @@ library
                      , Vgrep.Widget.HorizontalSplit
                      , Vgrep.Widget.HorizontalSplit.Internal
                      , Vgrep.Widget.Pager
+                     , Vgrep.Widget.Pager.Internal
                      , Vgrep.Widget.Results
                      , Vgrep.Widget.Results.Internal
                      , Vgrep.Widget.Type
@@ -80,6 +81,7 @@ test-suite vgrep-test
   other-modules:       Data.Text.Lazy.Testable
                      , Vgrep.Environment.Testable
                      , Vgrep.Type.Testable
+                     , Vgrep.Widget.Pager.Testable
   build-depends:       base
                      , lens
                      , QuickCheck
