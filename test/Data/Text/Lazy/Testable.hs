@@ -7,4 +7,3 @@ import Test.Tasty.QuickCheck
 instance Arbitrary Text where
     arbitrary = fmap pack arbitrary
     shrink = fmap pack . shrink . unpack
-
