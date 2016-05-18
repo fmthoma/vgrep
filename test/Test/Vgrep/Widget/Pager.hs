@@ -7,9 +7,8 @@ import qualified Data.Sequence           as S
 import           Data.Text.Lazy.Testable ()
 import qualified Data.Text.Lazy.Testable as T
 import           Test.Case
+import           Test.QuickCheck         as Q
 import           Test.QuickCheck.Monadic as Q
-import           Test.Tasty
-import           Test.Tasty.QuickCheck   as Q
 
 import Vgrep.Widget.Pager.Testable
 

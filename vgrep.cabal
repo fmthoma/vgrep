@@ -82,8 +82,10 @@ test-suite vgrep-test
                      , Test.Case
                      , Test.Vgrep.Widget
                      , Test.Vgrep.Widget.Pager
+                     , Test.Vgrep.Widget.Results
                      , Vgrep.Environment.Testable
                      , Vgrep.Widget.Pager.Testable
+                     , Vgrep.Widget.Results.Testable
   build-depends:       base
                      , containers
                      , lens

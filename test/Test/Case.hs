@@ -16,6 +16,7 @@ module Test.Case (
     , monadicVgrep
 
     , module Vgrep.Type
+    , TestTree ()
     ) where
 
 import Control.Lens
