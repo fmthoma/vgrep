@@ -5,10 +5,11 @@ module Vgrep.Widget.Results.Testable
     , module Vgrep.Widget.Results.Internal
     ) where
 
-import qualified Data.List           as List
-import qualified Data.Sequence       as Seq
-import           Data.Text.Lazy      (Text)
-import qualified Data.Text.Lazy      as Text
+import           Control.Monad
+import qualified Data.List       as List
+import qualified Data.Sequence   as Seq
+import           Data.Text.Lazy  (Text)
+import qualified Data.Text.Lazy  as Text
 import           Test.QuickCheck
 
 import Vgrep.Widget.Results
@@ -23,7 +24,7 @@ instance Arbitrary Results where
 generateResults :: Gen Results
 generateResults = sized $ \n -> do
     streamOfResults <- arbitraryGrepResults
-    [numAs, numBs, numDs, numEs] <- sequence (replicate 4 (choose (0, n)))
+    [numAs, numBs, numDs, numEs] <- replicateM 4 (choose (0, n))
     let (as,  as') = splitAt numAs streamOfResults
         (bs,  bs') = splitAt numBs as'
         ([c], cs') = splitAt 1     bs'

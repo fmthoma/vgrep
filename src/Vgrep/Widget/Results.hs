@@ -11,6 +11,7 @@ module Vgrep.Widget.Results (
 
     -- ** Widget actions
     , feedResult
+    , resizeToWindow
     , prevLine
     , nextLine
     , pageUp

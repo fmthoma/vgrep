@@ -1,10 +1,13 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE FlexibleContexts #-}
 module Test.Vgrep.Widget.Results (test) where
 
-import Control.Lens
-import Test.Case
-import Test.QuickCheck
-import Test.QuickCheck.Monadic
+import           Control.Lens            (Getter, to, view, views)
+import           Data.Map.Strict         ((!))
+import qualified Data.Map.Strict         as Map
+import           Test.Case
+import           Test.QuickCheck
+import           Test.QuickCheck.Monadic
 
 import Vgrep.Widget.Results.Testable
 
@@ -21,8 +24,45 @@ test = runTestCases "Results widget"
         , testData = arbitrary
             `suchThat` lastLineOnScreen
             `suchThat` \(results, env) -> linesBelowCurrent (> screenHeight env) results
-        , testCase =  run (pageDown >> pageUp)
+        , testCase = run (pageDown >> pageUp)
         , invariant = selectedLine
+        }
+    , TestProperty
+        { description = "Scrolling one page down jumps to end of screen if not already there"
+        , testData = arbitrary `suchThat` (not . lastLineOnScreen)
+        , testCase = run pageDown
+        , assertion = const $ get >>= pure . \case
+            EmptyResults       -> False
+            Results _ _ _ ds _ -> null ds
+        }
+    , TestProperty
+        { description = "Scrolling one page up jumps to start of screen if not already there"
+        , testData = arbitrary `suchThat` (not . lastLineOnScreen)
+        , testCase = run pageUp
+        , assertion = const $ get >>= pure . \case
+            EmptyResults       -> False
+            Results _ bs _ _ _ -> null bs
+        }
+    , TestProperty
+        { description = "Number of lines on screen is bounded by screen height after resizing"
+        , testData = arbitrary
+        , testCase = run resizeToWindow
+        , assertion = const assertWidgetFitsOnScreen
+        }
+    , TestProperty
+        { description = "Number of lines on screen is bounded by screen height after each action"
+        , testData = arbitrary
+        , testCase = do
+            run (void resizeToWindow)
+                -- ^ Precondition: widget is resized to display height
+            let actions = Map.fromList
+                    [ ("pageUp",   pageUp)
+                    , ("pageDown", pageDown)
+                    , ("prevLine", prevLine)
+                    , ("nextLine", nextLine) ]
+            actionName <- pick (elements ["pageUp", "pageDown", "prevLine", "nextLine"])
+            run (actions ! actionName)
+        , assertion = const assertWidgetFitsOnScreen
         }
     ]
 
@@ -48,3 +88,18 @@ lastLine :: (Results, Environment) -> Bool
 lastLine (results, _env) = case results of
     EmptyResults        -> True
     Results _ _ _ ds es -> null ds && null es
+
+assertWidgetFitsOnScreen
+    :: (MonadState Results m, MonadReader Environment m)
+    => m Property
+assertWidgetFitsOnScreen = do
+    height <- views region regionHeight
+    linesOnScreen <- numberOfLinesOnScreen
+    pure $ counterexample
+        (show linesOnScreen ++ " > " ++ show height)
+        (linesOnScreen <= height)
+
+numberOfLinesOnScreen :: MonadState Results m => m Int
+numberOfLinesOnScreen = get >>= pure . \case
+    EmptyResults        -> 0
+    Results _ bs c ds _ -> length (mconcat [bs, pure c, ds])
