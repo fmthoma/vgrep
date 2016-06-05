@@ -72,7 +72,7 @@ instance Monad m => MonadState s (PropertyM (VgrepT s m)) where
 
 instance Monad m => MonadReader Environment (PropertyM (VgrepT s m)) where
     ask = run ask
-    local f action = undefined
+    local f action = MkPropertyM $ \k -> fmap (local f) (unPropertyM action k)
 
 
 runVgrepForTest
