@@ -51,9 +51,7 @@ grepPipe :: [String] -> Producer Text IO () -> Producer Text IO ()
 grepPipe args input = do
     (hIn, hOut) <- createGrepProcess (lineBuffered : args)
     _threadId <- liftIO . forkIO . runEffect $ input >-> textToHandle hIn
-    (maybeFirstLine, grepOutput) <- peek (textFromHandle hOut)
-    when (isNothing maybeFirstLine) (lift exitFailure)
-    grepOutput
+    streamResultsFrom hOut
 
 -- | Invokes @grep -nH -rI@ (@-n@: with line number, @-H@: with file name,
 -- @-r@: recursive, @-I@: ignore binary files) and returns the results as a
@@ -69,9 +67,7 @@ recursiveGrep = do
                  : lineBuffered
                  : args
     (_hIn, hOut) <- createGrepProcess grepArgs
-    (maybeFirstLine, grepOutput) <- peek (textFromHandle hOut)
-    when (isNothing maybeFirstLine) (lift exitFailure)
-    grepOutput
+    streamResultsFrom hOut
 
 recursive, withFileName, withLineNumber, skipBinaryFiles, lineBuffered :: String
 recursive       = "-r"
@@ -88,6 +84,13 @@ createGrepProcess args = liftIO $ do
     hSetBuffering hIn  LineBuffering
     hSetBuffering hOut LineBuffering
     pure (hIn, hOut)
+
+streamResultsFrom :: Handle -> Producer Text IO ()
+streamResultsFrom handle = do
+    (maybeFirstLine, grepOutput) <- peek (textFromHandle handle)
+    when (isNothing maybeFirstLine) (lift exitFailure)
+    grepOutput
+
 
 textFromHandle :: MonadIO m => Handle -> Producer' Text m ()
 textFromHandle h = P.fromHandle h >-> P.map T.pack

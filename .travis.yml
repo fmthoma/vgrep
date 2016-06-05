@@ -40,7 +40,7 @@ script:
     - stack $ARGS --no-terminal haddock --no-haddock-deps
 
     - stack $ARGS --no-terminal sdist
-  # - hlint src test app
+    - hlint src test app
 
 # Caching so the next build will be fast too.
 cache:

@@ -150,22 +150,22 @@ handleEvents
     -> HSplit s t
     -> Next (VgrepT (HSplit s t) m Redraw)
 handleEvents left right e s = case view currentWidget s of
-    Left  ls -> hSplitKeyBindings_left  e <> fmap (zoom leftWidget)  (handle left  e ls)
-    Right rs -> hSplitKeyBindings_right e <> fmap (zoom rightWidget) (handle right e rs)
+    Left  ls -> hSplitKeyBindingsLeft  e <> fmap (zoom leftWidget)  (handle left  e ls)
+    Right rs -> hSplitKeyBindingsRight e <> fmap (zoom rightWidget) (handle right e rs)
 
-hSplitKeyBindings_left
+hSplitKeyBindingsLeft
     :: Monad m
     => Event
     -> Next (VgrepT (HSplit s t) m Redraw)
-hSplitKeyBindings_left = dispatchMap $ fromList
+hSplitKeyBindingsLeft = dispatchMap $ fromList
     [ (EvKey (KChar '\t') [], switchFocus)
     , (EvKey (KChar 'f')  [], leftOnly) ]
 
-hSplitKeyBindings_right
+hSplitKeyBindingsRight
     :: Monad m
     => Event
     -> Next (VgrepT (HSplit s t) m Redraw)
-hSplitKeyBindings_right = dispatchMap $ fromList
+hSplitKeyBindingsRight = dispatchMap $ fromList
     [ (EvKey (KChar '\t') [], switchFocus)
     , (EvKey (KChar 'q')  [], leftOnly)
     , (EvKey (KChar 'f')  [], rightOnly) ]
