@@ -16,11 +16,6 @@ flags: {}
 # Extra package databases containing global packages
 extra-package-dbs: []
 
-nix:
-  # force --nix flag for compatibility with systems without nix installed
-  enable: false
-  packages: [ncurses]
-
 # Control whether we use the GHC we find on the path
 # system-ghc: true
 
