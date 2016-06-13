@@ -1,10 +1,12 @@
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase       #-}
 module Test.Vgrep.Widget.Results (test) where
 
 import           Control.Lens            (Getter, to, view, views)
 import           Data.Map.Strict         ((!))
 import qualified Data.Map.Strict         as Map
+import           Data.Sequence           (Seq)
+import qualified Data.Sequence           as Seq
 import           Test.Case
 import           Test.QuickCheck
 import           Test.QuickCheck.Monadic
@@ -55,14 +57,14 @@ test = runTestCases "Results widget"
         , testCase = do
             run (void resizeToWindow)
                 -- ^ Precondition: widget is resized to display height
-            let actions = Map.fromList
-                    [ ("pageUp",   pageUp)
-                    , ("pageDown", pageDown)
-                    , ("prevLine", prevLine)
-                    , ("nextLine", nextLine) ]
-            actionName <- pick (elements ["pageUp", "pageDown", "prevLine", "nextLine"])
-            run (actions ! actionName)
+            run =<< arbitraryAction
         , assertion = const assertWidgetFitsOnScreen
+        }
+    , TestInvariant
+        { description = "Results do not change order"
+        , testData = arbitrary
+        , testCase = run =<< arbitraryAction
+        , invariant = resultsAsList
         }
     ]
 
@@ -88,6 +90,22 @@ lastLine :: (Results, Environment) -> Bool
 lastLine (results, _env) = case results of
     EmptyResults        -> True
     Results _ _ _ ds es -> null ds && null es
+
+resultsAsList :: Getter Results (Seq FileLineReference)
+resultsAsList = to $ \case
+    EmptyResults -> mempty
+    Results as bs c ds es -> mconcat
+        [ Seq.reverse as, Seq.reverse bs, pure c, ds, es ]
+
+arbitraryAction ::  Monad m => PropertyM m (Vgrep Results ())
+arbitraryAction = do
+    let actions = Map.fromList
+            [ ("pageUp",   pageUp)
+            , ("pageDown", pageDown)
+            , ("prevLine", prevLine)
+            , ("nextLine", nextLine) ]
+    actionName <- pick (elements ["pageUp", "pageDown", "prevLine", "nextLine"])
+    pure (actions ! actionName)
 
 assertWidgetFitsOnScreen
     :: (MonadState Results m, MonadReader Environment m)
