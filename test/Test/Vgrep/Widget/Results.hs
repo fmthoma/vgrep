@@ -28,19 +28,19 @@ test = runTestCases "Results widget"
         , invariant = selectedLine
         }
     , TestProperty
-        { description = "Scrolling one page down jumps to end of screen if not already there"
-        , testData = arbitrary `suchThat` (not . lastLineOnScreen)
+        { description = "Scrolling one page down jumps to end of screen"
+        , testData = arbitrary
         , testCase = run pageDown
         , assertion = const $ get >>= pure . \case
-            EmptyResults       -> False
+            EmptyResults       -> True
             Results _ _ _ ds _ -> null ds
         }
     , TestProperty
-        { description = "Scrolling one page up jumps to start of screen if not already there"
-        , testData = arbitrary `suchThat` (not . lastLineOnScreen)
+        { description = "Scrolling one page up jumps to start of screen"
+        , testData = arbitrary
         , testCase = run pageUp
         , assertion = const $ get >>= pure . \case
-            EmptyResults       -> False
+            EmptyResults       -> True
             Results _ bs _ _ _ -> null bs
         }
     , TestProperty
@@ -68,7 +68,7 @@ test = runTestCases "Results widget"
 
 selectedLine :: Getter Results (Maybe FileLineReference)
 selectedLine = to $ \case
-    EmptyResults -> Nothing
+    EmptyResults      -> Nothing
     Results _ _ c _ _ -> Just c
 
 linesBelowCurrent :: (Int -> Bool) -> Results -> Bool
@@ -81,7 +81,7 @@ screenHeight = view (region . to regionHeight)
 
 lastLineOnScreen :: (Results, Environment) -> Bool
 lastLineOnScreen (results, _env) = case results of
-    EmptyResults        -> True
+    EmptyResults       -> True
     Results _ _ _ ds _ -> null ds
 
 lastLine :: (Results, Environment) -> Bool
