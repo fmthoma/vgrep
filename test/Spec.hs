@@ -1,2 +1,7 @@
+import Test.Tasty
+
+import qualified Test.Vgrep.Widget as Widget
+
 main :: IO ()
-main = putStrLn "Test suite not yet implemented"
+main = defaultMain $
+    testGroup "Unit tests" [ Widget.test ]

@@ -65,6 +65,8 @@ data Results
     -- * lines on screen below the current item
     -- * lines below the current screen
 
+    deriving (Eq, Show)
+
 
 -- | Append a line to the 'Results'. The line is appended below the visible
 -- screen, so use 'showNext' to make it visible.

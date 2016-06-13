@@ -1,5 +1,4 @@
-{-# LANGUAGE DeriveFunctor   #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE RecordWildCards #-}
 module Vgrep.Widget.Pager (
     -- * Pager widget
       pagerWidget
@@ -16,36 +15,23 @@ module Vgrep.Widget.Pager (
     , replaceBufferContents
     ) where
 
-import           Control.Lens
-import           Control.Monad.State.Extended (modify, put)
+import           Control.Lens         hiding ((:<), (:>))
 import           Data.Foldable
-import           Data.Set                     (Set)
-import qualified Data.Set                     as S
-import           Data.Text.Lazy               (Text)
-import qualified Data.Text.Lazy               as T
-import           Graphics.Vty.Image           hiding (resize)
+import           Data.Sequence        (Seq, (><))
+import qualified Data.Sequence        as Seq
+import qualified Data.Set             as Set
+import           Data.Text.Lazy       (Text)
+import qualified Data.Text.Lazy       as T
+import           Graphics.Vty.Image   hiding (resize)
 import           Graphics.Vty.Input
 import           Graphics.Vty.Prelude
 
 import Vgrep.Environment
 import Vgrep.Event
 import Vgrep.Type
+import Vgrep.Widget.Pager.Internal
 import Vgrep.Widget.Type
 
-
--- | Keeps track of the lines of text to display, the current scroll
--- positions, and the set of highlighted line numbers.
-data Pager = Pager
-    { _position    :: Int
-    , _column      :: Int
-    , _highlighted :: Set Int
-    , _above       :: [Text]
-    , _visible     :: [Text] }
-
-makeLensesFor [ ("_position",    "position")
-              , ("_column",      "column")
-              , ("_visible",     "visible")
-              , ("_highlighted", "highlighted") ] ''Pager
 
 type PagerWidget = Widget Pager
 
@@ -77,11 +63,10 @@ pagerWidget = Widget
 
 initPager :: Pager
 initPager = Pager
-    { _position    = 0
-    , _column      = 0
-    , _highlighted = S.empty
-    , _above       = []
-    , _visible     = [] }
+    { _column      = 0
+    , _highlighted = Set.empty
+    , _above       = Seq.empty
+    , _visible     = Seq.empty }
 
 
 pagerKeyBindings
@@ -104,37 +89,41 @@ pagerKeyBindings = dispatchMap $ fromList
 -- | Replace the currently displayed text.
 replaceBufferContents
     :: Monad m
-    => [Text] -- ^ Lines of text to display in the pager (starting with line 1)
-    -> [Int]  -- ^ List of line numbers that should be highlighted
+    => Seq Text -- ^ Lines of text to display in the pager (starting with line 1)
+    -> [Int]    -- ^ List of line numbers that should be highlighted
     -> VgrepT Pager m ()
 replaceBufferContents newContent newHighlightedLines = put initPager
     { _visible     = newContent
-    , _highlighted = S.fromList newHighlightedLines }
+    , _highlighted = Set.fromList newHighlightedLines }
 
 -- | Scroll to the given line number.
 moveToLine :: Monad m => Int -> VgrepT Pager m Redraw
-moveToLine n = view region >>= \displayRegion -> do
-    let height = regionHeight displayRegion
-    pos <- use position
-    scroll (n - height `div` 2 - pos)
+moveToLine n = views region regionHeight >>= \height -> do
+    setPosition (n - height `div` 2)
+    pure Redraw
 
 -- | Scroll up or down one line.
 --
 -- > scroll (-1)  -- scroll one line up
 -- > scroll 1     -- scroll one line down
 scroll :: Monad m => Int -> VgrepT Pager m Redraw
-scroll n = view region >>= \displayRegion -> do
-    let height = regionHeight displayRegion
-    linesVisible <- uses visible (length . take (height + 1))
-    if | n > 0 && linesVisible > height
-                   -> modify goDown >> scroll (n - 1)
-       | n < 0     -> modify goUp   >> scroll (n + 1)
-       | otherwise -> pure Redraw
-  where
-    goDown (Pager l c h as     (b:bs)) = Pager (l + 1) c h (b:as) bs
-    goDown (Pager l c h as     [])     = Pager l       c h as     []
-    goUp   (Pager l c h (a:as) bs)     = Pager (l - 1) c h as     (a:bs)
-    goUp   (Pager l c h []     bs)     = Pager l       c h []     bs
+scroll n = do
+    pos <- use position
+    setPosition (pos + n)
+    pure Redraw
+
+setPosition :: Monad m => Int -> VgrepT Pager m ()
+setPosition n = views region regionHeight >>= \height -> do
+    allLines <- liftA2 (+) (uses visible length) (uses above length)
+    let newPosition = if
+            | n < 0 || allLines < height -> 0
+            | n > allLines - height      -> allLines - height
+            | otherwise                  -> n
+    modify $ \pager@Pager{..} ->
+        let (newAbove, newVisible) = Seq.splitAt newPosition (_above >< _visible)
+        in  pager
+            { _above    = newAbove
+            , _visible  = newVisible }
 
 -- | Scroll up or down one page. The first line on the current screen will
 -- be the last line on the scrolled screen and vice versa.
@@ -169,11 +158,11 @@ renderPager = do
     (width, height)   <- view region
     startPosition     <- use position
     startColumn       <- use (column . to fromIntegral)
-    visibleLines      <- use (visible . to (take height))
+    visibleLines      <- use (visible . to (Seq.take height) . to toList)
     highlightedLines  <- use highlighted
 
     let renderLine (num, txt) =
-            let (numColor, txtColor) = if num `S.member` highlightedLines
+            let (numColor, txtColor) = if num `Set.member` highlightedLines
                     then (lineNumberColorHl, textColorHl)
                     else (lineNumberColor,   textColor)
                 visibleCharacters = T.unpack (T.drop startColumn txt)

@@ -18,10 +18,12 @@ import Vgrep.Environment
 
 
 -- | Expand a list of lines
-expandForDisplay :: MonadReader Environment m => [Text] -> m [Text]
+expandForDisplay
+    :: (Functor f, MonadReader Environment m)
+    => f Text -> m (f Text)
 expandForDisplay inputLines = do
     tabWidth <- view (config . tabstop)
-    pure (map (expandText tabWidth) inputLines)
+    pure (fmap (expandText tabWidth) inputLines)
 
 -- | Expand a single line
 expandLineForDisplay :: MonadReader Environment m => Text -> m Text

@@ -4,7 +4,6 @@ module Main (main) where
 import           Control.Concurrent.Async
 import           Control.Lens
 import           Control.Monad.Reader
-import           Data.Foldable
 import           Data.Maybe
 import           Data.Monoid
 import           Data.Ratio
@@ -43,7 +42,7 @@ main :: IO ()
 main = do
     hSetBuffering stdin  LineBuffering
     hSetBuffering stdout LineBuffering
-    cfg <- defaultConfig
+    cfg <- withConfiguredEditor defaultConfig
     inputFromTerminal <- hIsTerminalDevice stdin
     outputToTerminal  <- hIsTerminalDevice stdout
     args <- getArgs
@@ -173,8 +172,8 @@ loadSelectedFileToPager = do
     whenJust maybeFileName $ \fileName -> do
         fileExists <- liftIO (doesFileExist fileName)
         fileContent <- if fileExists
-            then liftIO (fmap T.lines (T.readFile fileName))
-            else uses inputLines toList
+            then liftIO (fmap (S.fromList . T.lines) (T.readFile fileName))
+            else use inputLines
         displayContent <- expandForDisplay fileContent
         highlightLineNumbers <- use (results . currentFileResultLineNumbers)
         zoom pager (replaceBufferContents displayContent highlightLineNumbers)

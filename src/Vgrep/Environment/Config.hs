@@ -21,7 +21,8 @@ data Config = Config
     , _editor  :: String
     -- ^ Executable for @e@ key (default: environment variable @$EDITOR@,
     -- or @vi@ if @$EDITOR@ is not set)
-    }
+
+    } deriving (Eq, Show)
 
 data Colors = Colors
     { _lineNumbers   :: Attr
@@ -42,7 +43,8 @@ data Colors = Colors
 
     , _selected      :: Attr
     -- ^ Selected entry (default: terminal default, inverted)
-    }
+
+    } deriving (Eq, Show)
 
 
 --------------------------------------------------------------------------
@@ -57,17 +59,21 @@ makeLenses ''Colors
 -- * Default Config
 --------------------------------------------------------------------------
 
-defaultConfig :: IO Config
-defaultConfig = do
-    defaultEditor <- lookupEnv "EDITOR"
-    pure Config
-        { _colors = Colors
-            { _lineNumbers   = defAttr `withForeColor` blue
-            , _lineNumbersHl = defAttr `withForeColor` blue
-                                       `withStyle` bold
-            , _normal        = defAttr
-            , _normalHl      = defAttr `withStyle` bold
-            , _fileHeaders   = defAttr `withBackColor` green
-            , _selected      = defAttr `withStyle` standout }
-        , _tabstop = 8
-        , _editor = fromMaybe "vi" defaultEditor }
+defaultConfig :: Config
+defaultConfig = Config
+    { _colors = Colors
+        { _lineNumbers   = defAttr `withForeColor` blue
+        , _lineNumbersHl = defAttr `withForeColor` blue
+                                   `withStyle` bold
+        , _normal        = defAttr
+        , _normalHl      = defAttr `withStyle` bold
+        , _fileHeaders   = defAttr `withBackColor` green
+        , _selected      = defAttr `withStyle` standout }
+    , _tabstop = 8
+    , _editor = "vi" }
+
+withConfiguredEditor :: Config -> IO Config
+withConfiguredEditor config = do
+    let defaultEditor = view editor config
+    configuredEditor <- lookupEnv "EDITOR"
+    pure config { _editor = fromMaybe defaultEditor configuredEditor }

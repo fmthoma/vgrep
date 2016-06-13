@@ -11,8 +11,6 @@ module Vgrep.App
 
 import           Control.Concurrent.Async
 import           Control.Exception
-import           Control.Monad.Reader
-import           Control.Monad.State      (get)
 import           Graphics.Vty             (Vty)
 import qualified Graphics.Vty             as Vty
 import           Pipes                    hiding (next)

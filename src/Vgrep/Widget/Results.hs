@@ -11,6 +11,7 @@ module Vgrep.Widget.Results (
 
     -- ** Widget actions
     , feedResult
+    , resizeToWindow
     , prevLine
     , nextLine
     , pageUp
@@ -106,7 +107,7 @@ feedResult line = do
 pageUp, pageDown :: Monad m => VgrepT Results m ()
 pageUp = do
     unlessS (isJust . moveUp) $ do
-        modify (repeatedly (hideNext >=> showPrev))
+        modify (repeatedly hideNext)
         void resizeToWindow
     modify (repeatedly moveUp)
 pageDown = do
