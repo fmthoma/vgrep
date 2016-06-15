@@ -1,7 +1,7 @@
 module Pipes.Concurrent.PQueue
   ( spawn
   , withSpawn
-  , module Export
+  , module Pipes.Concurrent
   ) where
 
 import           Control.Applicative
@@ -9,17 +9,7 @@ import           Control.Concurrent.STM         as STM
 import qualified Control.Concurrent.STM.TPQueue as TPQueue
 import           Control.Exception              (bracket)
 import           Control.Monad
-import           Pipes.Concurrent               (Input (..), Output (..))
-import qualified Pipes.Concurrent               as Export hiding
-    ( Buffer (..)
-    , bounded
-    , latest
-    , newest
-    , spawn
-    , spawn'
-    , unbounded
-    , withSpawn
-    )
+import           Pipes.Concurrent               (Input (..), Output (..), fromInput, toOutput)
 
 
 spawn :: Ord p => IO (Output (p, a), Input a, STM ())

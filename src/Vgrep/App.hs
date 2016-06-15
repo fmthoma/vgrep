@@ -1,5 +1,6 @@
 {-# LANGUAGE Rank2Types          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TupleSections       #-}
 module Vgrep.App
     ( App(..)
     , runApp, runApp_
@@ -14,7 +15,7 @@ import           Control.Exception
 import           Graphics.Vty             (Vty)
 import qualified Graphics.Vty             as Vty
 import           Pipes                    hiding (next)
-import           Pipes.Concurrent
+import           Pipes.Concurrent.PQueue
 import           Pipes.Prelude            as P
 import           System.Posix.IO
 import           System.Posix.Types       (Fd)
@@ -63,15 +64,22 @@ runApp_ app conf externalEvents = void (runApp app conf externalEvents)
 -- 'Vty.Vty', run the action (e. g. invoking an external editor), and start
 -- 'Vty.Vty' again.
 runApp :: App e s -> Config -> Producer e IO () -> IO s
-runApp app conf externalEvents = withSpawn unbounded $ \(evSink, evSource) -> do
+runApp app conf externalEvents = withSpawn $ \(evSink, evSource) -> do
     displayRegion <- displayRegionHack
-    externalEventThread <- (async . runEffect) (externalEvents >-> toOutput evSink)
+    let userEventSink   = contramap (User,)   evSink
+        systemEventSink = contramap (System,) evSink
+    externalEventThread <- (async . runEffect) (externalEvents >-> toOutput systemEventSink)
     initialState <- initialize app
-    (_, finalState) <- runVgrepT (appEventLoop app evSource evSink)
+    (_, finalState) <- runVgrepT (appEventLoop app evSource userEventSink)
                                  initialState
                                  (Env conf displayRegion)
     cancel externalEventThread
     pure finalState
+
+-- | Monomorphic version of 'Data.Functor.Contravariant.contramap', to
+-- avoid having to update pipes-concurrency.
+contramap :: (b -> a) -> Output a -> Output b
+contramap f (Output a) = Output (a . f)
 
 -- | We need the display region in order to initialize the app, which in
 -- turn will start 'Vty.Vty'. To resolve this circular dependency, we start
@@ -118,6 +126,10 @@ appEventLoop app evSource evSink = startEventLoop >>= suspendAndResume
     vtyEventSink = P.map (liftEvent app) >-> toOutput evSink
     handleAppEvent = handleEvent app
 
+
+-- | 'User' events do have higher priority than 'System' events, so that
+-- the application stays responsive even in case of event queue congestion.
+data EventPriority = User | System deriving (Eq, Ord, Enum)
 
 withVty :: Consumer Vty.Event IO () -> (Vty -> VgrepT s IO a) -> VgrepT s IO a
 withVty sink action = vgrepBracket before after (\(vty, _) -> action vty)
