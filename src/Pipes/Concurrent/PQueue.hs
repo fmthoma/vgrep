@@ -9,7 +9,12 @@ import           Control.Concurrent.STM         as STM
 import qualified Control.Concurrent.STM.TPQueue as TPQueue
 import           Control.Exception              (bracket)
 import           Control.Monad
-import           Pipes.Concurrent               (Input (..), Output (..), fromInput, toOutput)
+import           Pipes.Concurrent
+    ( Input (..)
+    , Output (..)
+    , fromInput
+    , toOutput
+    )
 
 
 spawn :: Ord p => IO (Output (p, a), Input a, STM ())
@@ -28,16 +33,14 @@ spawn = do
     void (STM.mkWeakTVar rRecv (STM.atomically seal))
 
     let sendOrEnd p a = do
-            b <- readTVar sealed
-            if b
-                then return False
-                else do
-                    TPQueue.writeTPQueue q p a
-                    return True
-        readOrEnd = (fmap Just (TPQueue.readTPQueue q)) <|> (do
-            b <- readTVar sealed
-            check b
-            return Nothing )
+            isSealed <- readTVar sealed
+            if isSealed
+                then pure False
+                else TPQueue.writeTPQueue q p a >> pure True
+
+        readOrEnd = fmap Just (TPQueue.readTPQueue q)
+                <|> (readTVar sealed >>= check >> pure Nothing)
+
         _send (p, a) = sendOrEnd p a <* readTVar rSend
         _recv        = readOrEnd     <* readTVar rRecv
     return (Output _send, Input _recv, seal)
