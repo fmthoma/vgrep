@@ -18,7 +18,8 @@ library
   ghc-options:         -Wall
   default-extensions:  LambdaCase
                      , MultiWayIf
-  exposed-Modules:     Control.Monad.State.Extended
+  exposed-Modules:     Control.Concurrent.STM.TPQueue
+                     , Control.Monad.State.Extended
                      , Vgrep.App
                      , Vgrep.Event
                      , Vgrep.Environment
@@ -40,13 +41,15 @@ library
                      , async
                      , attoparsec
                      , containers
+                     , fingertree
                      , lens
                      , lifted-base
-                     , mtl
                      , mmorph
+                     , mtl
                      , pipes
                      , pipes-concurrency
                      , process
+                     , stm
                      , text
                      , transformers
                      , unix
