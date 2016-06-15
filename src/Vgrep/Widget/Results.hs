@@ -107,7 +107,7 @@ feedResult line = do
 pageUp, pageDown :: Monad m => VgrepT Results m ()
 pageUp = do
     unlessS (isJust . moveUp) $ do
-        modify (repeatedly hideNext)
+        modify (repeatedly (hideNext >=> showPrev))
         void resizeToWindow
     modify (repeatedly moveUp)
 pageDown = do
