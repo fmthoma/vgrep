@@ -18,6 +18,7 @@ import           Distribution.PackageDescription.TH
 import qualified Graphics.Vty                       as Vty
 import           Graphics.Vty.Input.Events          hiding (Event)
 import           Graphics.Vty.Picture
+import           Language.Haskell.TH
 import           Pipes                              as P
 import           Pipes.Concurrent
 import qualified Pipes.Prelude                      as P
@@ -46,6 +47,7 @@ main :: IO ()
 main = do
     args <- getArgs
     when ("-V" `elem` args || "--version" `elem` args) (printVersion >> exitSuccess)
+    when ("--help" `elem` args) (printHelp >> exitSuccess)
 
     hSetBuffering stdin  LineBuffering
     hSetBuffering stdout LineBuffering
@@ -78,6 +80,8 @@ main = do
         putStrLn ""
         putStrLn "grep version: "
         runEffect (grepVersion >-> P.take 1 >-> P.map ("    " <>) >-> stdoutText)
+    printHelp = putStrLn helpText
+        where helpText = $(fmap (LitE . StringL) (runIO (readFile "help.txt")))
 
 
 type MainWidget  = HSplitWidget Results Pager

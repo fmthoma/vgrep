@@ -73,6 +73,7 @@ executable vgrep
                      , pipes
                      , pipes-concurrency
                      , process
+                     , template-haskell
                      , text
                      , unix
                      , vgrep
