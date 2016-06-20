@@ -1,4 +1,6 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
 module Main (main) where
 
 import           Control.Concurrent.Async
@@ -7,19 +9,21 @@ import           Control.Monad.Reader
 import           Data.Maybe
 import           Data.Monoid
 import           Data.Ratio
-import           Data.Sequence             (Seq)
-import qualified Data.Sequence             as S
-import           Data.Text.Lazy            (Text)
-import qualified Data.Text.Lazy            as T
-import qualified Data.Text.Lazy.IO         as T
-import qualified Graphics.Vty              as Vty
-import           Graphics.Vty.Input.Events hiding (Event)
+import           Data.Sequence                      (Seq)
+import qualified Data.Sequence                      as S
+import           Data.Text.Lazy                     (Text)
+import qualified Data.Text.Lazy                     as T
+import qualified Data.Text.Lazy.IO                  as T
+import           Distribution.PackageDescription.TH
+import qualified Graphics.Vty                       as Vty
+import           Graphics.Vty.Input.Events          hiding (Event)
 import           Graphics.Vty.Picture
-import           Pipes                     as P
+import           Pipes                              as P
 import           Pipes.Concurrent
-import qualified Pipes.Prelude             as P
+import qualified Pipes.Prelude                      as P
 import           System.Directory
-import           System.Environment        (getArgs)
+import           System.Environment                 (getArgs)
+import           System.Exit
 import           System.IO
 import           System.Posix.IO
 import           System.Process
@@ -40,12 +44,14 @@ import           Vgrep.Widget.Results
 
 main :: IO ()
 main = do
+    args <- getArgs
+    when ("-V" `elem` args || "--version" `elem` args) (printVersion >> exitSuccess)
+
     hSetBuffering stdin  LineBuffering
     hSetBuffering stdout LineBuffering
     cfg <- withConfiguredEditor defaultConfig
     inputFromTerminal <- hIsTerminalDevice stdin
     outputToTerminal  <- hIsTerminalDevice stdout
-    args <- getArgs
     case (inputFromTerminal, outputToTerminal) of
         (True,  False)  -> runHeadless (const recursiveGrep)
         (False, False)  -> runHeadless grep
@@ -65,6 +71,13 @@ main = do
                                    >-> toOutput evSink
         runApp_ app cfg (fromInput evSource)
         cancel grepThread
+    printVersion = do
+        let version = $(packageVariable (pkgVersion . package))
+            name = $(packageVariable (pkgName . package))
+        putStrLn (name <> " " <> version)
+        putStrLn ""
+        putStrLn "grep version: "
+        runEffect (grepVersion >-> P.take 1 >-> P.map ("    " <>) >-> stdoutText)
 
 
 type MainWidget  = HSplitWidget Results Pager
