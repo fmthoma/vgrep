@@ -4,6 +4,7 @@ module Vgrep.System.Grep
     ( grep
     , grepForApp
     , recursiveGrep
+    , grepVersion
     ) where
 
 import           Control.Concurrent
@@ -69,12 +70,18 @@ recursiveGrep = do
     (_hIn, hOut) <- createGrepProcess grepArgs
     streamResultsFrom hOut
 
-recursive, withFileName, withLineNumber, skipBinaryFiles, lineBuffered :: String
+grepVersion :: Producer Text IO ()
+grepVersion = do
+    (_, hOut) <- createGrepProcess [version]
+    streamResultsFrom hOut
+
+recursive, withFileName, withLineNumber, skipBinaryFiles, lineBuffered, version :: String
 recursive       = "-r"
 withFileName    = "-H"
 withLineNumber  = "-n"
 skipBinaryFiles = "-I"
 lineBuffered    = "--line-buffered"
+version         = "--version"
 
 
 createGrepProcess :: MonadIO io => [String] -> io (Handle, Handle)

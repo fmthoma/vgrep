@@ -65,6 +65,7 @@ executable vgrep
                      , MultiWayIf
   build-depends:       base
                      , async
+                     , cabal-file-th
                      , containers
                      , directory
                      , lens
@@ -72,6 +73,7 @@ executable vgrep
                      , pipes
                      , pipes-concurrency
                      , process
+                     , template-haskell
                      , text
                      , unix
                      , vgrep
