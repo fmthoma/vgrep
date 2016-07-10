@@ -4,13 +4,15 @@ module Vgrep.Widget.EdLine (
     , EdLine
     , edLine
     , edLineWidget
+    , cursorPos
+    , command
     , clear
     , insert
     , delete
     , backspace
     ) where
 
-import           Control.Lens
+import           Control.Lens            hiding (pre)
 import           Control.Monad.State
 import           Data.Monoid
 import           Data.Text               (Text)
@@ -23,10 +25,19 @@ import           Vgrep.Widget.Type
 type EdLineWidget = Widget EdLine
 
 data EdLine = EdLine
-    { _cursorPos :: Int
-    , _command   :: Text }
+    { _pre  :: Text
+    , _post :: Text }
 
 makeLenses ''EdLine
+
+cursorPos :: Getter EdLine Int
+cursorPos = pre . to Text.length
+
+command :: Getter EdLine Text
+command = to $ do
+    prefix <- view pre
+    postfix <- view post
+    pure (prefix <> postfix)
 
 edLineWidget :: EdLineWidget
 edLineWidget = Widget
@@ -34,30 +45,23 @@ edLineWidget = Widget
     , draw       = drawWidget }
 
 edLine :: EdLine
-edLine = EdLine 0 Text.empty
+edLine = EdLine Text.empty Text.empty
 
 clear :: Monad m => VgrepT EdLine m Redraw
 clear = put edLine >> pure Redraw
 
 insert :: Monad m => Char -> VgrepT EdLine m Redraw
-insert chr = do
-    cmdText <- use command
-    pos <- use cursorPos
-    let (prefix, postfix) = Text.splitAt pos cmdText
-    assign command (prefix <> Text.singleton chr <> postfix)
-    assign cursorPos (pos + 1)
-    pure Redraw
+insert chr = modifying pre (Text.cons chr) >> pure Redraw
 
 delete :: Monad m => VgrepT EdLine m Redraw
-delete = do
-    --modifying command _
-    pure Redraw
+delete = use (post . to Text.length) >>= \case
+    0 -> pure Unchanged
+    _ -> modifying post Text.tail >> pure Redraw
 
 backspace :: Monad m => VgrepT EdLine m Redraw
-backspace = do
-    modifying cursorPos (+ (-1))
-    --modifying command _
-    pure Redraw
+backspace = use cursorPos >>= \case
+    0 -> pure Unchanged
+    _ -> modifying pre Text.init >> pure Redraw
 
 drawWidget :: Monad m => VgrepT EdLine m Image
 drawWidget = do
