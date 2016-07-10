@@ -168,4 +168,3 @@ hSplitKeyBindingsRight = dispatchMap $ fromList
     [ (EvKey (KChar '\t') [], switchFocus)
     , (EvKey (KChar 'q')  [], leftOnly)
     , (EvKey (KChar 'f')  [], rightOnly) ]
-

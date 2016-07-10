@@ -31,6 +31,7 @@ library
                      , Vgrep.Text
                      , Vgrep.Type
                      , Vgrep.Widget
+                     , Vgrep.Widget.EdLine
                      , Vgrep.Widget.HorizontalSplit
                      , Vgrep.Widget.HorizontalSplit.Internal
                      , Vgrep.Widget.Pager
