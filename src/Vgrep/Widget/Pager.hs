@@ -59,6 +59,7 @@ pagerWidget :: PagerWidget
 pagerWidget = Widget
     { initialize = initPager
     , draw       = renderPager
+    , cursor     = const NoCursor
     , handle     = fmap const pagerKeyBindings }
 
 initPager :: Pager

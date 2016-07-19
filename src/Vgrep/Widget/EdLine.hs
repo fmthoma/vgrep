@@ -43,6 +43,7 @@ edLineWidget :: EdLineWidget
 edLineWidget = Widget
     { initialize = edLine
     , draw       = drawWidget
+    , cursor     = getCursor
     , handle     = handleEvent }
 
 edLine :: EdLine
@@ -69,6 +70,9 @@ drawWidget = do
     (width, _) <- view region
     cmdText <- use command
     pure (text' defAttr (Text.justifyLeft width ' ' cmdText))
+
+getCursor :: EdLine -> Cursor
+getCursor = views cursorPos (\pos -> Cursor pos 0)
 
 handleEvent :: Monad m => Event -> EdLine -> Next (VgrepT EdLine m Redraw)
 handleEvent event _ = Continue $ case event of

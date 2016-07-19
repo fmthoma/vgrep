@@ -75,6 +75,7 @@ resultsWidget :: ResultsWidget
 resultsWidget =
     Widget { initialize = initResults
            , draw       = renderResultList
+           , cursor     = const NoCursor
            , handle     = fmap const resultsKeyBindings }
 
 initResults :: Results

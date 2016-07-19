@@ -5,10 +5,15 @@ module Vgrep.Widget.Type
   -- ** Re-exports from "Vgrep.Event"
   , Redraw (..)
   , Next (..)
+
+  -- ** Re-exports from "Graphics.Vty"
+  , Image ()
+  , Cursor (..)
   ) where
 
-import Graphics.Vty.Image (Image)
+import Graphics.Vty.Image   (Image)
 import Graphics.Vty.Input
+import Graphics.Vty.Picture (Cursor (..))
 
 import Vgrep.Event (Next (..), Redraw (..))
 import Vgrep.Type
@@ -30,6 +35,9 @@ data Widget s = Widget
     , draw       :: forall m. Monad m => VgrepT s m Image
     -- ^ Generate a renderable 'Image' from the widget state. The state can
     -- be modified (e. g. for resizing).
+
+    , cursor     :: s -> Cursor
+    -- ^ Get the current cursor position, or 'NoCursor' if not applicable.
 
     , handle     :: forall m. Monad m => Event -> s -> Next (VgrepT s m Redraw)
     -- ^ The default event handler for this 'Widget'. May provide e.g.

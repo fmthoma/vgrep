@@ -64,6 +64,7 @@ hSplitWidget
 hSplitWidget left right = Widget
     { initialize = initHSplit   left right
     , draw       = drawWidgets  left right
+    , cursor     = getCursor    left right
     , handle     = handleEvents left right }
 
 initHSplit :: Widget s -> Widget t -> HSplit s t
@@ -135,6 +136,13 @@ runInRightWidget ratio action =
     let rightRegion = over (region . _1) $ \w ->
             floor ((1-ratio) * fromIntegral w)
     in  zoom rightWidget (local rightRegion action)
+
+getCursor :: Widget s -> Widget t -> HSplit s t -> Cursor
+getCursor left right = view layout >>= \case
+    LeftOnly               -> view (leftWidget  . to (cursor left))
+    RightOnly              -> view (rightWidget . to (cursor right))
+    Split FocusLeft ratio  -> view (leftWidget  . to (cursor left))  -- FIXME
+    Split FocusRight ratio -> view (rightWidget . to (cursor right)) -- FIXME
 
 -- ------------------------------------------------------------------------
 -- Events & Keybindings
