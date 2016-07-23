@@ -9,6 +9,7 @@ module Vgrep.Widget.Layout (
     , Layout ()
     , Focus (..)
     , Ratio (..)
+    , Orientation (..)
 
     -- ** Widget actions
     , primaryOnly
@@ -46,22 +47,6 @@ type LayoutWidget s t = Widget (Layout s t)
 -- * __Initial state__
 --
 --     Initially, the left widget is rendered full-screen.
-hSplitWidget :: Widget s -> Widget t -> LayoutWidget s t
-hSplitWidget primaryWidget secondaryWidget =
-    layoutWidget
-        primaryWidget
-        secondaryWidget
-        Horizontal
-        (Dynamic (2%3))
-        PrimaryOnly
-
-
--- | Compose two 'Widget's with the given layout
---
--- * __Drawing the Widgets__
---
---     Drawing is delegated to the child widgets in a local environment
---     reduced to thir respective 'DisplayRegion'.
 --
 -- * __Default keybindings__
 --
@@ -73,6 +58,28 @@ hSplitWidget primaryWidget secondaryWidget =
 --     f     full screen ('leftOnly' / 'rightOnly')
 --     q     close right widget ('leftOnly' if right widget is focused)
 --     @
+hSplitWidget :: Widget s -> Widget t -> LayoutWidget s t
+hSplitWidget primaryWidget secondaryWidget =
+    ( layoutWidget
+        primaryWidget
+        secondaryWidget
+        Horizontal
+        (Dynamic (2%3))
+        PrimaryOnly )
+    { handle = hSplitKeyBindings <> delegateEvents primaryWidget secondaryWidget }
+
+
+-- | Compose two 'Widget's with the given layout
+--
+-- * __Drawing the Widgets__
+--
+--     Drawing is delegated to the child widgets in a local environment
+--     reduced to thir respective 'DisplayRegion'.
+--
+-- * __Default keybindings__
+--
+--     None, although specialized versions like 'hSplitWidget' provide
+--     keybindings.
 layoutWidget
     :: Widget s
     -> Widget t
@@ -87,9 +94,9 @@ layoutWidget primaryWidget secondaryWidget orientation' ratio' focus' = Widget
         , _orientation = orientation'
         , _splitRatio = ratio'
         , _focus = focus' }
-    , draw       = drawLayout   primaryWidget secondaryWidget
-    , cursor     = getCursor    primaryWidget secondaryWidget
-    , handle     = handleEvents primaryWidget secondaryWidget }
+    , draw       = drawLayout     primaryWidget secondaryWidget
+    , cursor     = getCursor      primaryWidget secondaryWidget
+    , handle     = delegateEvents primaryWidget secondaryWidget }
 
 
 drawLayout :: Monad m => Widget s -> Widget t -> VgrepT (Layout s t) m Image
@@ -116,7 +123,7 @@ runInPrimaryWidget action = do
     dimension <- use (orientation . to regionDimension)
     scale <- use splitRatio <&> \case
         FixedPrimary   pdim -> const pdim
-        FixedSecondary sdim -> \dim -> sdim - dim
+        FixedSecondary sdim -> \dim -> dim - sdim
         Dynamic r           -> \dim -> floor ((1-r) * fromIntegral dim)
     zoom primary (local (over (region . dimension) scale) action)
 
@@ -127,7 +134,7 @@ runInSecondaryWidget
 runInSecondaryWidget action = do
     dimension <- use (orientation . to regionDimension)
     scale <- use splitRatio <&> \case
-        FixedPrimary   pdim -> \dim -> pdim - dim
+        FixedPrimary   pdim -> \dim -> dim - pdim
         FixedSecondary sdim -> const sdim
         Dynamic r           -> \dim -> ceiling (r * fromIntegral dim)
     zoom secondary (local (over (region . dimension) scale) action)
@@ -143,18 +150,26 @@ regionDimension = \case
 -- ------------------------------------------------------------------------
 
 -- FIXME: local region!
-handleEvents
+
+delegateEvents
     :: Monad m
     => Widget s
     -> Widget t
     -> Event
     -> Layout s t
     -> Next (VgrepT (Layout s t) m Redraw)
-handleEvents primaryWidget secondaryWidget e s = case view focusedWidget s of
-    Left  ls -> hSplitKeyBindingsLeft e
-             <> fmap (zoom primary) (handle primaryWidget   e ls)
-    Right rs -> hSplitKeyBindingsRight e
-             <> fmap (zoom secondary) (handle secondaryWidget e rs)
+delegateEvents primaryWidget secondaryWidget e s = case view focusedWidget s of
+    Left  ls -> fmap (zoom primary) (handle primaryWidget   e ls)
+    Right rs -> fmap (zoom secondary) (handle secondaryWidget e rs)
+
+hSplitKeyBindings
+    :: Monad m
+    => Event
+    -> Layout s t
+    -> Next (VgrepT (Layout s t) m Redraw)
+hSplitKeyBindings e s = case view focusedWidget s of
+    Left  _ -> hSplitKeyBindingsLeft e
+    Right _ -> hSplitKeyBindingsRight e
 
 hSplitKeyBindingsLeft
     :: Monad m

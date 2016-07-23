@@ -37,6 +37,7 @@ import           Vgrep.Text
 import           Vgrep.Type
 import           Vgrep.Widget         hiding (handle)
 import qualified Vgrep.Widget         as Widget
+import           Vgrep.Widget.EdLine
 import           Vgrep.Widget.Layout
 import           Vgrep.Widget.Pager
 import           Vgrep.Widget.Results
@@ -83,8 +84,8 @@ main = do
         where helpText = $(fmap (LitE . StringL) (runIO (readFile "help.txt")))
 
 
-type MainWidget  = LayoutWidget Results Pager
-type WidgetState = Layout Results Pager
+type MainWidget  = LayoutWidget (Layout Results Pager) EdLine
+type WidgetState = Layout (Layout Results Pager) EdLine
 
 data AppState = AppState { _widgetState :: WidgetState
                          , _inputLines  :: Seq Text }
@@ -115,7 +116,9 @@ app = App
             , picBackground = ClearBackground }
 
 mainWidget :: MainWidget
-mainWidget = hSplitWidget resultsWidget pagerWidget
+mainWidget = foo (hSplitWidget resultsWidget pagerWidget) edLineWidget
+  where
+    foo a b = layoutWidget a b Vertical (FixedSecondary 1) FocusPrimary
 
 
 ---------------------------------------------------------------------------
@@ -200,7 +203,7 @@ loadSelectedFileToPager = do
         highlightLineNumbers <- use (results . currentFileResultLineNumbers)
         zoom pager (replaceBufferContents displayContent highlightLineNumbers)
         moveToSelectedLineNumber
-        zoom widgetState $ do
+        zoom (widgetState . primary) $ do
             void splitView
             assign focus FocusSecondary
             assign splitRatio (Dynamic (2 % 3))
@@ -225,10 +228,10 @@ invokeEditor state = case views (results . currentFileName) (fmap T.unpack) stat
     Nothing -> Skip
 
 exec :: MonadIO io => FilePath -> [String] -> io ()
-exec command args = liftIO $ do
+exec path args = liftIO $ do
     inHandle  <- fdToHandle =<< ttyIn
     outHandle <- fdToHandle =<< ttyOut
-    (_,_,_,h) <- createProcess $ (proc command args)
+    (_,_,_,h) <- createProcess $ (proc path args)
         { std_in  = UseHandle inHandle
         , std_out = UseHandle outHandle }
     _ <- waitForProcess h
@@ -244,7 +247,7 @@ inputLines :: Lens' AppState (Seq Text)
 inputLines = lens _inputLines (\s l -> s { _inputLines = l })
 
 results :: Lens' AppState Results
-results = widgetState . primary
+results = widgetState . primary . primary
 
 pager :: Lens' AppState Pager
-pager = widgetState . secondary
+pager = widgetState . primary . secondary
