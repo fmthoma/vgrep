@@ -39,6 +39,7 @@ import           Vgrep.System.Grep
 import           Vgrep.Text
 import           Vgrep.Type
 import qualified Vgrep.Widget         as Widget
+import           Vgrep.Widget.EdLine
 import           Vgrep.Widget.Layout
 import           Vgrep.Widget.Pager
 import           Vgrep.Widget.Results
@@ -88,8 +89,8 @@ main = do
         where defaultConfigFile = $(runIO (readFile "config.yaml.example") >>= stringE)
 
 
-type MainWidget  = LayoutWidget Results Pager
-type WidgetState = Layout Results Pager
+type MainWidget  = LayoutWidget (Layout Results Pager) EdLine
+type WidgetState = Layout (Layout Results Pager) EdLine
 
 data AppState = AppState { _widgetState :: WidgetState
                          , _inputLines  :: Seq Text }
@@ -120,7 +121,9 @@ app = App
             , picBackground = ClearBackground }
 
 mainWidget :: MainWidget
-mainWidget = hSplitWidget resultsWidget pagerWidget
+mainWidget = foo (hSplitWidget resultsWidget pagerWidget) edLineWidget
+  where
+    foo a b = layoutWidget a b Vertical (FixedSecondary 1) FocusPrimary
 
 
 ---------------------------------------------------------------------------
@@ -270,8 +273,8 @@ invokeEditor state = case views (results . currentFileName) (fmap T.unpack) stat
     Nothing -> Skip
 
 exec :: MonadIO io => FilePath -> [String] -> io ()
-exec command args = liftIO $ do
-    (_,_,_,h) <- createProcess (proc command args)
+exec path args = liftIO $ do
+    (_,_,_,h) <- createProcess (proc path args)
     void (waitForProcess h)
 
 ---------------------------------------------------------------------------
@@ -284,7 +287,7 @@ inputLines :: Lens' AppState (Seq Text)
 inputLines = lens _inputLines (\s l -> s { _inputLines = l })
 
 results :: Lens' AppState Results
-results = widgetState . primary
+results = widgetState . primary . primary
 
 pager :: Lens' AppState Pager
-pager = widgetState . secondary
+pager = widgetState . primary . secondary

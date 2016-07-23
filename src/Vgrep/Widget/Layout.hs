@@ -9,6 +9,7 @@ module Vgrep.Widget.Layout (
     , Layout ()
     , Focus (..)
     , Ratio (..)
+    , Orientation (..)
 
     -- ** Widget actions
     , primaryOnly
@@ -102,7 +103,7 @@ runInPrimaryWidget action = do
     dimension <- use (orientation . to regionDimension)
     scale <- use splitRatio <&> \case
         FixedPrimary   pdim -> const pdim
-        FixedSecondary sdim -> \dim -> sdim - dim
+        FixedSecondary sdim -> \dim -> dim - sdim
         Dynamic r           -> \dim -> floor ((1-r) * fromIntegral dim)
     zoom primary (local (over dimension scale) action)
 
@@ -113,7 +114,7 @@ runInSecondaryWidget
 runInSecondaryWidget action = do
     dimension <- use (orientation . to regionDimension)
     scale <- use splitRatio <&> \case
-        FixedPrimary   pdim -> \dim -> pdim - dim
+        FixedPrimary   pdim -> \dim -> dim - pdim
         FixedSecondary sdim -> const sdim
         Dynamic r           -> \dim -> ceiling (r * fromIntegral dim)
     zoom secondary (local (over dimension scale) action)
