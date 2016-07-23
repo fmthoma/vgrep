@@ -181,7 +181,7 @@ handleKeyEvent chord environment state =
     globalBindings  = view (config . keybindings . globalKeybindings)  environment
     resultsBindings = view (config . keybindings . resultsKeybindings) environment
     pagerBindings   = view (config . keybindings . pagerKeybindings)   environment
-    localBindings = case view (widgetState . currentWidget) state of
+    localBindings = case view (widgetState . focusedWidget) state of
         Left  _ -> resultsBindings
         Right _ -> pagerBindings
     lookupCmd = fromMaybe Unset . KeybindingMap.lookup chord

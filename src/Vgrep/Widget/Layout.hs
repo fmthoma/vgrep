@@ -15,7 +15,7 @@ module Vgrep.Widget.Layout (
 
     , primary
     , secondary
-    , currentWidget
+    , focusedWidget
     , splitRatio
     , focus
     ) where
