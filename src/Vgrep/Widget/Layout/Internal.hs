@@ -1,10 +1,39 @@
 {-# LANGUAGE TemplateHaskell #-}
-module Vgrep.Widget.Layout.Internal where
+module Vgrep.Widget.Layout.Internal (
+    -- * Layout widget state
+      Layout (..)
+    , Ratio (..)
+    , Orientation (..)
+    , Focus (..)
+
+    -- ** Auto-generated lenses
+    , splitRatio
+    , orientation
+    , primary
+    , secondary
+    , focus
+
+    -- ** Additional lenses
+    , focusedWidget
+
+    -- ** Re-exports
+    , (%)
+    ) where
 
 import Control.Lens
+import Data.Ratio   ((%))
 
 -- $setup
 -- >>> :set -fno-warn-missing-fields
+
+-- | The internal state of the 'Layout' widget. Tracks the state of both the
+-- child widgets and the current layout.
+data Layout s t = Layout
+    { _splitRatio  :: Ratio
+    , _orientation :: Orientation
+    , _primary     :: s
+    , _secondary   :: t
+    , _focus       :: Focus }
 
 data Ratio
     = Dynamic Rational
@@ -16,13 +45,6 @@ data Orientation = Horizontal | Vertical deriving (Eq)
 
 data Focus = PrimaryOnly | FocusPrimary | FocusSecondary | SecondaryOnly
     deriving (Eq)
-
-data Layout s t = Layout
-    { _splitRatio  :: Ratio
-    , _orientation :: Orientation
-    , _primary     :: s
-    , _secondary   :: t
-    , _focus       :: Focus }
 
 makeLenses ''Layout
 
@@ -38,9 +60,9 @@ makeLenses ''Layout
 -- >>> view focusedWidget $ Layout { _secondary = "bar", _focus = FocusSecondary }
 -- Right "bar"
 focusedWidget :: Getter (Layout s t) (Either s t)
-focusedWidget = to getCurrentWidget
+focusedWidget = to getFocusedWidget
   where
-    getCurrentWidget state = case view focus state of
+    getFocusedWidget state = case view focus state of
         PrimaryOnly    -> Left  (view primary state)
         FocusPrimary   -> Left  (view primary state)
         FocusSecondary -> Right (view secondary state)

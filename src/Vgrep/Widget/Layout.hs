@@ -1,18 +1,22 @@
 {-# LANGUAGE Rank2Types #-}
 module Vgrep.Widget.Layout (
-      hSplitWidget
+    -- * Layout widget
+      layoutWidget
     , LayoutWidget
+    , hSplitWidget
 
+    -- ** Widget state
     , Layout ()
     , Focus (..)
     , Ratio (..)
 
-
+    -- ** Widget actions
     , primaryOnly
     , secondaryOnly
     , splitView
     , switchFocus
 
+    -- ** Lenses
     , primary
     , secondary
     , focusedWidget
@@ -32,19 +36,41 @@ import Vgrep.Widget.Type
 
 type LayoutWidget s t = Widget (Layout s t)
 
-
+-- | Compose two 'Widget's side-by-side
+--
+-- * __Initial state__
+--
+--     Initially, the left widget is rendered full-screen.
 hSplitWidget :: Widget s -> Widget t -> LayoutWidget s t
 hSplitWidget primaryWidget secondaryWidget =
-    layoutWidget primaryWidget secondaryWidget Layout
-        { _primary     = initialize primaryWidget
-        , _secondary   = initialize secondaryWidget
-        , _orientation = Horizontal
-        , _splitRatio  = Dynamic (2 % 3)
-        , _focus       = PrimaryOnly }
+    layoutWidget
+        primaryWidget
+        secondaryWidget
+        Horizontal
+        (Dynamic (2%3))
+        PrimaryOnly
 
-layoutWidget :: Widget s -> Widget t -> Layout s t -> LayoutWidget s t
-layoutWidget primaryWidget secondaryWidget initialLayout = Widget
-    { initialize = initialLayout
+
+-- | Compose two 'Widget's with the given layout
+--
+-- * __Drawing the Widgets__
+--
+--     Drawing is delegated to the child widgets in a local environment
+--     reduced to thir respective 'DisplayRegion'.
+layoutWidget
+    :: Widget s
+    -> Widget t
+    -> Orientation
+    -> Ratio
+    -> Focus
+    -> LayoutWidget s t
+layoutWidget primaryWidget secondaryWidget orientation' ratio' focus' = Widget
+    { initialize = Layout
+        { _primary = initialize primaryWidget
+        , _secondary = initialize secondaryWidget
+        , _orientation = orientation'
+        , _splitRatio = ratio'
+        , _focus = focus' }
     , draw       = drawLayout   primaryWidget secondaryWidget
     , cursor     = getCursor    primaryWidget secondaryWidget }
 
@@ -101,17 +127,21 @@ primaryOnly = use focus >>= \case
     PrimaryOnly -> pure Unchanged
     _other      -> assign focus PrimaryOnly >> pure Redraw
 
+-- | Display the secondary widget full-screen
 secondaryOnly :: Monad m => VgrepT (Layout s t) m Redraw
 secondaryOnly = use focus >>= \case
     SecondaryOnly -> pure Unchanged
     _other        -> assign focus SecondaryOnly >> pure Redraw
 
+-- | Display both widgets in a split view
 splitView :: Monad m => VgrepT (Layout s t) m Redraw
 splitView = use focus >>= \case
     PrimaryOnly   -> assign focus FocusPrimary   >> pure Redraw
     SecondaryOnly -> assign focus FocusSecondary >> pure Redraw
     _otherwise    -> pure Unchanged
 
+-- | Switch focus from left to right child widget and vice versa (only if
+-- the '_layout' is 'Split')
 switchFocus :: Monad m => VgrepT (Layout s t) m Redraw
 switchFocus = use focus >>= \case
     FocusPrimary   -> do
