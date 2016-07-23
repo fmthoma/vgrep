@@ -90,12 +90,12 @@ drawLayout primaryWidget secondaryWidget = use focus >>= \case
             Horizontal -> pure (primaryImage <|> secondaryImage)
             Vertical   -> pure (primaryImage <-> secondaryImage)
 
-getCursor :: Widget s -> Widget t -> Layout s t -> Cursor
-getCursor primaryWidget secondaryWidget = view focus >>= \case
-    PrimaryOnly    -> magnify primary   (cursor primaryWidget)
-    FocusPrimary   -> magnify primary   (cursor primaryWidget)   -- FIXME
-    FocusSecondary -> magnify secondary (cursor secondaryWidget) -- FIXME
-    SecondaryOnly  -> magnify secondary (cursor secondaryWidget)
+getCursor :: Monad m => Widget s -> Widget t -> VgrepT (Layout s t) m Cursor
+getCursor primaryWidget secondaryWidget = use focus >>= \case
+    PrimaryOnly    -> zoom primary   (cursor primaryWidget)
+    FocusPrimary   -> zoom primary   (cursor primaryWidget)   -- FIXME
+    FocusSecondary -> zoom secondary (cursor secondaryWidget) -- FIXME
+    SecondaryOnly  -> zoom secondary (cursor secondaryWidget)
 
 runInPrimaryWidget
     :: Monad m

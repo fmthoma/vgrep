@@ -35,6 +35,6 @@ data Widget s = Widget
     -- ^ Generate a renderable 'Image' from the widget state. The state can
     -- be modified (e. g. for resizing).
 
-    , cursor     :: s -> Cursor
+    , cursor     :: forall m. Monad m => VgrepT s m Cursor
     -- ^ Get the current cursor position, or 'NoCursor' if not applicable.
     }

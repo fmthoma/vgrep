@@ -56,7 +56,7 @@ pagerWidget :: PagerWidget
 pagerWidget = Widget
     { initialize = initPager
     , draw       = renderPager
-    , cursor     = const NoCursor }
+    , cursor     = pure NoCursor }
 
 initPager :: Pager
 initPager = Pager

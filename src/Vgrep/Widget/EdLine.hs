@@ -71,5 +71,5 @@ drawWidget = do
     cmdText <- use command
     pure (text' defAttr (Text.justifyLeft width ' ' cmdText))
 
-getCursor :: EdLine -> Cursor
-getCursor = views cursorPos (\pos -> Cursor pos 0)
+getCursor :: Monad m => VgrepT EdLine m Cursor
+getCursor = uses cursorPos (\pos -> Cursor pos 0)
