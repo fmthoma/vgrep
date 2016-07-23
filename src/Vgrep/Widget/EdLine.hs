@@ -53,7 +53,7 @@ clear :: Monad m => VgrepT EdLine m Redraw
 clear = put edLine >> pure Redraw
 
 insert :: Monad m => Char -> VgrepT EdLine m Redraw
-insert chr = modifying pre (Text.cons chr) >> pure Redraw
+insert chr = modifying pre (`Text.snoc` chr) >> pure Redraw
 
 delete :: Monad m => VgrepT EdLine m Redraw
 delete = use (post . to Text.length) >>= \case
