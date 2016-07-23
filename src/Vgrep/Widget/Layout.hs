@@ -22,6 +22,9 @@ module Vgrep.Widget.Layout (
     , focusedWidget
     , splitRatio
     , focus
+
+    -- ** Re-exports
+    , (%)
     ) where
 
 import Control.Lens
