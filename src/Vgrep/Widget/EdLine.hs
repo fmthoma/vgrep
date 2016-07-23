@@ -1,7 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Vgrep.Widget.EdLine (
       EdLineWidget
-    , EdLine
+    , EdLine ()
     , edLine
     , edLineWidget
     , cursorPos
@@ -10,6 +10,8 @@ module Vgrep.Widget.EdLine (
     , insert
     , delete
     , backspace
+    , moveLeft
+    , moveRight
     ) where
 
 import           Control.Lens            hiding (pre)
@@ -56,6 +58,12 @@ delete = modifying zipper Zipper.deleteChar >> pure Redraw
 
 backspace :: Monad m => VgrepT EdLine m Redraw
 backspace = modifying zipper Zipper.deletePrevChar >> pure Redraw
+
+moveLeft :: Monad m => VgrepT EdLine m Redraw
+moveLeft = modifying zipper Zipper.moveLeft >> pure Redraw
+
+moveRight :: Monad m => VgrepT EdLine m Redraw
+moveRight = modifying zipper Zipper.moveRight >> pure Redraw
 
 drawWidget :: Monad m => VgrepT EdLine m Image
 drawWidget = do
