@@ -3,6 +3,8 @@ module Vgrep.Widget.Layout.Internal where
 
 import Control.Lens
 
+-- $setup
+-- >>> :set -fno-warn-missing-fields
 
 data Ratio
     = Dynamic Rational
