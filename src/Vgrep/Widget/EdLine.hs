@@ -67,6 +67,12 @@ delete = modifying zipper Zipper.deleteChar >> pure Redraw
 backspace :: Monad m => VgrepT EdLine m Redraw
 backspace = modifying zipper Zipper.deletePrevChar >> pure Redraw
 
+moveLeft :: Monad m => VgrepT EdLine m Redraw
+moveLeft = modifying zipper Zipper.moveLeft >> pure Redraw
+
+moveRight :: Monad m => VgrepT EdLine m Redraw
+moveRight = modifying zipper Zipper.moveRight >> pure Redraw
+
 drawWidget :: Monad m => VgrepT EdLine m Image
 drawWidget = do
     (width, _) <- view region
@@ -81,4 +87,6 @@ handleEvent event _ = Continue $ case event of
     EvKey (KChar chr) [] -> insert chr
     EvKey KBS         [] -> backspace
     EvKey KDel        [] -> delete
+    EvKey KLeft       [] -> moveLeft
+    EvKey KRight      [] -> moveRight
     _otherwise           -> pure Unchanged
