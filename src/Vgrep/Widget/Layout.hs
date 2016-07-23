@@ -113,8 +113,20 @@ drawLayout primaryWidget secondaryWidget = use focus >>= \case
 getCursor :: Monad m => Widget s -> Widget t -> VgrepT (Layout s t) m Cursor
 getCursor primaryWidget secondaryWidget = use focus >>= \case
     PrimaryOnly    -> zoom primary   (cursor primaryWidget)
-    FocusPrimary   -> zoom primary   (cursor primaryWidget)   -- FIXME
-    FocusSecondary -> zoom secondary (cursor secondaryWidget) -- FIXME
+    FocusPrimary   -> zoom primary   (cursor primaryWidget)   -- FIXME cutoff
+    FocusSecondary -> do
+        dimension <- use (orientation . to regionDimension)
+        dim <- view (region . dimension)
+        offset <- use splitRatio <&> \case
+            FixedPrimary   pdim -> pdim
+            FixedSecondary sdim -> dim - sdim
+            Dynamic r           -> ceiling (r * fromIntegral dim)
+        zoom secondary (cursor secondaryWidget) >>= \case
+            NoCursor -> pure NoCursor
+            Cursor col row ->
+                use orientation >>= \case
+                    Horizontal -> pure (Cursor (col + offset) row)
+                    Vertical   -> pure (Cursor col (row + offset))
     SecondaryOnly  -> zoom secondary (cursor secondaryWidget)
 
 runInPrimaryWidget
@@ -126,7 +138,7 @@ runInPrimaryWidget action = do
     scale <- use splitRatio <&> \case
         FixedPrimary   pdim -> const pdim
         FixedSecondary sdim -> \dim -> dim - sdim
-        Dynamic r           -> \dim -> floor ((1-r) * fromIntegral dim)
+        Dynamic r           -> \dim -> ceiling (r * fromIntegral dim)
     zoom primary (local (over (region . dimension) scale) action)
 
 runInSecondaryWidget
@@ -138,7 +150,7 @@ runInSecondaryWidget action = do
     scale <- use splitRatio <&> \case
         FixedPrimary   pdim -> \dim -> dim - pdim
         FixedSecondary sdim -> const sdim
-        Dynamic r           -> \dim -> ceiling (r * fromIntegral dim)
+        Dynamic r           -> \dim -> floor ((1-r) * fromIntegral dim)
     zoom secondary (local (over (region . dimension) scale) action)
 
 regionDimension :: Orientation -> Lens' DisplayRegion Int
