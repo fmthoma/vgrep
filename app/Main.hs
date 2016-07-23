@@ -8,7 +8,7 @@ import           Control.Lens.Compat
 import           Control.Monad.Reader
 import           Data.Maybe
 import           Data.Monoid
-import           Data.Ratio
+import           Data.Ratio                         ((%))
 import           Data.Sequence                      (Seq)
 import qualified Data.Sequence                      as S
 import           Data.Text                          (Text)
@@ -39,8 +39,8 @@ import           Vgrep.Parser
 import           Vgrep.System.Grep
 import           Vgrep.Text
 import           Vgrep.Type
-import qualified Vgrep.Widget                 as Widget
-import           Vgrep.Widget.HorizontalSplit
+import qualified Vgrep.Widget         as Widget
+import           Vgrep.Widget.Layout
 import           Vgrep.Widget.Pager
 import           Vgrep.Widget.Results
 
@@ -89,8 +89,8 @@ main = do
         where defaultConfigFile = $(runIO (readFile "config.yaml.example") >>= stringE)
 
 
-type MainWidget  = HSplitWidget Results Pager
-type WidgetState = HSplit Results Pager
+type MainWidget  = LayoutWidget Results Pager
+type WidgetState = Layout Results Pager
 
 data AppState = AppState { _widgetState :: WidgetState
                          , _inputLines  :: Seq Text }
@@ -193,8 +193,8 @@ handleKeyEvent chord environment state =
 executeCommand :: MonadIO m => Command -> AppState -> Next (VgrepT AppState m Redraw)
 executeCommand = \case
     Unset              -> skip
-    DisplayPagerOnly   -> continue (zoom widgetState rightOnly)
-    DisplayResultsOnly -> continue (zoom widgetState leftOnly)
+    DisplayPagerOnly   -> continue (zoom widgetState secondaryOnly)
+    DisplayResultsOnly -> continue (zoom widgetState primaryOnly)
     SplitFocusPager    -> continue splitViewPager
     SplitFocusResults  -> continue splitViewResults
     PagerUp            -> continue (zoom pager (scroll (-1)))
@@ -220,8 +220,16 @@ executeCommand = \case
     halt = const (Interrupt Halt)
 
 splitViewPager, splitViewResults :: Monad m => VgrepT AppState m Redraw
-splitViewPager   = zoom widgetState (splitView FocusRight (1 % 3))
-splitViewResults = zoom widgetState (splitView FocusLeft  (2 % 3))
+splitViewPager   = zoom widgetState $ do
+    void splitView
+    assign focus FocusSecondary
+    assign splitRatio (Dynamic(2%3))
+    pure Redraw
+splitViewResults = zoom widgetState $ do
+    void splitView
+    assign focus FocusPrimary
+    assign splitRatio (Dynamic(2%3))
+    pure Redraw
 
 loadSelectedFileToPager :: MonadIO m => VgrepT AppState m Redraw
 loadSelectedFileToPager = do
@@ -277,7 +285,7 @@ inputLines :: Lens' AppState (Seq Text)
 inputLines = lens _inputLines (\s l -> s { _inputLines = l })
 
 results :: Lens' AppState Results
-results = widgetState . leftWidget
+results = widgetState . primary
 
 pager :: Lens' AppState Pager
-pager = widgetState . rightWidget
+pager = widgetState . secondary
