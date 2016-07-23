@@ -154,9 +154,11 @@ handleVty
     -> AppState
     -> Next (VgrepT AppState m Redraw)
 handleVty event = do
-    localKeyBindings <- view (widgetState . focusedWidget) >>= \case
-        Left  _ -> pure resultsKeyBindings
-        Right _ -> pure pagerKeyBindings
+    localKeyBindings <- magnify widgetState $ view focusedWidget >>= \case
+        Left _ -> magnify primary $ view focusedWidget >>= \case
+            Left _  -> pure resultsKeyBindings
+            Right _ -> pure pagerKeyBindings
+        Right _ -> pure edLineKeyBindings
     (pure . localKeyBindings <> delegateToWidget <> globalEventBindings) event
 
 delegateToWidget
@@ -168,9 +170,18 @@ delegateToWidget event = fmap (zoom widgetState)
                        . Widget.handle mainWidget event
                        . view widgetState
 
+edLineKeyBindings :: MonadIO m => Vty.Event -> Next (VgrepT AppState m Redraw)
+edLineKeyBindings = dispatchMap $ fromList
+    [ (EvKey KEsc [], abortEdLine) ]
+
+abortEdLine :: Monad m => VgrepT AppState m Redraw
+abortEdLine = zoom widgetState $ do
+  assign focus FocusPrimary
+  zoom secondary clear
+
 resultsKeyBindings :: MonadIO m => Vty.Event -> Next (VgrepT AppState m Redraw)
 resultsKeyBindings = dispatchMap $ fromList
-    [ (EvKey KEnter      [], loadSelectedFileToPager) ]
+    [ (EvKey KEnter [], loadSelectedFileToPager) ]
 
 pagerKeyBindings :: MonadIO m => Vty.Event -> Next (VgrepT AppState m Redraw)
 pagerKeyBindings = dispatchMap $ fromList
@@ -187,6 +198,9 @@ globalEventBindings = \case
         pure Redraw
     EvKey (KChar 'q') [] -> const (Interrupt Halt)
     EvKey (KChar 'e') [] -> invokeEditor
+    EvKey (KChar ':') [] -> const . Continue $ do
+        zoom widgetState (assign focus FocusSecondary)
+        pure Redraw
     _otherwise           -> const Skip
 
 
