@@ -22,10 +22,14 @@ module Vgrep.Widget.Layout (
     , focusedWidget
     , splitRatio
     , focus
+
+    -- ** Re-exports
+    , (%)
     ) where
 
 import Control.Lens
 import Data.Monoid
+import Data.Ratio         ((%))
 import Graphics.Vty       ((<|>))
 import Graphics.Vty.Input
 

@@ -8,7 +8,6 @@ import           Control.Lens
 import           Control.Monad.Reader
 import           Data.Maybe
 import           Data.Monoid
-import           Data.Ratio                         ((%))
 import           Data.Sequence                      (Seq)
 import qualified Data.Sequence                      as S
 import           Data.Text.Lazy                     (Text)

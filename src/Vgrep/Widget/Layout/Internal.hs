@@ -15,13 +15,9 @@ module Vgrep.Widget.Layout.Internal (
 
     -- ** Additional lenses
     , focusedWidget
-
-    -- ** Re-exports
-    , (%)
     ) where
 
 import Control.Lens
-import Data.Ratio   ((%))
 
 -- $setup
 -- >>> :set -fno-warn-missing-fields
