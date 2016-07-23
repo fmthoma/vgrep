@@ -30,7 +30,7 @@ module Vgrep.Widget.Layout (
 
 import Control.Lens
 import Data.Ratio   ((%))
-import Graphics.Vty ((<|>))
+import Graphics.Vty ((<|>), (<->))
 
 import Vgrep.Event
 import Vgrep.Type
@@ -86,7 +86,9 @@ drawLayout primaryWidget secondaryWidget = use focus >>= \case
     _splitView     -> do
         primaryImage   <- runInPrimaryWidget   (draw primaryWidget)
         secondaryImage <- runInSecondaryWidget (draw secondaryWidget)
-        pure (primaryImage <|> secondaryImage)
+        use orientation >>= \case
+            Horizontal -> pure (primaryImage <|> secondaryImage)
+            Vertical   -> pure (primaryImage <-> secondaryImage)
 
 getCursor :: Widget s -> Widget t -> Layout s t -> Cursor
 getCursor primaryWidget secondaryWidget = view focus >>= \case
