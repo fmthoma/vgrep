@@ -15,7 +15,7 @@ module Vgrep.Widget.Layout (
 
     , primary
     , secondary
-    , currentWidget
+    , focusedWidget
     , splitRatio
     , focus
     ) where
@@ -110,7 +110,7 @@ handleEvents
     -> Event
     -> Layout s t
     -> Next (VgrepT (Layout s t) m Redraw)
-handleEvents primaryWidget secondaryWidget e s = case view currentWidget s of
+handleEvents primaryWidget secondaryWidget e s = case view focusedWidget s of
     Left  ls -> hSplitKeyBindingsLeft e
              <> fmap (zoom primary) (handle primaryWidget   e ls)
     Right rs -> hSplitKeyBindingsRight e

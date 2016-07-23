@@ -152,7 +152,7 @@ handleVty
     -> AppState
     -> Next (VgrepT AppState m Redraw)
 handleVty event = do
-    localKeyBindings <- view (widgetState . currentWidget) >>= \case
+    localKeyBindings <- view (widgetState . focusedWidget) >>= \case
         Left  _ -> pure resultsKeyBindings
         Right _ -> pure pagerKeyBindings
     (pure . localKeyBindings <> delegateToWidget <> globalEventBindings) event

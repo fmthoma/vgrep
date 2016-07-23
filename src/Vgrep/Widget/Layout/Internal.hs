@@ -29,16 +29,16 @@ makeLenses ''Layout
 
 -- | The currently focused child widget
 --
--- >>> view currentWidget $ Layout { _primary = "foo", _focus = PrimaryOnly }
+-- >>> view focusedWidget $ Layout { _primary = "foo", _focus = PrimaryOnly }
 -- Left "foo"
 --
--- >>> view currentWidget $ Layout { _primary = "foo", _focus = FocusPrimary }
+-- >>> view focusedWidget $ Layout { _primary = "foo", _focus = FocusPrimary }
 -- Left "foo"
 --
--- >>> view currentWidget $ Layout { _secondary = "bar", _focus = FocusSecondary }
+-- >>> view focusedWidget $ Layout { _secondary = "bar", _focus = FocusSecondary }
 -- Right "bar"
-currentWidget :: Getter (Layout s t) (Either s t)
-currentWidget = to getCurrentWidget
+focusedWidget :: Getter (Layout s t) (Either s t)
+focusedWidget = to getCurrentWidget
   where
     getCurrentWidget state = case view focus state of
         PrimaryOnly    -> Left  (view primary state)
