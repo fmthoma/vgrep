@@ -14,9 +14,10 @@ module Vgrep.Widget.EdLine (
 
 import           Control.Lens            hiding (pre)
 import           Control.Monad.State
-import           Data.Monoid
 import           Data.Text               (Text)
 import qualified Data.Text               as Text
+import           Data.Text.Zipper        (TextZipper)
+import qualified Data.Text.Zipper        as Zipper
 import           Graphics.Vty.Attributes
 import           Graphics.Vty.Image
 import           Vgrep.Type
@@ -24,20 +25,16 @@ import           Vgrep.Widget.Type
 
 type EdLineWidget = Widget EdLine
 
-data EdLine = EdLine
-    { _pre  :: Text
-    , _post :: Text }
+newtype EdLine = EdLine { _zipper :: TextZipper Text }
 
 makeLenses ''EdLine
 
 cursorPos :: Getter EdLine Int
-cursorPos = pre . to Text.length
+cursorPos = zipper . to Zipper.cursorPosition . _2
 
 command :: Getter EdLine Text
-command = to $ do
-    prefix <- view pre
-    postfix <- view post
-    pure (prefix <> postfix)
+command = zipper . to Zipper.getText . to head
+-- We have to maintain the invariant that the TextZipper has exactly one line!
 
 edLineWidget :: EdLineWidget
 edLineWidget = Widget
@@ -46,23 +43,19 @@ edLineWidget = Widget
     , cursor     = getCursor }
 
 edLine :: EdLine
-edLine = EdLine Text.empty Text.empty
+edLine = EdLine $ Zipper.textZipper [Text.empty] (Just 1)
 
 clear :: Monad m => VgrepT EdLine m Redraw
-clear = put edLine >> pure Redraw
+clear = put edLine >> pure Redraw >> pure Redraw
 
 insert :: Monad m => Char -> VgrepT EdLine m Redraw
-insert chr = modifying pre (`Text.snoc` chr) >> pure Redraw
+insert chr = modifying zipper (Zipper.insertChar chr) >> pure Redraw
 
 delete :: Monad m => VgrepT EdLine m Redraw
-delete = use (post . to Text.length) >>= \case
-    0 -> pure Unchanged
-    _ -> modifying post Text.tail >> pure Redraw
+delete = modifying zipper Zipper.deleteChar >> pure Redraw
 
 backspace :: Monad m => VgrepT EdLine m Redraw
-backspace = use cursorPos >>= \case
-    0 -> pure Unchanged
-    _ -> modifying pre Text.init >> pure Redraw
+backspace = modifying zipper Zipper.deletePrevChar >> pure Redraw
 
 drawWidget :: Monad m => VgrepT EdLine m Image
 drawWidget = do
