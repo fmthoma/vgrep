@@ -204,7 +204,7 @@ loadSelectedFileToPager = do
         zoom widgetState $ do
             void splitView
             assign focus FocusSecondary
-            assign splitRatio (Dynamic(2%3))
+            assign splitRatio (Dynamic (2 % 3))
         pure Redraw
 
 moveToSelectedLineNumber :: Monad m => VgrepT AppState m ()
