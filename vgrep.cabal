@@ -53,6 +53,7 @@ library
                      , process
                      , stm
                      , text
+                     , text-zipper
                      , transformers
                      , unix
                      , vty >= 5.4.0
