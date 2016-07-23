@@ -8,7 +8,7 @@ import           Control.Lens
 import           Control.Monad.Reader
 import           Data.Maybe
 import           Data.Monoid
-import           Data.Ratio
+import           Data.Ratio                         ((%))
 import           Data.Sequence                      (Seq)
 import qualified Data.Sequence                      as S
 import           Data.Text.Lazy                     (Text)
@@ -29,16 +29,16 @@ import           System.IO
 import           System.Posix.IO
 import           System.Process
 
-import           Vgrep.App                    as App
+import           Vgrep.App            as App
 import           Vgrep.Environment
 import           Vgrep.Event
 import           Vgrep.Parser
 import           Vgrep.System.Grep
 import           Vgrep.Text
 import           Vgrep.Type
-import           Vgrep.Widget                 hiding (handle)
-import qualified Vgrep.Widget                 as Widget
-import           Vgrep.Widget.HorizontalSplit
+import           Vgrep.Widget         hiding (handle)
+import qualified Vgrep.Widget         as Widget
+import           Vgrep.Widget.Layout
 import           Vgrep.Widget.Pager
 import           Vgrep.Widget.Results
 
@@ -84,8 +84,8 @@ main = do
         where helpText = $(fmap (LitE . StringL) (runIO (readFile "help.txt")))
 
 
-type MainWidget  = HSplitWidget Results Pager
-type WidgetState = HSplit Results Pager
+type MainWidget  = LayoutWidget Results Pager
+type WidgetState = Layout Results Pager
 
 data AppState = AppState { _widgetState :: WidgetState
                          , _inputLines  :: Seq Text }
@@ -201,7 +201,11 @@ loadSelectedFileToPager = do
         highlightLineNumbers <- use (results . currentFileResultLineNumbers)
         zoom pager (replaceBufferContents displayContent highlightLineNumbers)
         moveToSelectedLineNumber
-        zoom widgetState (splitView FocusRight (1 % 3))
+        zoom widgetState $ do
+            void splitView
+            assign focus FocusSecondary
+            assign splitRatio (Dynamic(2%3))
+            pure Redraw
 
 moveToSelectedLineNumber :: Monad m => VgrepT AppState m ()
 moveToSelectedLineNumber =
@@ -241,7 +245,7 @@ inputLines :: Lens' AppState (Seq Text)
 inputLines = lens _inputLines (\s l -> s { _inputLines = l })
 
 results :: Lens' AppState Results
-results = widgetState . leftWidget
+results = widgetState . primary
 
 pager :: Lens' AppState Pager
-pager = widgetState . rightWidget
+pager = widgetState . secondary

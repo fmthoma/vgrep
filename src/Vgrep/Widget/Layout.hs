@@ -3,21 +3,26 @@ module Vgrep.Widget.Layout (
       hSplitWidget
     , LayoutWidget
 
-    , Layout
+    , Layout ()
+    , Focus (..)
+    , Ratio (..)
 
 
     , primaryOnly
     , secondaryOnly
     , splitView
     , switchFocus
-    
+
     , primary
     , secondary
+    , currentWidget
+    , splitRatio
+    , focus
     ) where
 
 import Control.Lens
 import Data.Monoid
-import Data.Ratio
+import Data.Ratio         ((%))
 import Graphics.Vty       ((<|>))
 import Graphics.Vty.Input
 
@@ -146,17 +151,16 @@ splitView = use focus >>= \case
 
 switchFocus :: Monad m => VgrepT (Layout s t) m Redraw
 switchFocus = use focus >>= \case
-    FocusPrimary -> do
+    FocusPrimary   -> do
         assign focus FocusSecondary
-        modifying splitRatio $ \case
-            Dynamic r -> Dynamic (1 - r)
-            fixed     -> fixed
+        flipDynamicRatio
         pure Redraw
     FocusSecondary -> do
         assign focus FocusPrimary
-        modifying splitRatio $ \case
-            Dynamic r -> Dynamic (1 - r)
-            fixed     -> fixed
+        flipDynamicRatio
         pure Redraw
     _otherwise -> pure Unchanged
-
+  where
+    flipDynamicRatio = modifying splitRatio $ \case
+        Dynamic r  -> Dynamic (1-r)
+        fixedRatio -> fixedRatio
