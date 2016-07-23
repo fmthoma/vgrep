@@ -3,6 +3,8 @@ module Vgrep.Widget.Layout.Internal where
 
 import Control.Lens
 
+-- $setup
+-- >>> :set -fno-warn-missing-fields
 
 data Ratio
     = Dynamic Rational
@@ -27,13 +29,13 @@ makeLenses ''Layout
 
 -- | The currently focused child widget
 --
--- >>> view currentWidget $ Layout { _primaryWidget = "foo", _layout = PrimaryOnly }
+-- >>> view currentWidget $ Layout { _primary = "foo", _focus = PrimaryOnly }
 -- Left "foo"
 --
--- >>> view currentWidget $ Layout { _primaryWidget = "foo", _layout = FocusPrimary }
+-- >>> view currentWidget $ Layout { _primary = "foo", _focus = FocusPrimary }
 -- Left "foo"
 --
--- >>> view currentWidget $ Layout { _secondaryWidget = "bar", _layout = FocusSecondary }
+-- >>> view currentWidget $ Layout { _secondary = "bar", _focus = FocusSecondary }
 -- Right "bar"
 currentWidget :: Getter (Layout s t) (Either s t)
 currentWidget = to getCurrentWidget

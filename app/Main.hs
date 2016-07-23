@@ -205,7 +205,7 @@ loadSelectedFileToPager = do
             void splitView
             assign focus FocusSecondary
             assign splitRatio (Dynamic(2%3))
-            pure Redraw
+        pure Redraw
 
 moveToSelectedLineNumber :: Monad m => VgrepT AppState m ()
 moveToSelectedLineNumber =
