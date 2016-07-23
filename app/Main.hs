@@ -107,9 +107,9 @@ app = App
             { _widgetState = Widget.initialize mainWidget
             , _inputLines  = S.empty }
     renderMainWidget :: Monad m => VgrepT AppState m Vty.Picture
-    renderMainWidget = do
-        mainImage <- zoom widgetState (draw mainWidget)
-        mainCursor <- zoom widgetState (get >>= pure . cursor mainWidget)
+    renderMainWidget = zoom widgetState $ do
+        mainImage <- draw mainWidget
+        mainCursor <- cursor mainWidget
         pure Picture
             { picCursor = mainCursor
             , picLayers = [mainImage]
