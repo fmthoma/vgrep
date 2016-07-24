@@ -1,5 +1,5 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell  #-}
 module Vgrep.Widget.EdLine (
       EdLineWidget
     , EdLine ()
@@ -13,7 +13,7 @@ module Vgrep.Widget.EdLine (
     , putStatus
     , enterSearch
     , enterCmd
-    
+
     , insert
     , delete
     , backspace
@@ -33,7 +33,7 @@ import           Vgrep.Widget.Type
 type EdLineWidget = Widget EdLine
 
 data EdLine = EdLine
-    { _mode :: Mode
+    { _mode   :: Mode
     , _zipper :: TextZipper Text }
 
 data Mode = Cmd | Search | Status

@@ -31,7 +31,7 @@ module Vgrep.Widget.Layout (
 import Control.Lens
 import Data.Monoid
 import Data.Ratio         ((%))
-import Graphics.Vty       ((<|>), (<->))
+import Graphics.Vty       ((<->), (<|>))
 import Graphics.Vty.Input
 
 import Vgrep.Event
