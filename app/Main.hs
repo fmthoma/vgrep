@@ -174,10 +174,6 @@ edLineKeyBindings :: MonadIO m => Vty.Event -> Next (VgrepT AppState m Redraw)
 edLineKeyBindings = dispatchMap $ fromList
     [ (EvKey KEsc [], abortEdLine) ]
 
-abortEdLine :: Monad m => VgrepT AppState m Redraw
-abortEdLine = zoom widgetState $ do
-  assign focus FocusPrimary
-  zoom secondary clear
 
 resultsKeyBindings :: MonadIO m => Vty.Event -> Next (VgrepT AppState m Redraw)
 resultsKeyBindings = dispatchMap $ fromList
@@ -198,10 +194,19 @@ globalEventBindings = \case
         pure Redraw
     EvKey (KChar 'q') [] -> const (Interrupt Halt)
     EvKey (KChar 'e') [] -> invokeEditor
-    EvKey (KChar ':') [] -> const . Continue $ do
-        zoom widgetState (assign focus FocusSecondary)
-        pure Redraw
+    EvKey (KChar ':') [] -> const (Continue enterEdLineCmd)
     _otherwise           -> const Skip
+
+
+enterEdLineCmd :: Monad m => VgrepT AppState m Redraw
+enterEdLineCmd = zoom widgetState $ do
+    assign focus FocusSecondary
+    zoom secondary enterCmd
+
+abortEdLine :: Monad m => VgrepT AppState m Redraw
+abortEdLine = zoom widgetState $ do
+    assign focus FocusPrimary
+    zoom secondary reset
 
 
 loadSelectedFileToPager :: MonadIO m => VgrepT AppState m Redraw
