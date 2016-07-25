@@ -27,6 +27,10 @@ instance Monad m => Applicative (CmdParserT m) where
     pure a = CmdParserT ($ a)
     (<*>) = ap
 
+instance Monad m => Alternative (CmdParserT m) where
+    empty = CmdParserT (const (pure (Fail "FIXME")))
+    CmdParserT cont1 <|> CmdParserT cont2 = CmdParserT (\next -> liftA2 (<|>) (cont1 next) (cont2 next))
+
 instance Monad m => Monad (CmdParserT m) where
     CmdParserT m >>= f = CmdParserT (\k -> m (\a -> let CmdParserT m' = f a in m' k))
     fail err = CmdParserT (const (pure (fail err)))
@@ -45,15 +49,15 @@ instance Monad m => Applicative (NextT m) where
     pure = Pure
     (<*>) = ap
 
-instance (Monad m, Alternative m) => Alternative (NextT m) where
+instance Monad m => Alternative (NextT m) where
     empty = Fail "No alternative" --FIXME
 
     Fail err1 <|> Fail err2 = Fail (Text.unlines [err1, err2])
     Fail _    <|> other     = other
     other     <|> Fail _    = other
 
-    Get c1 f1 <|> Get c2 f2 = Get (liftA2 mappend c1 c2) (\t -> f1 t <|> f2 t)
-    Get c  f  <|> Pure a    = Get c (\t -> f t <|> pure (Pure a))
+    Get c1 f1 <|> Get c2 f2 = Get (c1 <> c2) (\t -> liftA2 (<|>) (f1 t) (f2 t))
+    Get c  f  <|> Pure a    = Get c (\t -> liftA2 (<|>) (f t) (pure (Pure a)))
 
     Pure a    <|> _         = Pure a
 
