@@ -36,7 +36,7 @@ instance MonadTrans CmdParserT where
 
 
 data NextT m a
-    = Get (m [Text]) (Text -> m (NextT m a))
+    = Get [Text] (Text -> m (NextT m a))
     | Pure a
     | Fail Text
     deriving (Functor)
@@ -65,7 +65,7 @@ instance Monad m => Monad (NextT m) where
     fail = Fail . Text.pack
 
 instance MonadTrans NextT where
-    lift ma = Get (pure []) (\_ -> fmap pure ma)
+    lift ma = Get [] (\_ -> fmap pure ma)
 
 
 runNextT :: Monad m => NextT m a -> [Text] -> m (Either Text a)
@@ -79,8 +79,8 @@ runNextT parser tokens = case parser of
 compNextT :: Monad m => NextT m a -> [Text] -> m [Text]
 compNextT parser tokens = case parser of
     Get comp next -> case tokens of
-        []              -> comp
-        [lastToken]     -> fmap (filter (lastToken `Text.isPrefixOf`)) comp
+        []              -> pure comp
+        [lastToken]     -> pure (filter (lastToken `Text.isPrefixOf`) comp)
         token : tokens' -> next token >>= \next' -> compNextT next' tokens'
     _otherwise -> pure []
 
@@ -97,17 +97,17 @@ complete (CmdParserT next) text = do
 
 
 anytoken :: Applicative m => CmdParserT m Text
-anytoken = CmdParserT (pure . Get (pure []))
+anytoken = CmdParserT (pure . Get [])
 
 word :: Monad m => Text -> CmdParserT m Text
 word w = do
-    w' <- CmdParserT (pure . Get (pure [w]))
+    w' <- CmdParserT (pure . Get [w])
     if w == w' then pure w else fail "FIXME"
 
 select :: Monad m => m [Text] -> CmdParserT m Text
 select choices = do
     items <- lift choices
-    token <- CmdParserT (pure . Get (pure items))
+    token <- CmdParserT (pure . Get items)
     if token `elem` items then pure token else fail "FIXME"
 
 -- file :: MonadIO m => CmdParserT m Text
