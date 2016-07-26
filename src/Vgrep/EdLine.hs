@@ -52,7 +52,7 @@ instance Monad m => Applicative (NextT m) where
 instance Monad m => Alternative (NextT m) where
     empty = Fail "No alternative" --FIXME
 
-    Fail err1 <|> Fail err2 = Fail (Text.unlines [err1, err2])
+    Fail err  <|> Fail _    = Fail err
     Fail _    <|> other     = other
     other     <|> Fail _    = other
 
