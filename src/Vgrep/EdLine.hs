@@ -77,8 +77,17 @@ runNextT parser tokens = case parser of
     Fail e -> pure (Left e)
     Pure a -> pure (Right a)
     Get _ next -> case tokens of
-        []              -> pure (Left "FIXME")
-        token : tokens' -> next token >>= \next' -> runNextT next' tokens'
+        []              -> emptyInput
+        token : tokens' -> next token >>= \case
+            Pure _     | not (null tokens') -> unexpectedTokens tokens'
+            Get comp _ | null tokens'       -> unexpectedEndOfInput comp
+            next'                           -> runNextT next' tokens'
+  where
+    unexpectedEndOfInput = pure . Left . \case
+        []   -> "Premature end of input"
+        comp -> "Premature end of input. Expected: " <> Text.intercalate " | " comp
+    unexpectedTokens tokens' = pure (Left ("Unexpected \"" <> Text.unwords tokens' <> "\""))
+    emptyInput = pure (Left "Empty input")
 
 compNextT :: Monad m => NextT m a -> [Text] -> m [Text]
 compNextT parser tokens = case parser of
