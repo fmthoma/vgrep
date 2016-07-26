@@ -6,10 +6,11 @@ module Vgrep.EdLine (
     , parse
     , complete
 
+    , word
+    , select
     , anytoken
     , shortOption
     , longOption
-    , word
     ) where
 
 import           Control.Applicative
@@ -130,7 +131,7 @@ arg :: Applicative m => CmdParserT m Text
 arg = anytoken
 
 shortOption :: Monad m => Char -> CmdParserT m Text
-shortOption opt = void (select (pure [ "-" <> Text.singleton opt ])) >> arg
+shortOption opt = word ("-" <> Text.singleton opt) >> arg
 
 longOption :: Monad m => Text -> CmdParserT m Text
-longOption opt = void (select (pure [ "--" <> opt ])) >> arg
+longOption opt = word ("--" <> opt) >> arg
