@@ -29,12 +29,12 @@ instance Monad m => Applicative (CmdParserT m) where
     (<*>) = ap
 
 instance Monad m => Alternative (CmdParserT m) where
-    empty = CmdParserT (const (pure (Fail "FIXME")))
+    empty = CmdParserT (const (pure empty))
     CmdParserT cont1 <|> CmdParserT cont2 = CmdParserT (\next -> liftA2 (<|>) (cont1 next) (cont2 next))
 
 instance Monad m => Monad (CmdParserT m) where
     CmdParserT m >>= f = CmdParserT (\k -> m (\a -> let CmdParserT m' = f a in m' k))
-    fail err = CmdParserT (const (pure (fail err)))
+    fail = pfail . Text.pack
 
 instance MonadTrans CmdParserT where
     lift ma = CmdParserT (ma >>=)
@@ -51,7 +51,7 @@ instance Monad m => Applicative (NextT m) where
     (<*>) = ap
 
 instance Monad m => Alternative (NextT m) where
-    empty = Fail "No alternative" --FIXME
+    empty = Fail "No alternative"
 
     Fail err  <|> Fail _    = Fail err
     Fail _    <|> other     = other
@@ -71,6 +71,9 @@ instance Monad m => Monad (NextT m) where
 
 instance MonadTrans NextT where
     lift ma = Get [] (\_ -> fmap pure ma)
+
+pfail :: Monad m => Text -> CmdParserT m a
+pfail err = CmdParserT (const (pure (Fail err)))
 
 
 runNextT :: Monad m => NextT m a -> [Text] -> m (Either Text a)
@@ -116,13 +119,17 @@ anytoken = CmdParserT (pure . Get [])
 word :: Monad m => Text -> CmdParserT m Text
 word w = do
     w' <- CmdParserT (pure . Get [w])
-    if w == w' then pure w else fail "FIXME"
+    if w == w'
+        then pure w
+        else pfail ("Unexpected " <> w' <> ", expected: " <> w)
 
 select :: Monad m => m [Text] -> CmdParserT m Text
 select choices = do
     items <- lift choices
     token <- CmdParserT (pure . Get items)
-    if token `elem` items then pure token else fail "FIXME"
+    if token `elem` items
+        then pure token
+        else pfail ("Unexpected " <> token <> ", expected: " <> Text.intercalate " | " items)
 
 -- file :: MonadIO m => CmdParserT m Text
 -- file = select _
