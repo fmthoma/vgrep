@@ -22,6 +22,7 @@ library
                      , Control.Monad.State.Extended
                      , Pipes.Concurrent.PQueue
                      , Vgrep.App
+                     , Vgrep.EdLine.Command.Parser
                      , Vgrep.Environment
                      , Vgrep.Environment.Config
                      , Vgrep.Event
