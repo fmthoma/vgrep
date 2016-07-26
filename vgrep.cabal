@@ -47,6 +47,7 @@ library
                      , Vgrep.App
                      , Vgrep.App.Internal
                      , Vgrep.Command
+                     , Vgrep.EdLine.Command.Parser
                      , Vgrep.Environment
                      , Vgrep.Environment.Config
                      , Vgrep.Environment.Config.Monoid

@@ -1,7 +1,7 @@
-{-# LANGUAGE DeriveFunctor              #-}
-{-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE Rank2Types                 #-}
-module Vgrep.EdLine (
+{-# LANGUAGE DeriveFunctor     #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE Rank2Types        #-}
+module Vgrep.EdLine.Command.Parser (
       CmdParserT ()
     , parse
     , complete
