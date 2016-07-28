@@ -59,6 +59,7 @@ library
                      , Vgrep.KeybindingMap
                      , Vgrep.Parser
                      , Vgrep.Results
+                     , Vgrep.Search
                      , Vgrep.System.Grep
                      , Vgrep.Text
                      , Vgrep.Type
