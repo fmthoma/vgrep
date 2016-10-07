@@ -104,15 +104,17 @@ appEventLoop app evSource evSink = startEventLoop >>= suspendAndResume
         runEffect ((fromInput evSource >> pure Halt) >-> eventLoop vty)
 
     eventLoop :: Vty -> Consumer e (VgrepT s IO) Interrupt
-    eventLoop vty = do
-        event <- await
-        currentState <- get
-        case handleAppEvent event currentState of
-            Skip            -> eventLoop vty
-            Continue action -> lift action >>= \case
-                Unchanged   -> eventLoop vty
-                Redraw      -> lift (refresh vty) >> eventLoop vty
-            Interrupt int   -> pure int
+    eventLoop vty = go
+      where
+        go = do
+            event <- await
+            currentState <- get
+            case handleAppEvent event currentState of
+                Skip            -> go
+                Continue action -> lift action >>= \case
+                    Unchanged   -> go
+                    Redraw      -> lift (refresh vty) >> go
+                Interrupt int   -> pure int
 
     suspendAndResume :: Interrupt -> VgrepT s IO ()
     suspendAndResume = \case
