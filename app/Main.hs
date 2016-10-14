@@ -164,7 +164,7 @@ resultsKeyBindings :: MonadIO m => Vty.Event -> Next (VgrepT AppState m Redraw)
 resultsKeyBindings = dispatchMap $ fromList
     [ (EvKey KEnter      [], loadSelectedFileToPager) ]
 
-pagerKeyBindings :: MonadIO m => Vty.Event -> Next (VgrepT AppState m Redraw)
+pagerKeyBindings :: Vty.Event -> Next (VgrepT AppState m Redraw)
 pagerKeyBindings = dispatchMap $ fromList
     []
 
@@ -205,7 +205,7 @@ moveToSelectedLineNumber =
 whenJust :: (Monoid r, Monad m) => Maybe a -> (a -> m r) -> m r
 whenJust item action = maybe (pure mempty) action item
 
-invokeEditor :: MonadIO m => AppState -> Next (VgrepT AppState m Redraw)
+invokeEditor :: AppState -> Next (VgrepT AppState m Redraw)
 invokeEditor state = case views (results . currentFileName) (fmap T.unpack) state of
     Just file -> Interrupt $ Suspend $ \environment -> do
         let configuredEditor = view (config . editor) environment
