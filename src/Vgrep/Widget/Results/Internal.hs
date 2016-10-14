@@ -52,11 +52,11 @@ data Results
     -- ^ The results list is empty
 
     | Results
-        (Seq FileLineReference) -- above screen (reversed)
-        (Seq FileLineReference) -- top of screen (reversed)
-        FileLineReference       -- currently selected
-        (Seq FileLineReference) -- bottom of screen
-        (Seq FileLineReference) -- below screen
+        !(Seq FileLineReference) -- above screen (reversed)
+        !(Seq FileLineReference) -- top of screen (reversed)
+        !FileLineReference       -- currently selected
+        !(Seq FileLineReference) -- bottom of screen
+        !(Seq FileLineReference) -- below screen
     -- ^ The structure of the Results buffer is a double Zipper:
     --
     -- * lines above the current screen

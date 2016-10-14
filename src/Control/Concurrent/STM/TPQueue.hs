@@ -28,7 +28,7 @@ newTPQueueIO :: Ord k => IO (TPQueue k v)
 newTPQueueIO = mkTPQueue (newTVarIO PQueue.empty)
 
 writeTPQueue :: Ord k => TPQueue k v -> k -> v -> STM ()
-writeTPQueue (TPQueue h) k v = modifyTVar h (PQueue.add k v)
+writeTPQueue (TPQueue h) k v = modifyTVar' h (PQueue.add k v)
 
 readTPQueue :: Ord k => TPQueue k v -> STM v
 readTPQueue (TPQueue h) = do
