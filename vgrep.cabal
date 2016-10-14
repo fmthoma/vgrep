@@ -1,7 +1,16 @@
 name:                vgrep
 version:             0.1.4.0
 synopsis:            A pager for grep
-description:         Please see README.md
+description:         
+  @vgrep@ is a pager for navigating through @grep@ output.
+  .
+  Usage:
+  .
+  > grep -rn foo | vgrep
+  > vgrep foo /some/path
+  > vgrep foo /some/path | vgrep bar
+  .
+  <<https://raw.githubusercontent.com/fmthoma/vgrep/master/vgrep.png>>
 homepage:            http://github.com/fmthoma/vgrep#readme
 license:             BSD3
 license-file:        LICENSE
