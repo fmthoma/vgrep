@@ -2,10 +2,11 @@
 {-# LANGUAGE LambdaCase       #-}
 module Test.Vgrep.Widget.Results (test) where
 
-import           Control.Lens            (Getter, to, view, views)
+import           Control.Lens            (Getter, _1, over, to, view, views)
 import           Data.Map.Strict         ((!))
 import qualified Data.Map.Strict         as Map
-import           Data.Sequence           (Seq)
+import           Data.Monoid             ((<>))
+import           Data.Sequence           (Seq, ViewR (..))
 import qualified Data.Sequence           as Seq
 import           Test.Case
 import           Test.QuickCheck
@@ -23,8 +24,7 @@ test = runTestCases "Results widget"
         }
     , TestInvariant
         { description = "Scrolling one page down and up keeps selected line"
-        , testData = arbitrary
-            `suchThat` lastLineOnScreen
+        , testData = fmap moveToLastLineOnScreen arbitrary
             `suchThat` \(results, env) -> linesBelowCurrent (> screenHeight env) results
         , testCase = run (pageDown >> pageUp)
         , invariant = selectedLine
@@ -81,10 +81,12 @@ linesBelowCurrent p = \case
 screenHeight :: Environment -> Int
 screenHeight = view (region . to regionHeight)
 
-lastLineOnScreen :: (Results, Environment) -> Bool
-lastLineOnScreen (results, _env) = case results of
-    EmptyResults       -> True
-    Results _ _ _ ds _ -> null ds
+moveToLastLineOnScreen :: (Results, Environment) -> (Results, Environment)
+moveToLastLineOnScreen = over _1 $ \case
+    EmptyResults          -> EmptyResults
+    Results as bs c ds es -> case Seq.viewr ds of
+        EmptyR   -> Results as bs c ds es
+        ds' :> d -> Results as (Seq.reverse ds' <> pure c <> bs) d Seq.empty es
 
 lastLine :: (Results, Environment) -> Bool
 lastLine (results, _env) = case results of
