@@ -39,22 +39,22 @@ library
                      , Vgrep.Widget.Results.Internal
                      , Vgrep.Widget.Type
   build-depends:       base >= 4.7 && < 5
-                     , async
-                     , attoparsec
-                     , containers
-                     , fingertree
-                     , lens
-                     , lifted-base
-                     , mmorph
-                     , mtl
-                     , pipes
-                     , pipes-concurrency
-                     , process
-                     , stm
-                     , text
-                     , transformers
-                     , unix
-                     , vty >= 5.4.0
+                     , async              >= 2.0.2
+                     , attoparsec         >= 0.12.1.6
+                     , containers         >= 0.5.6.2
+                     , fingertree         >= 0.1.1
+                     , lens               >= 4.13
+                     , lifted-base        >= 0.2.3.6
+                     , mmorph             >= 1.0.4
+                     , mtl                >= 2.2.1
+                     , pipes              >= 4.1.6
+                     , pipes-concurrency  >= 2.0.3
+                     , process            >= 1.2.3
+                     , stm                >= 2.4.4
+                     , text               >= 1.2.1.3
+                     , transformers       >= 0.4.2
+                     , unix               >= 2.7.1
+                     , vty                >= 5.4.0
   default-language:    Haskell2010
 
 executable vgrep
@@ -63,21 +63,21 @@ executable vgrep
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall
   default-extensions:  LambdaCase
                      , MultiWayIf
-  build-depends:       base
-                     , async
-                     , cabal-file-th
-                     , containers
-                     , directory
-                     , lens
-                     , mtl
-                     , pipes
-                     , pipes-concurrency
-                     , process
-                     , template-haskell
-                     , text
-                     , unix
+  build-depends:       base >= 4.8 && < 5
+                     , async              >= 2.0.2
+                     , cabal-file-th      >= 0.2.3
+                     , containers         >= 0.5.6.2
+                     , directory          >= 1.2.2
+                     , lens               >= 4.13
+                     , mtl                >= 2.2.1
+                     , pipes              >= 4.1.6
+                     , pipes-concurrency  >= 2.0.3
+                     , process            >= 1.2.3
+                     , template-haskell   >= 2.10
+                     , text               >= 1.2.1.3
+                     , unix               >= 2.7.1
                      , vgrep
-                     , vty >= 5.4.0
+                     , vty                >= 5.4.0
   default-language:    Haskell2010
 
 test-suite vgrep-test
