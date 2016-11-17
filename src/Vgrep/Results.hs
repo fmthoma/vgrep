@@ -4,7 +4,7 @@ module Vgrep.Results
     , FileLineReference (..)
     ) where
 
-import Data.Text.Lazy (Text)
+import Data.Text (Text)
 
 
 newtype File = File

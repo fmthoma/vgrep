@@ -8,9 +8,10 @@ module Vgrep.Parser (
     ) where
 
 import Control.Applicative
-import Data.Attoparsec.Text.Lazy
+import Data.Attoparsec.Text
 import Data.Maybe
-import Data.Text.Lazy
+import Data.Text            hiding (takeWhile)
+import Prelude              hiding (takeWhile)
 
 import Vgrep.Results
 
@@ -43,12 +44,12 @@ parseLine line = maybeResult (parse lineParser line)
 
 lineParser :: Parser FileLineReference
 lineParser = do
-    file       <- manyTill anyChar (char ':')
+    file       <- takeWhile (/= ':') <* char ':'
     lineNumber <- optional (decimal <* char ':')
-    result     <- takeLazyText
+    result     <- takeText
     pure FileLineReference
         { getFile = File
-            { getFileName = pack file }
+            { getFileName = file }
         , getLineReference = LineReference
             { getLineNumber = lineNumber
             , getLineText   = result } }

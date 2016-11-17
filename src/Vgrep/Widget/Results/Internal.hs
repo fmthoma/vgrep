@@ -40,7 +40,7 @@ import           Data.Sequence
     , (|>)
     )
 import qualified Data.Sequence       as S
-import           Data.Text.Lazy      (Text)
+import           Data.Text      (Text)
 import           Prelude             hiding (reverse)
 
 import Vgrep.Results

@@ -15,7 +15,7 @@ module Vgrep.Widget.Pager.Internal (
 import Control.Lens
 import Data.Sequence  (Seq)
 import Data.Set       (Set)
-import Data.Text.Lazy (Text)
+import Data.Text (Text)
 
 
 -- | Keeps track of the lines of text to display, the current scroll

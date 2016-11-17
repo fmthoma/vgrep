@@ -8,8 +8,8 @@ module Vgrep.Widget.Results.Testable
 import           Control.Monad
 import qualified Data.List       as List
 import qualified Data.Sequence   as Seq
-import           Data.Text.Lazy  (Text)
-import qualified Data.Text.Lazy  as Text
+import           Data.Text  (Text)
+import qualified Data.Text  as Text
 import           Test.QuickCheck
 
 import Vgrep.Widget.Results

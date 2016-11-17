@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Data.Text.Lazy.Testable ( module Data.Text.Lazy ) where
+module Data.Text.Testable ( module Data.Text ) where
 
-import Data.Text.Lazy
+import Data.Text
 import Test.Tasty.QuickCheck
 
 instance Arbitrary Text where
