@@ -17,13 +17,18 @@ vgrep data /some/path | vgrep default  # works with pipes, too
 ```
 
 ## Installation
-Installation via [`stack`][1] is recommended:
+Installation from Hackage via [`stack`][1] is recommended:
+```bash
+stack install vgrep
+```
+This will install `vgrep` to your `~/.local/bin` directory.
+
+To install from source:
 ```bash
 git clone https://github.com/fmthoma/vgrep.git
 cd vgrep
 stack setup
 stack install
 ```
-This will install `vgrep` to your `~/.local/bin` directory.
 
 [1]: https://github.com/commercialhaskell/stack/blob/master/doc/install_and_upgrade.md
