@@ -92,7 +92,7 @@ test-suite vgrep-test
   type:                exitcode-stdio-1.0
   hs-source-dirs:      test
   main-is:             Spec.hs
-  other-modules:       Data.Text.Lazy.Testable
+  other-modules:       Data.Text.Testable
                      , Test.Case
                      , Test.Vgrep.Widget
                      , Test.Vgrep.Widget.Pager

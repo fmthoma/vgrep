@@ -8,9 +8,10 @@ module Vgrep.Parser (
     ) where
 
 import Control.Applicative
-import Data.Attoparsec.Text.Lazy
+import Data.Attoparsec.Text
 import Data.Maybe
-import Data.Text.Lazy
+import Data.Text            hiding (takeWhile)
+import Prelude              hiding (takeWhile)
 
 import Vgrep.Results
 
@@ -39,16 +40,18 @@ parseGrepOutput = catMaybes . fmap parseLine
 -- >>> parseLine "foobar"
 -- Nothing
 parseLine :: Text -> Maybe FileLineReference
-parseLine line = maybeResult (parse lineParser line)
+parseLine line = case parseOnly lineParser line of
+    Left  _      -> Nothing
+    Right result -> Just result
 
 lineParser :: Parser FileLineReference
 lineParser = do
-    file       <- manyTill anyChar (char ':')
+    file       <- takeWhile (/= ':') <* char ':'
     lineNumber <- optional (decimal <* char ':')
-    result     <- takeLazyText
+    result     <- takeText
     pure FileLineReference
         { getFile = File
-            { getFileName = pack file }
+            { getFileName = file }
         , getLineReference = LineReference
             { getLineNumber = lineNumber
             , getLineText   = result } }

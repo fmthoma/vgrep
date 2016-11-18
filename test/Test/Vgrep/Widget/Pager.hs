@@ -4,8 +4,8 @@ module Test.Vgrep.Widget.Pager (test) where
 
 import           Control.Lens
 import qualified Data.Sequence           as S
-import           Data.Text.Lazy.Testable ()
-import qualified Data.Text.Lazy.Testable as T
+import           Data.Text.Testable ()
+import qualified Data.Text.Testable as T
 import           Test.Case
 import           Test.QuickCheck         as Q
 import           Test.QuickCheck.Monadic as Q
