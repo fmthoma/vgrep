@@ -19,6 +19,7 @@ vgrep data /some/path | vgrep default  # works with pipes, too
 ## Installation
 Installation from Hackage via [`stack`][1] is recommended:
 ```bash
+stack update
 stack install vgrep
 ```
 This will install `vgrep` to your `~/.local/bin` directory.
