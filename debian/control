@@ -1,7 +1,7 @@
-Source: haskell-vgrep
-Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Source: vgrep
+Maintainer: Franz Thoma <f.m.thoma@googlemail.com>
 Priority: extra
-Section: haskell
+Section: utils
 Build-Depends: debhelper (>= 9),
  haskell-devscripts (>= 0.8),
  cdbs,
@@ -107,9 +107,9 @@ Description: ${haskell:ShortDescription}${haskell:ShortBlurb}
  .
  ${haskell:Blurb}
 
-Package: haskell-vgrep-utils
+Package: vgrep
 Architecture: any
-Section: misc
+Section: utils
 Depends: ${haskell:Depends},
  ${misc:Depends},
 Recommends: ${haskell:Recommends},
