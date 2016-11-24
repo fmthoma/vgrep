@@ -19,7 +19,11 @@ maintainer:          franz.thoma@tngtech.com
 copyright:           2016 Franz Thoma
 category:            Web
 build-type:          Simple
--- extra-source-files:
+extra-source-files:  .stylish-haskell.yaml
+                   , .travis.yml
+                   , README.md
+                   , vgrep.png
+                   , stack.yaml
 cabal-version:       >=1.10
 
 library
