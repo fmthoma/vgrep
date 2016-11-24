@@ -1,0 +1,122 @@
+Source: haskell-vgrep
+Maintainer: Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>
+Priority: extra
+Section: haskell
+Build-Depends: debhelper (>= 9),
+ haskell-devscripts (>= 0.8),
+ cdbs,
+ ghc,
+ ghc-prof,
+ libghc-async-dev (>= 2.0.2),
+ libghc-async-prof (>= 2.0.2),
+ libghc-attoparsec-dev (>= 0.12.1.6),
+ libghc-attoparsec-prof (>= 0.12.1.6),
+ libghc-fingertree-dev (>= 0.1.1),
+ libghc-fingertree-prof (>= 0.1.1),
+ libghc-lens-dev (>= 4.13),
+ libghc-lens-prof (>= 4.13),
+ libghc-lifted-base-dev (>= 0.2.3.6),
+ libghc-lifted-base-prof (>= 0.2.3.6),
+ libghc-mmorph-dev (>= 1.0.4),
+ libghc-mmorph-prof (>= 1.0.4),
+ libghc-mtl-dev (>= 2.2.1),
+ libghc-mtl-prof (>= 2.2.1),
+ libghc-pipes-dev (>= 4.1.6),
+ libghc-pipes-prof (>= 4.1.6),
+ libghc-pipes-concurrency-dev (>= 2.0.3),
+ libghc-pipes-concurrency-prof (>= 2.0.3),
+ libghc-stm-dev (>= 2.4.4),
+ libghc-stm-prof (>= 2.4.4),
+ libghc-text-dev (>= 1.2.1.3),
+ libghc-text-prof (>= 1.2.1.3),
+ libghc-transformers-dev,
+ libghc-transformers-prof,
+ libghc-vty-dev (>= 5.4.0),
+ libghc-vty-prof (>= 5.4.0),
+ libghc-cabal-file-th-dev (>= 0.2.3),
+ libghc-quickcheck2-dev,
+ libghc-doctest-dev,
+ libghc-lens-dev,
+ libghc-tasty-dev,
+ libghc-tasty-quickcheck-dev,
+ libghc-text-dev,
+Build-Depends-Indep: ghc-doc,
+ libghc-async-doc,
+ libghc-attoparsec-doc,
+ libghc-fingertree-doc,
+ libghc-lens-doc,
+ libghc-lifted-base-doc,
+ libghc-mmorph-doc,
+ libghc-mtl-doc,
+ libghc-pipes-doc,
+ libghc-pipes-concurrency-doc,
+ libghc-stm-doc,
+ libghc-text-doc,
+ libghc-transformers-doc,
+ libghc-vty-doc,
+Standards-Version: 3.9.6
+Homepage: http://github.com/fmthoma/vgrep#readme
+X-Description: A pager for grep
+ @vgrep@ is a pager for navigating through @grep@ output.
+ .
+ Usage:
+ .
+ > grep -rn foo | vgrep
+ > vgrep foo /some/path
+ > vgrep foo /some/path | vgrep bar
+ .
+ <<https://raw.githubusercontent.com/fmthoma/vgrep/master/vgrep.png>>
+
+Package: libghc-vgrep-dev
+Architecture: any
+Depends: ${haskell:Depends},
+ ${misc:Depends},
+ ${shlibs:Depends},
+Recommends: ${haskell:Recommends},
+Suggests: ${haskell:Suggests},
+Conflicts: ${haskell:Conflicts},
+Provides: ${haskell:Provides},
+Description: ${haskell:ShortDescription}${haskell:ShortBlurb}
+ ${haskell:LongDescription}
+ .
+ ${haskell:Blurb}
+
+Package: libghc-vgrep-prof
+Architecture: any
+Depends: ${haskell:Depends},
+ ${misc:Depends},
+Recommends: ${haskell:Recommends},
+Suggests: ${haskell:Suggests},
+Conflicts: ${haskell:Conflicts},
+Provides: ${haskell:Provides},
+Description: ${haskell:ShortDescription}${haskell:ShortBlurb}
+ ${haskell:LongDescription}
+ .
+ ${haskell:Blurb}
+
+Package: libghc-vgrep-doc
+Architecture: all
+Section: doc
+Depends: ${haskell:Depends},
+ ${misc:Depends},
+Recommends: ${haskell:Recommends},
+Suggests: ${haskell:Suggests},
+Conflicts: ${haskell:Conflicts},
+Description: ${haskell:ShortDescription}${haskell:ShortBlurb}
+ ${haskell:LongDescription}
+ .
+ ${haskell:Blurb}
+
+Package: haskell-vgrep-utils
+Architecture: any
+Section: misc
+Depends: ${haskell:Depends},
+ ${misc:Depends},
+Recommends: ${haskell:Recommends},
+Suggests: ${haskell:Suggests},
+Conflicts: ${haskell:Conflicts},
+Provides: ${haskell:Provides},
+Description: ${haskell:ShortDescription}${haskell:ShortBlurb}
+ ${haskell:LongDescription}
+ .
+ ${haskell:Blurb}

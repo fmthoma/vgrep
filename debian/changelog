@@ -1,0 +1,5 @@
+haskell-vgrep (0.1.4.1-1) UNRELEASED; urgency=low
+
+  * Initial release
+
+ -- Debian Haskell Group <pkg-haskell-maintainers@lists.alioth.debian.org>  Thu, 24 Nov 2016 18:01:21 +0100
