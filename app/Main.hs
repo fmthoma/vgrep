@@ -48,6 +48,7 @@ main = do
     args <- getArgs
     when ("-V" `elem` args || "--version" `elem` args) (printVersion >> exitSuccess)
     when ("--help" `elem` args) (printHelp >> exitSuccess)
+    when ("--dump-default-config" `elem` args) (printDefaultConfig >> exitSuccess)
 
     hSetBuffering stdin  LineBuffering
     hSetBuffering stdout LineBuffering
@@ -82,6 +83,8 @@ main = do
         runEffect (grepVersion >-> P.take 1 >-> P.map ("    " <>) >-> stdoutText)
     printHelp = putStrLn helpText
         where helpText = $(fmap (LitE . StringL) (runIO (readFile "help.txt")))
+    printDefaultConfig = putStrLn defaultConfigFile
+        where defaultConfigFile = $(fmap (LitE . StringL) (runIO (readFile "config.yaml.example")))
 
 
 type MainWidget  = HSplitWidget Results Pager

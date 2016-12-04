@@ -11,4 +11,15 @@ Usage:
     as a pager for `grep -nH` output:
         grep -nH [GREP_OPTION...] PATTERN [FILE] | vgrep
 
+
+Additional options:
+    --help, -V     Prints this help.
+
+    --version      Prints version info and exits
+
+    --dump-default-config
+                   Prints the default config file to stdout and exits.
+                   (Usage: `vgrep --dump-default-config > ~/.vgrep/config.yaml`)
+
+
 For documentation on grep options an patterns see `grep --help`.
