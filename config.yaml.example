@@ -45,5 +45,6 @@ colors:
 # next multiple of this value)
 tabstop: 8
 
-# The editor to be used by the 'e' key
-editor: "vi"
+# The editor to be used by the 'e' key (read from $EDITOR by
+# default, but can be overridden here).
+# editor: "vi"
