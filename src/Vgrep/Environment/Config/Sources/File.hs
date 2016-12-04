@@ -1,6 +1,36 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
+
+-- | Example config file for 'Vgrep.Environment.Config.defaultConfig':
+--
+-- > {
+-- >   "colors": {
+-- >     "lineNumbers" : {
+-- >       "foreColor": "blue"
+-- >     },
+-- >     "lineNumbersHl": {
+-- >       "foreColor": "blue",
+-- >       "style": "bold"
+-- >     },
+-- >     "normal": {},
+-- >     "normalHl": {
+-- >       "style": "bold"
+-- >     },
+-- >     "fileHeaders": {
+-- >       "backColor": "green"
+-- >     },
+-- >     "selected": {
+-- >       "style": "standout"
+-- >     }
+-- >   },
+-- >   "tabstop": 8,
+-- >   "editor": "vi"
+-- > }
+--
+-- The JSON keys correspond to the lenses in "Vgrep.Environment.Config", the
+-- values for 'Vty.Color' and 'Vty.Style' can be obtained from the corresponding
+-- predefined constants in "Graphics.Vty.Attributes".
 module Vgrep.Environment.Config.Sources.File
     ( configFromFile
     ) where
@@ -18,24 +48,23 @@ import           System.IO
 import Vgrep.Environment.Config.Monoid
 
 
--- | Reads the configuration from a JSON file, by default @~/.vgreprc@.
+-- | Reads the configuration from a JSON file, by default @~/.vgrep/config@.
 --
--- When the config file does not exist, no error is raised. When the
--- config file cannot be parsed, however, ar warning is written to
--- stderr.
+-- When the config file does not exist, no error is raised. When the config file
+-- cannot be parsed, however, ar warning is written to stderr.
 configFromFile :: MonadIO io => io ConfigMonoid
 configFromFile = liftIO $ do
     configDir <- getAppUserDataDirectory "vgrep"
     let configFile = configDir <> "/config"
     doesFileExist configFile >>= \case
         False -> hPutStrLn stderr configFile >> pure mempty
-        True  -> fmap decode' (BS.readFile configFile) >>= \case
-            Just config -> pure config
-            Nothing     -> do
+        True  -> fmap eitherDecode' (BS.readFile configFile) >>= \case
+            Right config -> pure config
+            Left err     -> do
                 hPutStrLn stderr $
-                    "Could not parse config file "
-                    ++ configFile
-                    ++ ", falling back to default config"
+                    "Could not parse config file " ++ configFile ++ ":"
+                    ++ "\n  " ++ err
+                    ++ "\nFalling back to default config."
                 pure mempty
 
 

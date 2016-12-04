@@ -1,0 +1,23 @@
+{
+  "colors": {
+    "lineNumbers" : {
+      "foreColor": "blue"
+    },
+    "lineNumbersHl": {
+      "foreColor": "blue",
+      "style": "bold"
+    },
+    "normal": {},
+    "normalHl": {
+      "style": "bold"
+    },
+    "fileHeaders": {
+      "backColor": "green"
+    },
+    "selected": {
+      "style": "standout"
+    }
+  },
+  "tabstop": 8,
+  "editor": "vim"
+}
