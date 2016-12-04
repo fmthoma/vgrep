@@ -37,10 +37,10 @@ module Vgrep.Environment.Config.Sources.File
 
 import           Control.Monad.IO.Class
 import           Data.Aeson
-import qualified Data.ByteString.Lazy    as BS
 import           Data.Maybe
 import           Data.Monoid
 import           Data.Text               (unpack)
+import           Data.Yaml
 import qualified Graphics.Vty.Attributes as Vty
 import           System.Directory
 import           System.IO
@@ -58,12 +58,12 @@ configFromFile = liftIO $ do
     let configFile = configDir <> "/config"
     doesFileExist configFile >>= \case
         False -> hPutStrLn stderr configFile >> pure mempty
-        True  -> fmap eitherDecode' (BS.readFile configFile) >>= \case
+        True  -> decodeFileEither configFile >>= \case
             Right config -> pure config
             Left err     -> do
                 hPutStrLn stderr $
                     "Could not parse config file " ++ configFile ++ ":"
-                    ++ "\n  " ++ err
+                    ++ "\n" ++ prettyPrintParseException err
                     ++ "\nFalling back to default config."
                 pure mempty
 
