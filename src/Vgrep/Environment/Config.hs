@@ -3,12 +3,13 @@
 module Vgrep.Environment.Config where
 
 import Control.Lens
+import Control.Monad.IO.Class
 import Data.Maybe
 import Data.Monoid
 import Graphics.Vty.Image
-import System.Environment
 
 import Vgrep.Environment.Config.Monoid
+import Vgrep.Environment.Config.Sources
 
 
 --------------------------------------------------------------------------
@@ -104,18 +105,17 @@ defaultColors = Colors
 
 
 --------------------------------------------------------------------------
--- * Config Sources
+-- * Config Loader
 --------------------------------------------------------------------------
 
-loadConfig :: ConfigMonoid -> IO Config
+-- | Gathers 'ConfigMonoid's from various sources and builds a 'Config'
+-- based on the 'defaultConfig'.
+loadConfig
+    :: MonadIO io
+    => ConfigMonoid -- ^ External config from command line
+    -> io Config
 loadConfig configFromArgs = do
     configs <- sequence
         [ pure configFromArgs
         , editorConfigFromEnv ]
     pure (fromConfigMonoid (mconcat configs))
-
-
-editorConfigFromEnv :: IO ConfigMonoid
-editorConfigFromEnv = do
-    configuredEditor <- lookupEnv "EDITOR"
-    pure (mempty { _meditor = First configuredEditor })

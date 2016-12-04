@@ -38,6 +38,8 @@ library
                      , Vgrep.Environment
                      , Vgrep.Environment.Config
                      , Vgrep.Environment.Config.Monoid
+                     , Vgrep.Environment.Config.Sources
+                     , Vgrep.Environment.Config.Sources.Env
                      , Vgrep.Event
                      , Vgrep.Parser
                      , Vgrep.Results
