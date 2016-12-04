@@ -114,9 +114,11 @@ defaultColors = Colors
 -- | Gathers 'ConfigMonoid's from various sources and builds a 'Config'
 -- based on the 'defaultConfig':
 --
--- * External config, e.g. from command line
 -- * Config from environment variables
 -- * The configuration specified in the config file
+-- * External config, e.g. from command line
+--
+-- where the latter ones override the earlier ones.
 loadConfig
     :: MonadIO io
     => ConfigMonoid -- ^ External config from command line
@@ -124,6 +126,6 @@ loadConfig
 loadConfig configFromArgs = do
     configs <- sequence
         [ pure configFromArgs
-        , editorConfigFromEnv
-        , configFromFile ]
+        , configFromFile
+        , editorConfigFromEnv ]
     pure (fromConfigMonoid (mconcat configs))
