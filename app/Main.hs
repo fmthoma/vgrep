@@ -50,7 +50,7 @@ main = do
 
     hSetBuffering stdin  LineBuffering
     hSetBuffering stdout LineBuffering
-    cfg <- withConfiguredEditor defaultConfig
+    cfg <- loadConfig mempty
     inputFromTerminal <- hIsTerminalDevice stdin
     outputToTerminal  <- hIsTerminalDevice stdout
     case (inputFromTerminal, outputToTerminal) of

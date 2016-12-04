@@ -81,6 +81,7 @@ fromColorsMonoid ColorsMonoid{..} = Colors
 fromFirst :: a -> First a -> a
 fromFirst a = fromMaybe a . getFirst
 
+
 --------------------------------------------------------------------------
 -- * Default Config
 --------------------------------------------------------------------------
@@ -101,8 +102,20 @@ defaultColors = Colors
     , _fileHeaders   = defAttr `withBackColor` green
     , _selected      = defAttr `withStyle` standout }
 
-withConfiguredEditor :: Config -> IO Config
-withConfiguredEditor config = do
-    let defaultEditor = view editor config
+
+--------------------------------------------------------------------------
+-- * Config Sources
+--------------------------------------------------------------------------
+
+loadConfig :: ConfigMonoid -> IO Config
+loadConfig configFromArgs = do
+    configs <- sequence
+        [ pure configFromArgs
+        , editorConfigFromEnv ]
+    pure (fromConfigMonoid (mconcat configs))
+
+
+editorConfigFromEnv :: IO ConfigMonoid
+editorConfigFromEnv = do
     configuredEditor <- lookupEnv "EDITOR"
-    pure config { _editor = fromMaybe defaultEditor configuredEditor }
+    pure (mempty { _meditor = First configuredEditor })
