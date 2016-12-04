@@ -4,7 +4,7 @@ module Vgrep.Widget.Pager.Testable
     , module Vgrep.Widget.Pager.Internal
     ) where
 
-import Data.Sequence           as Seq (fromList)
+import Data.Sequence      as Seq (fromList)
 import Data.Text.Testable ()
 import Test.QuickCheck
 

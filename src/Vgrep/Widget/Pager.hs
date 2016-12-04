@@ -20,8 +20,8 @@ import           Data.Foldable
 import           Data.Sequence        (Seq, (><))
 import qualified Data.Sequence        as Seq
 import qualified Data.Set             as Set
-import           Data.Text       (Text)
-import qualified Data.Text       as T
+import           Data.Text            (Text)
+import qualified Data.Text            as T
 import           Graphics.Vty.Image   hiding (resize)
 import           Graphics.Vty.Input
 import           Graphics.Vty.Prelude

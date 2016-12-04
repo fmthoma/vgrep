@@ -32,8 +32,8 @@ import           Control.Monad.State.Extended
 import           Data.Foldable
 import           Data.Maybe
 import           Data.Monoid
-import           Data.Text               (Text)
-import qualified Data.Text               as T
+import           Data.Text                    (Text)
+import qualified Data.Text                    as T
 import           Graphics.Vty.Image           hiding ((<|>))
 import           Graphics.Vty.Input
 import           Graphics.Vty.Prelude
