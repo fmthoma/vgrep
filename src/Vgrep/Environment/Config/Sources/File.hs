@@ -2,7 +2,35 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 
--- | Example config file for 'Vgrep.Environment.Config.defaultConfig':
+-- | @vgrep@ looks for a config file in the following places:
+--
+-- * @~\/.vgrep\/config.yaml@,
+-- * @~\/.vgrep\/config.yml@,
+-- * @~\/.vgrep\/config.json@ and
+-- * @~\/.vgrep\/config@.
+--
+-- Supported formats are JSON and YAML. An example YAML config is given in the
+-- project directory (@config.yaml.example@).
+--
+-- Example YAML config file for 'Vgrep.Environment.Config.defaultConfig':
+--
+-- > colors:
+-- >   lineNumbers:
+-- >     foreColor: "blue"
+-- >   lineNumbersHl:
+-- >     foreColor: "blue"
+-- >     style: "bold"
+-- >   normal:
+-- >   normalHl:
+-- >     style: "bold"
+-- >   fileHeaders:
+-- >     backColor: "green"
+-- >   selected:
+-- >     style: "standout"
+-- > tabstop: 8
+-- > editor: "vi"
+--
+-- Example JSON file for the same config:
 --
 -- > {
 -- >   "colors": {
@@ -28,9 +56,9 @@
 -- >   "editor": "vi"
 -- > }
 --
--- The JSON keys correspond to the lenses in "Vgrep.Environment.Config", the
--- values for 'Vty.Color' and 'Vty.Style' can be obtained from the corresponding
--- predefined constants in "Graphics.Vty.Attributes".
+-- The JSON/YAML keys correspond to the lenses in "Vgrep.Environment.Config",
+-- the values for 'Vty.Color' and 'Vty.Style' can be obtained from the
+-- corresponding predefined constants in "Graphics.Vty.Attributes".
 module Vgrep.Environment.Config.Sources.File
     ( configFromFile
     ) where
@@ -48,17 +76,27 @@ import           System.IO
 import Vgrep.Environment.Config.Monoid
 
 
--- | Reads the configuration from a JSON file, by default @~/.vgrep/config@.
+-- | Reads the configuration from a JSON or YAML file. The file should be
+-- located in one of the following places:
 --
--- When the config file does not exist, no error is raised. When the config file
--- cannot be parsed, however, ar warning is written to stderr.
+-- * @~\/.vgrep\/config.yaml@,
+-- * @~\/.vgrep\/config.yml@,
+-- * @~\/.vgrep\/config.json@ or
+-- * @~\/.vgrep\/config@.
+--
+-- When none of these files exist, no error is raised. When a file exists, but
+-- cannot be parsed, a warning is written to stderr.
 configFromFile :: MonadIO io => io ConfigMonoid
 configFromFile = liftIO $ do
     configDir <- getAppUserDataDirectory "vgrep"
-    let configFile = configDir <> "/config"
-    doesFileExist configFile >>= \case
-        False -> hPutStrLn stderr configFile >> pure mempty
-        True  -> decodeFileEither configFile >>= \case
+    let configFiles = map (configDir </>)
+            [ "config.yaml"
+            , "config.yml"
+            , "config.json"
+            , "config" ]
+    findExistingFile configFiles >>= \case
+        Nothing         -> pure mempty
+        Just configFile -> decodeFileEither configFile >>= \case
             Right config -> pure config
             Left err     -> do
                 hPutStrLn stderr $
@@ -66,6 +104,16 @@ configFromFile = liftIO $ do
                     ++ "\n" ++ prettyPrintParseException err
                     ++ "\nFalling back to default config."
                 pure mempty
+  where
+    findExistingFile :: [FilePath] -> IO (Maybe FilePath)
+    findExistingFile = \case
+        [] -> pure Nothing
+        f : fs -> do
+            exists <- doesFileExist f
+            if exists then pure (Just f) else findExistingFile fs
+
+    (</>) :: FilePath -> FilePath -> FilePath
+    dir </> file = dir <> "/" <> file
 
 
 instance FromJSON ConfigMonoid where

@@ -22,7 +22,7 @@ build-type:          Simple
 extra-source-files:  .stylish-haskell.yaml
                    , .travis.yml
                    , README.md
-                   , config.example
+                   , config.yaml.example
                    , vgrep.png
                    , stack.yaml
 cabal-version:       >=1.10
