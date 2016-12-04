@@ -18,6 +18,7 @@ import           Distribution.PackageDescription.TH
 import qualified Graphics.Vty                       as Vty
 import           Graphics.Vty.Input.Events          hiding (Event)
 import           Graphics.Vty.Picture
+import           Language.Haskell.TH
 import           Pipes                              as P
 import           Pipes.Concurrent
 import qualified Pipes.Prelude                      as P
@@ -79,24 +80,8 @@ main = do
         putStrLn ""
         putStrLn "grep version: "
         runEffect (grepVersion >-> P.take 1 >-> P.map ("    " <>) >-> stdoutText)
-    printHelp = T.putStrLn helpText
-
-helpText :: Text
-helpText = T.unlines
-    [ "vgrep, a pager for grep"
-    , ""
-    , "Usage:"
-    , "    as a drop-in replacement for `grep -r`:"
-    , "        vgrep [GREP_OPTION...] PATTERN [FILE]"
-    , ""
-    , ""
-    , "    at the end of a pipeline:"
-    , "        ... | vgrep [-nH] PATTERN"
-    , ""
-    , "    as a pager for `grep -nH` output:"
-    , "        grep -nH [GREP_OPTION...] PATTERN [FILE] | vgrep"
-    , ""
-    , "For documentation on grep options an patterns see `grep --help`." ]
+    printHelp = putStrLn helpText
+        where helpText = $(fmap (LitE . StringL) (runIO (readFile "help.txt")))
 
 
 type MainWidget  = HSplitWidget Results Pager
