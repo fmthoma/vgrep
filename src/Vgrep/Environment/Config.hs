@@ -1,10 +1,14 @@
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE TemplateHaskell #-}
 module Vgrep.Environment.Config where
 
 import Control.Lens
 import Data.Maybe
+import Data.Monoid
 import Graphics.Vty.Image
 import System.Environment
+
+import Vgrep.Environment.Config.Monoid
 
 
 --------------------------------------------------------------------------
@@ -56,21 +60,46 @@ makeLenses ''Colors
 
 
 --------------------------------------------------------------------------
+-- * Read Config from Monoid
+--------------------------------------------------------------------------
+
+fromConfigMonoid :: ConfigMonoid -> Config
+fromConfigMonoid ConfigMonoid{..} = Config
+    { _colors  = fromColorsMonoid _mcolors
+    , _tabstop = fromFirst (_tabstop defaultConfig) _mtabstop
+    , _editor  = fromFirst (_editor  defaultConfig) _meditor }
+
+fromColorsMonoid :: ColorsMonoid -> Colors
+fromColorsMonoid ColorsMonoid{..} = Colors
+    { _lineNumbers   = fromFirst (_lineNumbers   defaultColors) _mlineNumbers
+    , _lineNumbersHl = fromFirst (_lineNumbersHl defaultColors) _mlineNumbersHl
+    , _normal        = fromFirst (_normal        defaultColors) _mnormal
+    , _normalHl      = fromFirst (_normalHl      defaultColors) _mnormalHl
+    , _fileHeaders   = fromFirst (_fileHeaders   defaultColors) _mfileHeaders
+    , _selected      = fromFirst (_selected      defaultColors) _mselected }
+
+fromFirst :: a -> First a -> a
+fromFirst a = fromMaybe a . getFirst
+
+--------------------------------------------------------------------------
 -- * Default Config
 --------------------------------------------------------------------------
 
 defaultConfig :: Config
 defaultConfig = Config
-    { _colors = Colors
-        { _lineNumbers   = defAttr `withForeColor` blue
-        , _lineNumbersHl = defAttr `withForeColor` blue
-                                   `withStyle` bold
-        , _normal        = defAttr
-        , _normalHl      = defAttr `withStyle` bold
-        , _fileHeaders   = defAttr `withBackColor` green
-        , _selected      = defAttr `withStyle` standout }
+    { _colors = defaultColors
     , _tabstop = 8
     , _editor = "vi" }
+
+defaultColors :: Colors
+defaultColors = Colors
+    { _lineNumbers   = defAttr `withForeColor` blue
+    , _lineNumbersHl = defAttr `withForeColor` blue
+                               `withStyle` bold
+    , _normal        = defAttr
+    , _normalHl      = defAttr `withStyle` bold
+    , _fileHeaders   = defAttr `withBackColor` green
+    , _selected      = defAttr `withStyle` standout }
 
 withConfiguredEditor :: Config -> IO Config
 withConfiguredEditor config = do
