@@ -64,12 +64,15 @@ makeLenses ''Colors
 -- * Read Config from Monoid
 --------------------------------------------------------------------------
 
+-- | Convert a 'ConfigMonoid' to a 'Config'. Missing (@'mempty'@) values in the
+-- 'ConfigMonoid' are supplied from the 'defaultConfig'.
 fromConfigMonoid :: ConfigMonoid -> Config
 fromConfigMonoid ConfigMonoid{..} = Config
     { _colors  = fromColorsMonoid _mcolors
     , _tabstop = fromFirst (_tabstop defaultConfig) _mtabstop
     , _editor  = fromFirst (_editor  defaultConfig) _meditor }
 
+-- | Convert a 'ColorsMonoid' to a 'Colors' config.
 fromColorsMonoid :: ColorsMonoid -> Colors
 fromColorsMonoid ColorsMonoid{..} = Colors
     { _lineNumbers   = fromFirst (_lineNumbers   defaultColors) _mlineNumbers
@@ -109,7 +112,11 @@ defaultColors = Colors
 --------------------------------------------------------------------------
 
 -- | Gathers 'ConfigMonoid's from various sources and builds a 'Config'
--- based on the 'defaultConfig'.
+-- based on the 'defaultConfig':
+--
+-- * External config, e.g. from command line
+-- * Config from environment variables
+-- * The configuration specified in the config file
 loadConfig
     :: MonadIO io
     => ConfigMonoid -- ^ External config from command line
