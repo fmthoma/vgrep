@@ -10,11 +10,11 @@ module Vgrep.Environment.Config.Sources.File
     ) where
 
 import           Control.Monad.IO.Class
-import           Data.Aeson
+import           Data.Aeson              (withObject, withText)
 import           Data.Maybe
 import           Data.Monoid
 import           Data.Text               (unpack)
-import           Data.Yaml
+import           Data.Yaml.Aeson
 import qualified Graphics.Vty.Attributes as Vty
 import           System.Directory
 import           System.IO
