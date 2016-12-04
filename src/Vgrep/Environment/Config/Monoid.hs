@@ -2,7 +2,6 @@
 module Vgrep.Environment.Config.Monoid
   ( ConfigMonoid (..)
   , ColorsMonoid (..)
-  , Attr
   ) where
 
 import Data.Monoid

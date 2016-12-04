@@ -117,5 +117,6 @@ loadConfig
 loadConfig configFromArgs = do
     configs <- sequence
         [ pure configFromArgs
-        , editorConfigFromEnv ]
+        , editorConfigFromEnv
+        , configFromFile ]
     pure (fromConfigMonoid (mconcat configs))
