@@ -18,28 +18,28 @@
 # config steps in (which may differ from your terminal's default).
 colors:
 
-  # Line numbers
-  lineNumbers:
-    foreColor: "blue"
-  # Highlighted line numbers
-  lineNumbersHl:
-    foreColor: "blue"
-    style: "bold"
+    # Line numbers
+    lineNumbers:
+        foreColor: "blue"
+    # Highlighted line numbers
+    lineNumbersHl:
+        foreColor: "blue"
+        style: "bold"
 
-  # Normal text
-  normal:
+    # Normal text
+    normal:
 
-  # Highlighted text
-  normalHl:
-    style: "bold"
+    # Highlighted text
+    normalHl:
+        style: "bold"
 
-  # The file names in the results list
-  fileHeaders:
-    backColor: "green"
+    # The file names in the results list
+    fileHeaders:
+        backColor: "green"
 
-  # The line currently selected by the cursor
-  selected:
-    style: "standout"
+    # The line currently selected by the cursor
+    selected:
+        style: "standout"
 
 # The tabstop witdth (a tab character moves the indentation to the
 # next multiple of this value)
