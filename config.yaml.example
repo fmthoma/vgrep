@@ -1,0 +1,50 @@
+# Color configuration
+#
+# For each item, the following three attributes can be specified:
+# * foreColor: The text color
+# * backColor: The background color
+#     * Valid colors are the usual 16 terminal colors:
+#         black, red, green, blue, magenta, cyan, white,
+#         brightBlack, brightRed, brightGreen, brightYellow,
+#         brightBlue, brightMagenta, brightCyan, brightWhite
+# * style:
+#     * Valid styles are:
+#         standout, underline, reverseVideo, blink, dim, bold
+#       Please note that not all styles are necessarily supported
+#       by your terminal.
+#
+# If a color/style is not given, it falls back to the terminal
+# default. If no config is given for a color, the vgrep default
+# config steps in (which may differ from your terminal's default).
+colors:
+
+    # Line numbers
+    lineNumbers:
+        foreColor: "blue"
+    # Highlighted line numbers
+    lineNumbersHl:
+        foreColor: "blue"
+        style: "bold"
+
+    # Normal text
+    normal:
+
+    # Highlighted text
+    normalHl:
+        style: "bold"
+
+    # The file names in the results list
+    fileHeaders:
+        backColor: "green"
+
+    # The line currently selected by the cursor
+    selected:
+        style: "standout"
+
+# The tabstop witdth (a tab character moves the indentation to the
+# next multiple of this value)
+tabstop: 8
+
+# The editor to be used by the 'e' key (read from $EDITOR by
+# default, but can be overridden here).
+# editor: "vi"

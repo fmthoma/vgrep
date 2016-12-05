@@ -1,0 +1,25 @@
+vgrep, a pager for grep
+
+
+Usage:
+    as a drop-in replacement for `grep -r`:
+        vgrep [GREP_OPTION...] PATTERN [FILE]
+
+    at the end of a pipeline:
+        ... | vgrep [-nH] PATTERN
+
+    as a pager for `grep -nH` output:
+        grep -nH [GREP_OPTION...] PATTERN [FILE] | vgrep
+
+
+Additional options:
+    --help, -V     Prints this help.
+
+    --version      Prints version info and exits
+
+    --dump-default-config
+                   Prints the default config file to stdout and exits.
+                   (Usage: `vgrep --dump-default-config > ~/.vgrep/config.yaml`)
+
+
+For documentation on grep options an patterns see `grep --help`.
