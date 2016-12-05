@@ -82,9 +82,9 @@ main = do
         putStrLn "grep version: "
         runEffect (grepVersion >-> P.take 1 >-> P.map ("    " <>) >-> stdoutText)
     printHelp = putStrLn helpText
-        where helpText = $(fmap (LitE . StringL) (runIO (readFile "help.txt")))
+        where helpText = $(runIO (readFile "help.txt") >>= stringE)
     printDefaultConfig = putStrLn defaultConfigFile
-        where defaultConfigFile = $(fmap (LitE . StringL) (runIO (readFile "config.yaml.example")))
+        where defaultConfigFile = $(runIO (readFile "config.yaml.example") >>= stringE)
 
 
 type MainWidget  = HSplitWidget Results Pager

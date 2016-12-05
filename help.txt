@@ -1,9 +1,9 @@
 vgrep, a pager for grep
 
+
 Usage:
     as a drop-in replacement for `grep -r`:
         vgrep [GREP_OPTION...] PATTERN [FILE]
-
 
     at the end of a pipeline:
         ... | vgrep [-nH] PATTERN
