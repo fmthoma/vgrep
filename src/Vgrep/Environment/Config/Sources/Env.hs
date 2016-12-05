@@ -7,6 +7,8 @@ import System.Environment
 import Vgrep.Environment.Config.Monoid
 
 
+-- | Determines the 'ConfigMonoid' value for 'Vgrep.Environment.Config._editor'
+-- ('_meditor') from the environment variable @$EDITOR@.
 editorConfigFromEnv :: MonadIO io => io ConfigMonoid
 editorConfigFromEnv = do
     configuredEditor <- liftIO (lookupEnv "EDITOR")
