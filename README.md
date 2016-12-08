@@ -17,6 +17,13 @@ vgrep data /some/path | vgrep default  # works with pipes, too
 ```
 
 ## Installation
+
+### Binaries
+
+`.deb` files are available for the [latest release](https://github.com/fmthoma/vgrep/releases/latest).
+
+### From [Hackage](https://hackage.haskell.org/packages/vgrep)
+
 Installation from Hackage via [`stack`][1] is recommended:
 ```bash
 stack update
@@ -24,7 +31,8 @@ stack install vgrep
 ```
 This will install `vgrep` to your `~/.local/bin` directory.
 
-To install from source:
+### From source
+
 ```bash
 git clone https://github.com/fmthoma/vgrep.git
 cd vgrep
