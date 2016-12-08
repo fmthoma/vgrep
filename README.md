@@ -20,11 +20,16 @@ vgrep data /some/path | vgrep default  # works with pipes, too
 
 ### Binaries
 
-`.deb` files are available for the [latest release](https://github.com/fmthoma/vgrep/releases/latest).
+Debian/Ubuntu: `.deb` files are available for the [latest release][1].
 
-### From [Hackage](https://hackage.haskell.org/packages/vgrep)
+```bash
+wget https://github.com/fmthoma/vgrep/releases/download/v0.1.4.1/vgrep_0.1.4.1-1_amd64.deb
+sudo dpkg -i vgrep_0.1.4.1-1_amd64.deb
+```
 
-Installation from Hackage via [`stack`][1] is recommended:
+### From [Hackage][2]
+
+Installation from Hackage via [`stack`][3] is recommended:
 ```bash
 stack update
 stack install vgrep
@@ -40,4 +45,6 @@ stack setup
 stack install
 ```
 
-[1]: https://github.com/commercialhaskell/stack/blob/master/doc/install_and_upgrade.md
+[1]: https://github.com/fmthoma/vgrep/releases/latest
+[2]: https://hackage.haskell.org/packages/vgrep
+[3]: https://github.com/commercialhaskell/stack/blob/master/doc/install_and_upgrade.md
