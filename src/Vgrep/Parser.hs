@@ -13,6 +13,8 @@ import Data.Maybe
 import Data.Text            hiding (takeWhile)
 import Prelude              hiding (takeWhile)
 
+import Vgrep.Ansi        (stripAnsi)
+import Vgrep.Ansi.Parser (attrChange, parseAnsi)
 import Vgrep.Results
 
 
@@ -47,11 +49,11 @@ parseLine line = case parseOnly lineParser line of
 lineParser :: Parser FileLineReference
 lineParser = do
     file       <- takeWhile (/= ':') <* char ':'
-    lineNumber <- optional (decimal <* char ':')
+    lineNumber <- optional (skipMany attrChange *> decimal <* skipMany attrChange <* char ':')
     result     <- takeText
     pure FileLineReference
         { getFile = File
-            { getFileName = file }
+            { getFileName = stripAnsi (parseAnsi file) }
         , getLineReference = LineReference
             { getLineNumber = lineNumber
-            , getLineText   = result } }
+            , getLineText   = parseAnsi result } }

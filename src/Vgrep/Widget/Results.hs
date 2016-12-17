@@ -39,6 +39,7 @@ import           Graphics.Vty.Input
 import           Graphics.Vty.Prelude
 import           Prelude
 
+import Vgrep.Ansi
 import Vgrep.Environment
 import Vgrep.Event
 import Vgrep.Results
@@ -187,10 +188,11 @@ renderLine width lineNumberWidth displayLine = do
                           . justifyRight lineNumberWidth
                           . maybe "" (T.pack . show)
 
-    renderLineText :: Attr -> Text -> Image
-    renderLineText attr = text' attr
-                        . padWithSpace (width - lineNumberWidth)
-
+    renderLineText :: Attr -> Formatted Attr -> Image
+    renderLineText attr txt = cropRight (width - lineNumberWidth) . renderAnsi . Node attr $
+        [ Leaf mempty " "
+        , txt
+        , Leaf mempty (T.replicate width " ") ]
 
 resizeToWindow :: Monad m => VgrepT Results m Redraw
 resizeToWindow = do

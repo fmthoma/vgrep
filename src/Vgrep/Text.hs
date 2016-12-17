@@ -45,6 +45,7 @@ expandTabs tabWidth = go 0
 
 expandSpecialChars :: String -> String
 expandSpecialChars = \case
-    c:cs | ord c < 32 -> ['^', chr (ord c + 64)] ++ expandSpecialChars cs
-         | otherwise  -> c : expandSpecialChars cs
-    []                -> []
+    cs@('\ESC':'[':_)  -> cs -- Keep escape sequences, to be parsed by ANSI parser
+    c:cs | ord c < 32  -> ['^', chr (ord c + 64)] ++ expandSpecialChars cs
+         | otherwise   -> c : expandSpecialChars cs
+    []                 -> []
