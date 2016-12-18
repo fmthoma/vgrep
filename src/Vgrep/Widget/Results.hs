@@ -151,7 +151,7 @@ renderResultList = do
   where lineNumberWidth
             = foldl' max 0
             . map (twoExtraSpaces . length . show)
-            . mapMaybe lineNumber
+            . mapMaybe displayLineNumber
         twoExtraSpaces = (+ 2)
 
 renderLine
@@ -166,8 +166,8 @@ renderLine width lineNumberWidth displayLine = do
     resultLineStyle <- view (config . colors . normal)
     selectedStyle   <- view (config . colors . selected)
     pure $ case displayLine of
-        FileHeader (File file)
-            -> renderFileHeader fileHeaderStyle file
+        FileHeader (File f)
+            -> renderFileHeader fileHeaderStyle f
         Line         (LineReference n t)
             -> horizCat [ renderLineNumber lineNumberStyle n
                         , renderLineText   resultLineStyle t ]

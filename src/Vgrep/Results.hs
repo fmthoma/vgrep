@@ -1,24 +1,39 @@
+{-# LANGUAGE TemplateHaskell #-}
 module Vgrep.Results
     ( File (..)
+    , fileName
+
     , LineReference (..)
+    , lineNumber
+    , lineText
+
     , FileLineReference (..)
+    , file
+    , lineReference
     ) where
 
 import Data.Text (Text)
+import Control.Lens.TH
 
 import Vgrep.Ansi (Formatted, Attr)
 
 
 newtype File = File
-    { getFileName :: Text
+    { _fileName :: Text
     } deriving (Eq, Show)
+
+makeLenses ''File
 
 data LineReference = LineReference
-    { getLineNumber :: Maybe Int
-    , getLineText   :: Formatted Attr
+    { _lineNumber :: Maybe Int
+    , _lineText   :: Formatted Attr
     } deriving (Eq, Show)
 
+makeLenses ''LineReference
+
 data FileLineReference = FileLineReference
-    { getFile          :: File
-    , getLineReference :: LineReference
+    { _file          :: File
+    , _lineReference :: LineReference
     } deriving (Eq, Show)
+
+makeLenses ''FileLineReference

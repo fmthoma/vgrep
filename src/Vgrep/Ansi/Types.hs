@@ -33,3 +33,8 @@ instance (Eq attr, Monoid attr) => Monoid (Formatted attr) where
     Node attr ts `mappend` Node attr' ts'
         | attr == attr'      = Node attr  (ts ++ ts')
     l            `mappend` r = Node mempty [l, r]
+
+mapText :: (Text -> Text) -> Formatted a -> Formatted a
+mapText f = \case
+    Node attr ts -> Node attr (fmap (mapText f) ts)
+    Leaf attr t  -> Leaf attr (f t)

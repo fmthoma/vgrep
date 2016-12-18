@@ -6,6 +6,7 @@ module Vgrep.Text (
     -- to @^13@. Tabs are expanded toh the configured 'tabWidth'.
       expandForDisplay
     , expandLineForDisplay
+    , expandFormattedLine
     ) where
 
 import           Control.Lens.Compat
@@ -14,6 +15,7 @@ import           Data.Char
 import           Data.Text                  (Text)
 import qualified Data.Text                  as T
 
+import Vgrep.Ansi
 import Vgrep.Environment
 
 
@@ -31,6 +33,12 @@ expandLineForDisplay inputLine = do
     tabWidth <- view (config . tabstop)
     pure (expandText tabWidth inputLine)
 
+-- | Expand an ANSI formatted line
+expandFormattedLine :: MonadReader Environment m => Formatted a -> m (Formatted a)
+expandFormattedLine inputLine = do
+    tabWidth <- view (config . tabstop)
+    pure (mapText (expandText tabWidth) inputLine) -- FIXME tabs!
+
 expandText :: Int -> Text -> Text
 expandText tabWidth =
     T.pack . expandSpecialChars . expandTabs tabWidth . T.unpack
@@ -45,7 +53,6 @@ expandTabs tabWidth = go 0
 
 expandSpecialChars :: String -> String
 expandSpecialChars = \case
-    cs@('\ESC':'[':_)  -> cs -- Keep escape sequences, to be parsed by ANSI parser
     c:cs | ord c < 32  -> ['^', chr (ord c + 64)] ++ expandSpecialChars cs
          | otherwise   -> c : expandSpecialChars cs
     []                 -> []

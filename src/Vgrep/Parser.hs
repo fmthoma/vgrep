@@ -15,7 +15,7 @@ import Prelude              hiding (takeWhile)
 
 import Vgrep.Ansi        (stripAnsi)
 import Vgrep.Ansi.Parser (attrChange, parseAnsi)
-import Vgrep.Results
+import Vgrep.Results     (File (..), FileLineReference (..), LineReference (..))
 
 
 -- | Parses lines of 'Text', skipping lines that are not valid @grep@
@@ -52,8 +52,8 @@ lineParser = do
     lineNumber <- optional (skipMany attrChange *> decimal <* skipMany attrChange <* char ':')
     result     <- takeText
     pure FileLineReference
-        { getFile = File
-            { getFileName = stripAnsi (parseAnsi file) }
-        , getLineReference = LineReference
-            { getLineNumber = lineNumber
-            , getLineText   = parseAnsi result } }
+        { _file = File
+            { _fileName = stripAnsi (parseAnsi file) }
+        , _lineReference = LineReference
+            { _lineNumber = lineNumber
+            , _lineText   = parseAnsi result } }

@@ -20,11 +20,11 @@ module Vgrep.Widget.Results.Internal (
     -- * Utilities for displaying
     , DisplayLine(..)
     , toLines
-    , lineNumber
+    , displayLineNumber
     ) where
 
 import           Control.Applicative
-import           Control.Lens.Compat (Getter, pre, to, _Just)
+import           Control.Lens.Compat (Getter, pre, to, view, _Just)
 import           Data.Foldable
 import           Data.Function
 import           Data.List           (groupBy)
@@ -170,24 +170,24 @@ toLines (Results _ bs c ds _) = linesBefore <> selected c <> linesAfter
 
   where
     linesBefore = case viewl bs of
-        b :< _ | b `pointsToSameFile` c -> go (S.reverse bs)
-        _otherwise                      -> go (S.reverse bs) <> header c
+        b :< _     | b `pointsToSameFile` c -> go (S.reverse bs)
+        _otherwise -> go (S.reverse bs) <> header c
 
     linesAfter = case viewl ds of
-        d :< _ | c `pointsToSameFile` d -> drop 1 (go ds)
-        _otherwise                      -> go ds
+        d :< _     | c `pointsToSameFile` d -> drop 1 (go ds)
+        _otherwise -> go ds
 
     go refs = do
         fileResults <- groupBy pointsToSameFile (toList refs)
-        header (head fileResults) <> fmap (Line . getLineReference) fileResults
+        header (head fileResults) <> fmap (Line . view lineReference) fileResults
 
-    header   = pure . FileHeader   . getFile
-    selected = pure . SelectedLine . getLineReference
-    pointsToSameFile = (==) `on` getFile
+    header   = pure . FileHeader   . view file
+    selected = pure . SelectedLine . view lineReference
+    pointsToSameFile = (==) `on` view file
 
 -- | The line number of a 'DisplayLine'. 'Nothing' for 'FileHeader's.
-lineNumber :: DisplayLine -> Maybe Int
-lineNumber = \case
+displayLineNumber :: DisplayLine -> Maybe Int
+displayLineNumber = \case
     FileHeader _                     -> Nothing
     Line         (LineReference n _) -> n
     SelectedLine (LineReference n _) -> n
@@ -196,12 +196,12 @@ lineNumber = \case
 -- | The file name of the currently selected item
 currentFileName :: Getter Results (Maybe Text)
 currentFileName =
-    pre (to current . _Just . to getFile . to getFileName)
+    pre (to current . _Just . file . fileName)
 
 -- | The line number of the currently selected item
 currentLineNumber :: Getter Results (Maybe Int)
 currentLineNumber =
-    pre (to current . _Just . to getLineReference . to getLineNumber . _Just)
+    pre (to current . _Just . lineReference . lineNumber . _Just)
 
 current :: Results -> Maybe FileLineReference
 current = \case
@@ -212,12 +212,12 @@ current = \case
 -- item
 currentFileResultLineNumbers :: Getter Results [Int]
 currentFileResultLineNumbers =
-    to (mapMaybe getLineNumber . currentFile)
+    to (mapMaybe (view lineNumber) . currentFile)
   where
     currentFile = do
-        let sameFileAs = (==) `on` getFile
+        let sameFileAs = (==) `on` view file
         inCurrentFile <- sameFileAs . fromJust . current
-        map getLineReference . filter inCurrentFile . bufferToList
+        map (view lineReference) . filter inCurrentFile . bufferToList
 
 bufferToList :: Results -> [FileLineReference]
 bufferToList = \case
