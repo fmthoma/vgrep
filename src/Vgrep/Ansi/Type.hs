@@ -7,40 +7,29 @@ module Vgrep.Ansi.Type
   , mapText
   ) where
 
-
-import           Data.Text (Text)
-import qualified Data.Text as T
+import           Data.Foldable (foldl')
+import           Data.Text     (Text)
+import qualified Data.Text     as T
+import           Prelude       hiding (length)
 
 
 data Formatted attr
     = Empty
-    | Text Text
-    | Format attr (Formatted attr)
-    | Cat [Formatted attr]
+    | Text !Int Text
+    | Format !Int attr (Formatted attr)
+    | Cat !Int [Formatted attr]
     deriving (Eq, Show)
 
 instance Functor Formatted where
     fmap f = \case
-        Empty      -> Empty
-        Text t     -> Text t
-        Format a t -> Format (f a) (fmap f t)
-        Cat ts     -> Cat (map (fmap f) ts)
+        Empty        -> Empty
+        Text l t     -> Text l t
+        Format l a t -> Format l (f a) (fmap f t)
+        Cat l ts     -> Cat l (map (fmap f) ts)
 
 instance (Eq attr, Monoid attr) => Monoid (Formatted attr) where
     mempty = Empty
-
-    Empty         `mappend` formatted     = formatted
-    formatted     `mappend` Empty         = formatted
-    Text t        `mappend` Text t'       = Text (t `mappend` t')
-    Format attr t `mappend` Format attr' t'
-        | attr' == attr                   = Format attr (t `mappend` t')
-
-    Cat ts        `mappend` Cat ts'       = Cat (ts ++ ts')
-    Cat ts        `mappend` formatted     = Cat (ts ++ [formatted])
-    formatted     `mappend` Cat (t:ts)    = case formatted `mappend` t of
-                                              Cat ts' -> Cat (ts' ++ ts)
-                                              t'      -> Cat (t' : ts)
-    formatted     `mappend` formatted'    = Cat [formatted, formatted']
+    mappend = fuse
 
 
 empty :: Formatted attr
@@ -49,24 +38,56 @@ empty = Empty
 bare :: Text -> Formatted attr
 bare t
     | T.null t  = empty
-    | otherwise = Text t
+    | otherwise = Text (T.length t) t
 
 format :: Monoid attr => attr -> Formatted attr -> Formatted attr
 format attr formatted
-    | Format attr' formatted' <- formatted
-                = format (attr `mappend` attr') formatted'
-    | otherwise = Format attr formatted
+    | Format l attr' formatted' <- formatted
+                = Format l (attr `mappend` attr') formatted'
+    | otherwise = format' attr formatted
+
+format' :: attr -> Formatted attr -> Formatted attr
+format' attr formatted = Format (length formatted) attr formatted
 
 cat :: (Eq attr, Monoid attr) => [Formatted attr] -> Formatted attr
 cat = \case
     []  -> empty
     [t] -> t
-    ts  -> mconcat ts
+    ts  -> foldl' fuse empty ts
+
+cat' :: [Formatted attr] -> Formatted attr
+cat' = \case
+    []  -> empty
+    [t] -> t
+    ts  -> Cat (sum (fmap length ts)) ts
+
+fuse :: (Eq attr, Monoid attr) => Formatted attr -> Formatted attr -> Formatted attr
+fuse left right = case (left, right) of
+    (Empty,           formatted)    -> formatted
+    (formatted,       Empty)        -> formatted
+    (Text l t,        Text l' t')   -> Text (l + l') (t `mappend` t')
+    (Format l attr t, Format l' attr' t')
+        | attr' == attr             -> Format (l + l') attr (t `mappend` t')
+
+    (Cat l ts,        Cat l' ts')   -> Cat (l + l') (ts ++ ts')
+    (Cat l ts,        formatted)    -> Cat (l + length formatted) (ts ++ [formatted])
+    (formatted,       Cat _ (t:ts)) -> case formatted `fuse` t of
+                                          Cat _ ts' -> cat' (ts' ++ ts)
+                                          t'        -> cat' (t' : ts)
+    (formatted,     formatted')     -> cat' [formatted, formatted']
+
+length :: Formatted attr -> Int
+length = \case
+    Empty        -> 0
+    Text   l _   -> l
+    Format l _ _ -> l
+    Cat    l _   -> l
+
 
 
 mapText :: (Text -> Text) -> Formatted a -> Formatted a
 mapText f = \case
-    Empty         -> Empty
-    Text t        -> Text (f t)
-    Format attr t -> Format attr (mapText f t)
-    Cat ts        -> Cat (map (mapText f) ts)
+    Empty           -> empty
+    Text _ t        -> bare (f t)
+    Format _ attr t -> format' attr (mapText f t)
+    Cat _ ts        -> cat' (map (mapText f) ts)

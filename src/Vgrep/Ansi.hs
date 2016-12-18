@@ -25,17 +25,17 @@ renderAnsi :: Formatted Vty.Attr -> Vty.Image
 renderAnsi = go mempty
   where
     go attr = \case
-        Empty          -> Vty.emptyImage
-        Text t         -> Vty.text' attr t
-        Format attr' t -> go (combine attr attr') t
-        Cat ts         -> Vty.horizCat (map (go attr) ts)
+        Empty            -> Vty.emptyImage
+        Text _ t         -> Vty.text' attr t
+        Format _ attr' t -> go (combine attr attr') t
+        Cat _ ts         -> Vty.horizCat (map (go attr) ts)
 
 stripAnsi :: Formatted a -> Text
 stripAnsi = \case
-    Empty      -> mempty
-    Text t     -> t
-    Format _ t -> stripAnsi t
-    Cat ts     -> foldMap stripAnsi ts
+    Empty        -> mempty
+    Text _ t     -> t
+    Format _ _ t -> stripAnsi t
+    Cat _ ts     -> foldMap stripAnsi ts
 
 -- | Combines two 'Vty.Attr's. This differs from 'mappend' from the 'Monoid'
 -- instance of 'Vty.Attr' in that 'Vty.Style's are combined rather than
