@@ -15,14 +15,20 @@ import Vgrep.Ansi.Type
 
 
 renderAnsi :: Formatted Vty.Attr -> Vty.Image
-renderAnsi = \case
-    Node attr ts -> Vty.horizCat (fmap (renderAnsi . fmap (combine attr)) ts)
-    Leaf attr t  -> Vty.text' attr t
+renderAnsi = go mempty
+  where
+    go attr = \case
+        Empty          -> Vty.emptyImage
+        Text t         -> Vty.text' attr t
+        Format attr' t -> go (combine attr attr') t
+        Cat ts         -> Vty.horizCat (map (go attr) ts)
 
 stripAnsi :: Formatted a -> Text
 stripAnsi = \case
-    Node _ ts -> foldMap stripAnsi ts
-    Leaf _ t  -> t
+    Empty      -> mempty
+    Text t     -> t
+    Format _ t -> stripAnsi t
+    Cat ts     -> foldMap stripAnsi ts
 
 -- | Combines two 'Vty.Attr's. This differs from 'mappend' from the 'Monoid'
 -- instance of 'Vty.Attr' in that 'Vty.Style's are combined rather than

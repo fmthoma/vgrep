@@ -189,10 +189,10 @@ renderLine width lineNumberWidth displayLine = do
                           . maybe "" (T.pack . show)
 
     renderLineText :: Attr -> Formatted Attr -> Image
-    renderLineText attr txt = cropRight (width - lineNumberWidth) . renderAnsi . Node attr $
-        [ Leaf mempty " "
-        , txt
-        , Leaf mempty (T.replicate width " ") ]
+    renderLineText attr txt = cropRight (width - lineNumberWidth) . renderAnsi . Format attr $
+        Cat [ Text " "
+            , txt
+            , Text (T.replicate width " ") ]
 
 resizeToWindow :: Monad m => VgrepT Results m Redraw
 resizeToWindow = do

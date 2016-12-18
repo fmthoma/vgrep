@@ -30,13 +30,14 @@ ansiFormatted = go mempty
           <|> unformattedText attr
     formattedText attr = do
         ac <- attrChange
+        let attr' = ac attr
         t  <- rawText
-        rest <- go (ac attr)
-        pure (Leaf (ac attr) t <> rest)
+        rest <- go attr'
+        pure (Format attr' (Text t) <> rest)
     unformattedText attr = do
         t <- rawText
-        rest <- go (attr)
-        pure (Leaf attr t <> rest)
+        rest <- go attr
+        pure (Format attr (Text t) <> rest)
     rawText = takeTill (== '\ESC') <|> takeText
 
 
