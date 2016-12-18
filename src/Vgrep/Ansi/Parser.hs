@@ -3,7 +3,7 @@ module Vgrep.Ansi.Parser
   ( parseAnsi
   , ansiFormatted
   , attrChange
-  , module Vgrep.Ansi.Types
+  , module Vgrep.Ansi.Type
   ) where
 
 
@@ -15,7 +15,7 @@ import           Data.Text               (Text)
 import           Graphics.Vty.Attributes (Attr)
 import qualified Graphics.Vty.Attributes as Vty
 
-import Vgrep.Ansi.Types
+import Vgrep.Ansi.Type
 
 
 parseAnsi :: Text -> Formatted Attr

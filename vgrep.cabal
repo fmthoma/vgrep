@@ -40,7 +40,7 @@ library
                      , Pipes.Concurrent.PQueue
                      , Vgrep.Ansi
                      , Vgrep.Ansi.Parser
-                     , Vgrep.Ansi.Types
+                     , Vgrep.Ansi.Type
                      , Vgrep.App
                      , Vgrep.Environment
                      , Vgrep.Environment.Config

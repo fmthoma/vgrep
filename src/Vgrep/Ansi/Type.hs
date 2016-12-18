@@ -1,4 +1,4 @@
-module Vgrep.Ansi.Types where
+module Vgrep.Ansi.Type where
 
 
 import Data.Text (Text)

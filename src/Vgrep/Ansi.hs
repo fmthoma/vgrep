@@ -3,7 +3,7 @@ module Vgrep.Ansi
   , stripAnsi
   , parseAnsi
   , Vty.Attr ()
-  , module Vgrep.Ansi.Types
+  , module Vgrep.Ansi.Type
   )where
 
 import           Data.Bits    ((.|.))
@@ -11,7 +11,7 @@ import           Data.Text    (Text)
 import qualified Graphics.Vty as Vty
 
 import Vgrep.Ansi.Parser
-import Vgrep.Ansi.Types
+import Vgrep.Ansi.Type
 
 
 renderAnsi :: Formatted Vty.Attr -> Vty.Image
