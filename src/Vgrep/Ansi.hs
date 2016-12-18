@@ -1,9 +1,16 @@
 module Vgrep.Ansi
-  ( renderAnsi
+  ( Formatted ()
+  , empty
+  , bare
+  , format
+  , cat
+  , mapText
+
+  , renderAnsi
   , stripAnsi
   , parseAnsi
+
   , Vty.Attr ()
-  , module Vgrep.Ansi.Type
   )where
 
 import           Data.Bits    ((.|.))

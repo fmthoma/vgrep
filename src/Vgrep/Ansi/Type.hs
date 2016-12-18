@@ -1,7 +1,15 @@
-module Vgrep.Ansi.Type where
+module Vgrep.Ansi.Type
+  ( Formatted (..)
+  , empty
+  , bare
+  , format
+  , cat
+  , mapText
+  ) where
 
 
-import Data.Text (Text)
+import           Data.Text (Text)
+import qualified Data.Text as T
 
 
 data Formatted attr
@@ -33,6 +41,27 @@ instance (Eq attr, Monoid attr) => Monoid (Formatted attr) where
                                               Cat ts' -> Cat (ts' ++ ts)
                                               t'      -> Cat (t' : ts)
     formatted     `mappend` formatted'    = Cat [formatted, formatted']
+
+
+empty :: Formatted attr
+empty = Empty
+
+bare :: Text -> Formatted attr
+bare t
+    | T.null t  = empty
+    | otherwise = Text t
+
+format :: Monoid attr => attr -> Formatted attr -> Formatted attr
+format attr formatted
+    | Format attr' formatted' <- formatted
+                = format (attr `mappend` attr') formatted'
+    | otherwise = Format attr formatted
+
+cat :: (Eq attr, Monoid attr) => [Formatted attr] -> Formatted attr
+cat = \case
+    []  -> empty
+    [t] -> t
+    ts  -> mconcat ts
 
 
 mapText :: (Text -> Text) -> Formatted a -> Formatted a

@@ -3,7 +3,6 @@ module Vgrep.Ansi.Parser
   ( parseAnsi
   , ansiFormatted
   , attrChange
-  , module Vgrep.Ansi.Type
   ) where
 
 
@@ -33,11 +32,11 @@ ansiFormatted = go mempty
         let attr' = ac attr
         t  <- rawText
         rest <- go attr'
-        pure (Format attr' (Text t) <> rest)
+        pure (format attr' (bare t) <> rest)
     unformattedText attr = do
         t <- rawText
         rest <- go attr
-        pure (Format attr (Text t) <> rest)
+        pure (format attr (bare t) <> rest)
     rawText = takeTill (== '\ESC') <|> takeText
 
 
