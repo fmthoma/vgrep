@@ -41,11 +41,12 @@ bare t
     | T.null t  = empty
     | otherwise = Text (T.length t) t
 
-format :: Monoid attr => attr -> Formatted attr -> Formatted attr
+format :: (Eq attr, Monoid attr) => attr -> Formatted attr -> Formatted attr
 format attr formatted
+    | attr == mempty = formatted
     | Format l attr' formatted' <- formatted
-                = Format l (attr `mappend` attr') formatted'
-    | otherwise = format' attr formatted
+                     = Format l (attr `mappend` attr') formatted'
+    | otherwise      = format' attr formatted
 
 format' :: attr -> Formatted attr -> Formatted attr
 format' attr formatted = Format (length formatted) attr formatted

@@ -12,10 +12,10 @@ module Vgrep.Results
     , lineReference
     ) where
 
-import Data.Text (Text)
 import Control.Lens.TH
+import Data.Text       (Text)
 
-import Vgrep.Ansi (Formatted, Attr)
+import Vgrep.Ansi (Attr (), Formatted ())
 
 
 newtype File = File

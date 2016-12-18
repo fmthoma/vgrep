@@ -36,7 +36,7 @@ ansiFormatted = go mempty
     unformattedText attr = do
         t <- rawText
         rest <- go attr
-        pure (format attr (bare t) <> rest)
+        pure (bare t <> rest)
     rawText = takeTill (== '\ESC') <|> takeText
 
 

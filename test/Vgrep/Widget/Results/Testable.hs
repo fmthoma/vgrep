@@ -12,7 +12,12 @@ import           Data.Text       (Text)
 import qualified Data.Text       as Text
 import           Test.QuickCheck
 
-import Vgrep.Widget.Results
+import Vgrep.Ansi
+import Vgrep.Widget.Results          hiding
+    ( fileName
+    , lineNumber
+    , lineReference
+    )
 import Vgrep.Widget.Results.Internal
 
 instance Arbitrary Results where
@@ -42,12 +47,15 @@ arbitraryGrepResults :: Gen [FileLineReference]
 arbitraryGrepResults = fmap concat . infiniteListOf $ do
     fileName <- arbitraryText
     lineReferences <- do
-        matches <- listOf arbitraryText
+        matches <- listOf arbitraryFormattedText
         lineNumbers <- maybeLineNumbers (length matches)
         pure (zipWith LineReference lineNumbers matches)
     pure [ FileLineReference (File fileName) lineReference
              | lineReference <- lineReferences ]
 
+
+arbitraryFormattedText :: Gen (Formatted attr)
+arbitraryFormattedText = fmap bare arbitraryText
 
 arbitraryText :: Gen Text
 arbitraryText = fmap Text.pack arbitrary
