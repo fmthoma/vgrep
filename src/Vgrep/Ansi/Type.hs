@@ -5,6 +5,7 @@ module Vgrep.Ansi.Type
   , format
   , cat
   , mapText
+  , mapTextWithPos
   ) where
 
 import           Data.Foldable (foldl')
@@ -91,3 +92,18 @@ mapText f = \case
     Text _ t        -> bare (f t)
     Format _ attr t -> format' attr (mapText f t)
     Cat _ ts        -> cat' (map (mapText f) ts)
+
+mapTextWithPos :: (Int -> Text -> Text) -> Formatted a -> Formatted a
+mapTextWithPos f = go 0
+  where
+    go pos = \case
+        Empty           -> empty
+        Text _ t        -> bare (f pos t)
+        Format _ attr t -> format' attr (go pos t)
+        Cat _ ts        -> cat' (go2 pos ts)
+    go2 pos = \case
+        []     -> []
+        t : ts -> let t'  = go pos t
+                      l'  = length t'
+                      ts' = go2 (pos + l') ts
+                  in  t' : ts'

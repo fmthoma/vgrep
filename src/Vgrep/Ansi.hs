@@ -5,6 +5,7 @@ module Vgrep.Ansi
   , format
   , cat
   , mapText
+  , mapTextWithPos
 
   , renderAnsi
   , stripAnsi

@@ -25,26 +25,26 @@ expandForDisplay
     => f Text -> m (f Text)
 expandForDisplay inputLines = do
     tabWidth <- view (config . tabstop)
-    pure (fmap (expandText tabWidth) inputLines)
+    pure (fmap (expandText tabWidth 0) inputLines)
 
 -- | Expand a single line
 expandLineForDisplay :: MonadReader Environment m => Text -> m Text
 expandLineForDisplay inputLine = do
     tabWidth <- view (config . tabstop)
-    pure (expandText tabWidth inputLine)
+    pure (expandText tabWidth 0 inputLine)
 
 -- | Expand an ANSI formatted line
 expandFormattedLine :: MonadReader Environment m => Formatted a -> m (Formatted a)
 expandFormattedLine inputLine = do
     tabWidth <- view (config . tabstop)
-    pure (mapText (expandText tabWidth) inputLine) -- FIXME tabs!
+    pure (mapTextWithPos (expandText tabWidth) inputLine)
 
-expandText :: Int -> Text -> Text
-expandText tabWidth =
-    T.pack . expandSpecialChars . expandTabs tabWidth . T.unpack
+expandText :: Int -> Int -> Text -> Text
+expandText tabWidth pos =
+    T.pack . expandSpecialChars . expandTabs tabWidth pos . T.unpack
 
-expandTabs :: Int -> String -> String
-expandTabs tabWidth = go 0
+expandTabs :: Int -> Int -> String -> String
+expandTabs tabWidth = go
   where go pos (c:cs)
             | c == '\t' = let shift = tabWidth - (pos `mod` tabWidth)
                           in  replicate shift ' ' ++ go (pos + shift) cs
