@@ -5,7 +5,7 @@ module Vgrep.Widget.Results.Internal (
     -- * Lenses
     , currentFileName
     , currentLineNumber
-    , currentFileResultLineNumbers
+    , currentFileResults
 
     -- * Actions
     -- | In general, actions return @'Just' newResults@ if the buffer has
@@ -27,6 +27,8 @@ import           Control.Applicative
 import           Control.Lens.Compat (Getter, pre, to, view, _Just)
 import           Data.Foldable
 import           Data.Function
+import           Data.IntMap.Strict  (IntMap)
+import qualified Data.IntMap.Strict  as Map
 import           Data.List           (groupBy)
 import           Data.Maybe
 import           Data.Monoid
@@ -43,6 +45,7 @@ import qualified Data.Sequence       as S
 import           Data.Text           (Text)
 import           Prelude             hiding (reverse)
 
+import Vgrep.Ansi    (Attr (), Formatted ())
 import Vgrep.Results
 
 
@@ -210,14 +213,15 @@ current = \case
 
 -- | The line numbers with matches in the file of the currentliy selected
 -- item
-currentFileResultLineNumbers :: Getter Results [Int]
-currentFileResultLineNumbers =
-    to (mapMaybe (view lineNumber) . currentFile)
+currentFileResults :: Getter Results (IntMap (Formatted Attr))
+currentFileResults =
+    to (Map.fromList . lineReferencesInCurrentFile)
   where
-    currentFile = do
+    lineReferencesInCurrentFile = do
         let sameFileAs = (==) `on` view file
         inCurrentFile <- sameFileAs . fromJust . current
-        map (view lineReference) . filter inCurrentFile . bufferToList
+        results <- map (view lineReference) . filter inCurrentFile . bufferToList
+        pure [ (ln, txt) | LineReference (Just ln) txt <- results ]
 
 bufferToList :: Results -> [FileLineReference]
 bufferToList = \case

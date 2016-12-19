@@ -20,7 +20,7 @@ module Vgrep.Widget.Results (
     -- ** Lenses
     , currentFileName
     , currentLineNumber
-    , currentFileResultLineNumbers
+    , currentFileResults
 
     -- * Re-exports
     , module Vgrep.Results

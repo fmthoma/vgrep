@@ -197,8 +197,8 @@ loadSelectedFileToPager = do
             then readLinesFrom selectedFile
             else use inputLines
         displayContent <- expandForDisplay fileContent
-        highlightLineNumbers <- use (results . currentFileResultLineNumbers)
-        zoom pager (replaceBufferContents displayContent highlightLineNumbers)
+        highlightedLines <- use (results . currentFileResults)
+        zoom pager (replaceBufferContents displayContent highlightedLines)
         moveToSelectedLineNumber
         zoom widgetState (splitView FocusRight (1 % 3))
   where

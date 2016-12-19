@@ -13,9 +13,11 @@ module Vgrep.Widget.Pager.Internal (
     ) where
 
 import Control.Lens.Compat
+import Data.IntMap.Strict  (IntMap)
 import Data.Sequence       (Seq)
-import Data.Set            (Set)
 import Data.Text           (Text)
+
+import Vgrep.Ansi
 
 
 -- | Keeps track of the lines of text to display, the current scroll
@@ -24,7 +26,7 @@ data Pager = Pager
     { _column      :: Int
     -- ^ The current column offset for horizontal scrolling
 
-    , _highlighted :: Set Int
+    , _highlighted :: IntMap (Formatted Attr)
     -- ^ Set of line numbers that are highlighted (i.e. they contain matches)
 
     , _above       :: Seq Text
