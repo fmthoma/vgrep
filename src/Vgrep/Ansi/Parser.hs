@@ -11,16 +11,50 @@ import           Data.Attoparsec.Text
 import           Data.Bits
 import           Data.Monoid
 import           Data.Text               (Text)
+import qualified Data.Text               as T
 import           Graphics.Vty.Attributes (Attr)
 import qualified Graphics.Vty.Attributes as Vty
 
 import Vgrep.Ansi.Type
 
 
+{- |
+Directly parses ANSI formatted text using 'ansiFormatted'.
+
+Parsing ANSI color codes:
+
+>>> parseAnsi "Hello \ESC[31mWorld\ESC[m!"
+Cat 12 [Text 6 "Hello ",Format 5 (Attr {attrStyle = KeepCurrent, attrForeColor = SetTo (ISOColor 1), attrBackColor = KeepCurrent}) (Text 5 "World"),Text 1 "!"]
+
+More elaborate example with nested foreground and background colors:
+
+>>> parseAnsi "\ESC[40mHello \ESC[31mWorld\ESC[39m!"
+Cat 12 [Format 6 (Attr {attrStyle = KeepCurrent, attrForeColor = KeepCurrent, attrBackColor = SetTo (ISOColor 0)}) (Text 6 "Hello "),Format 5 (Attr {attrStyle = KeepCurrent, attrForeColor = SetTo (ISOColor 1), attrBackColor = SetTo (ISOColor 0)}) (Text 5 "World"),Format 1 (Attr {attrStyle = KeepCurrent, attrForeColor = KeepCurrent, attrBackColor = SetTo (ISOColor 0)}) (Text 1 "!")]
+
+Some CSI sequences are ignored, since they are not supported by 'Vty':
+
+>>> parseAnsi "\ESC[A\ESC[B\ESC[31mfoo\ESC[1K\ESC[mbar"
+Cat 6 [Format 3 (Attr {attrStyle = KeepCurrent, attrForeColor = SetTo (ISOColor 1), attrBackColor = KeepCurrent}) (Text 3 "foo"),Text 3 "bar"]
+
+Non-CSI sequences are not parsed, but included in the output:
+
+>>> parseAnsi "\ESC]710;font\007foo\ESC[31mbar"
+Cat 17 [Text 14 "\ESC]710;font\afoo",Format 3 (Attr {attrStyle = KeepCurrent, attrForeColor = SetTo (ISOColor 1), attrBackColor = KeepCurrent}) (Text 3 "bar")]
+
+-}
 parseAnsi :: Text -> Formatted Attr
 parseAnsi = either error id . parseOnly ansiFormatted
+-- The use of 'error' ↑ is safe: 'ansiFormatted' does not fail.
 
 
+-- | Parser for ANSI formatted text. Recognized escape sequences are the SGR
+-- (Select Graphic Rendition) sequences (@\ESC[…m@) supported by 'Attr'.
+-- Unsupported SGR sequences and other CSI escape sequences (@\ESC[…@) are
+-- ignored. Other (non-CSI) escape sequences are not parsed, and included in the
+-- output.
+--
+-- This parser does not fail, it will rather consume and return the remaining
+-- input as unformatted text.
 ansiFormatted :: Parser (Formatted Attr)
 ansiFormatted = go mempty
   where
@@ -28,18 +62,25 @@ ansiFormatted = go mempty
           <|> formattedText attr
           <|> unformattedText attr
     formattedText attr = do
-        ac <- attrChange
-        let attr' = ac attr
-        t  <- rawText
+        acs <- some attrChange
+        let attr' = foldr ($) attr acs
+        t <- rawText
         rest <- go attr'
         pure (format attr' (bare t) <> rest)
     unformattedText attr = do
         t <- rawText
         rest <- go attr
         pure (bare t <> rest)
-    rawText = takeTill (== '\ESC') <|> takeText
+    rawText = atLeastOneTill (== '\ESC') <|> endOfInput *> pure ""
+    atLeastOneTill = liftA2 T.cons anyChar . takeTill
 
 
+-- | Parser for ANSI CSI escape sequences. Recognized escape sequences are the
+-- SGR (Select Graphic Rendition) sequences (@\ESC[…m@) supported by 'Attr'.
+-- Unsupported SGR sequences and other CSI escape sequences (@\ESC[…@) are
+-- ignored by returning 'id'.
+--
+-- This parser fails when encountering any other (non-CSI) escape sequence.
 attrChange :: Parser (Attr -> Attr)
 attrChange = fmap csiToAttrChange csi
 
