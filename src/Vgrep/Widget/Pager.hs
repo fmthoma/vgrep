@@ -163,7 +163,7 @@ renderPager = do
 
     let renderLineNumber attr = padWithSpace attr . string attr . show
         renderLineText   attr = padWithSpace attr . cropScroll attr . text' attr
-        renderFormatted  attr = padWithSpace attr . cropScroll attr . renderAnsi . format attr
+        renderFormatted  attr = padWithSpace attr . cropScroll attr . renderAnsi attr
         padWithSpace attr txt = let space = string attr " "
                                 in  space <|> txt <|> space
         cropScroll attr = translateX (-startColumn)

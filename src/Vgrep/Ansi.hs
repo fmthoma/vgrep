@@ -28,15 +28,18 @@ import Vgrep.Ansi.Type
 
 
 -- | Converts ANSI formatted text to an 'Vty.Image'. Nested formattings are
--- combined with 'combineStyles'.
-renderAnsi :: Formatted Vty.Attr -> Vty.Image
-renderAnsi = go mempty
-  where
-    go attr = \case
-        Empty            -> Vty.emptyImage
-        Text _ t         -> Vty.text' attr t
-        Format _ attr' t -> go (combineStyles attr attr') t
-        Cat _ ts         -> Vty.horizCat (map (go attr) ts)
+-- combined with 'combineStyles'. The given 'Vty.Attr' is used as style for the
+-- root of the 'Formatted' tree.
+--
+-- >>> renderAnsi Vty.defAttr (bare "Text")
+-- HorizText "Text"@(Attr {attrStyle = Default, attrForeColor = Default, attrBackColor = Default},4,4)
+--
+renderAnsi :: Vty.Attr -> Formatted Vty.Attr -> Vty.Image
+renderAnsi attr = \case
+    Empty            -> Vty.emptyImage
+    Text _ t         -> Vty.text' attr t
+    Format _ attr' t -> renderAnsi (combineStyles attr attr') t
+    Cat _ ts         -> Vty.horizCat (map (renderAnsi attr) ts)
 
 -- | Strips away all formattings to plain 'Text'.
 stripAnsi :: Formatted a -> Text
