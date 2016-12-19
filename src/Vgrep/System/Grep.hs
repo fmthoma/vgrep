@@ -50,7 +50,7 @@ grep input = do
 
 grepPipe :: [String] -> Producer Text IO () -> Producer Text IO ()
 grepPipe args input = do
-    (hIn, hOut) <- createGrepProcess (lineBuffered : args)
+    (hIn, hOut) <- createGrepProcess (lineBuffered : colorized : args)
     _threadId <- liftIO . forkIO . runEffect $ input >-> textToHandle hIn
     streamResultsFrom hOut
 
@@ -66,6 +66,7 @@ recursiveGrep = do
                  : withLineNumber
                  : skipBinaryFiles
                  : lineBuffered
+                 : colorized
                  : args
     (_hIn, hOut) <- createGrepProcess grepArgs
     streamResultsFrom hOut
@@ -75,12 +76,13 @@ grepVersion = do
     (_, hOut) <- createGrepProcess [version]
     streamResultsFrom hOut
 
-recursive, withFileName, withLineNumber, skipBinaryFiles, lineBuffered, version :: String
+recursive, withFileName, withLineNumber, skipBinaryFiles, lineBuffered, colorized, version :: String
 recursive       = "-r"
 withFileName    = "-H"
 withLineNumber  = "-n"
 skipBinaryFiles = "-I"
 lineBuffered    = "--line-buffered"
+colorized       = "--color=always"
 version         = "--version"
 
 
