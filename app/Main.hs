@@ -134,12 +134,11 @@ eventHandler = \case
         :: MonadIO m
         => Text
         -> Next (VgrepT AppState m Redraw)
-    handleFeedResult line = Continue $ do
-        case parseLine line of
-            Just l  -> do
-                l' <- traverseOf (lineReference . lineText) expandFormattedLine l
-                zoom results (feedResult l')
-            Nothing -> pure Unchanged
+    handleFeedResult line = Continue $ case parseLine line of
+        Just l  -> do
+            l' <- traverseOf (lineReference . lineText) expandFormattedLine l
+            zoom results (feedResult l')
+        Nothing -> pure Unchanged
     handleFeedInput line = Continue $ do
         expandedLine <- expandLineForDisplay line
         modifying inputLines (|> expandedLine)

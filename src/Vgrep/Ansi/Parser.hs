@@ -51,13 +51,13 @@ csi = csiEscape >> liftA2 Csi (decimal `sepBy` char ';') anyChar
 
 data Csi = Csi [Int] Char
 
-csiToAttrChange :: Csi -> (Attr -> Attr)
+csiToAttrChange :: Csi -> Attr -> Attr
 csiToAttrChange = \case
     Csi [] 'm' -> const mempty
     Csi is 'm' -> foldMap attrChangeFromCode is
     _otherwise -> id
 
-attrChangeFromCode :: Int -> (Attr -> Attr)
+attrChangeFromCode :: Int -> Attr -> Attr
 attrChangeFromCode = \case
     0  -> const mempty
     1  -> withStyle Vty.bold
