@@ -2,8 +2,8 @@
 module Vgrep.Text (
     -- * Utilities for rendering 'Text'
     -- | Tabs and other characters below ASCII 32 cause problems in
-    -- "Graphics.Vty", so we expand them to readable characters, e.g. @\\r@
-    -- to @^13@. Tabs are expanded toh the configured 'tabWidth'.
+    -- "Graphics.Vty", so we expand them to readable characters, e.g. @\\r@ to
+    -- @^13@. Tabs are expanded to the configured 'Vgrep.Environment._tabstop'.
       expandForDisplay
     , expandLineForDisplay
     , expandFormattedLine

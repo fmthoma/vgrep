@@ -9,6 +9,8 @@ module Vgrep.Ansi.Type
   -- * Modifying the underlying text
   , mapText
   , mapTextWithPos
+  -- * Internal helpers
+  , fuse
   ) where
 
 import           Data.Foldable (foldl')
