@@ -168,7 +168,7 @@ renderLine width lineNumberWidth displayLine = do
     pure $ case displayLine of
         FileHeader (File f)
             -> renderFileHeader fileHeaderStyle f
-        Line         (LineReference n t)
+        Line (LineReference n t)
             -> horizCat [ renderLineNumber lineNumberStyle n
                         , renderLineText   resultLineStyle t ]
         SelectedLine (LineReference n t)
