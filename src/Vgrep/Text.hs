@@ -24,29 +24,39 @@ expandForDisplay
     :: (Functor f, MonadReader Environment m)
     => f Text -> m (f Text)
 expandForDisplay inputLines = do
-    tabWidth <- view (config . tabstop)
-    pure (fmap (expandText tabWidth 0) inputLines)
+    tw <- tabWidth
+    pure (fmap (expandText tw) inputLines)
 
 -- | Expand a single line
 expandLineForDisplay :: MonadReader Environment m => Text -> m Text
 expandLineForDisplay inputLine = do
-    tabWidth <- view (config . tabstop)
-    pure (expandText tabWidth 0 inputLine)
+    tw <- tabWidth
+    pure (expandText tw inputLine)
 
 -- | Expand an ANSI formatted line
 expandFormattedLine :: MonadReader Environment m => Formatted a -> m (Formatted a)
 expandFormattedLine inputLine = do
-    tabWidth <- view (config . tabstop)
-    pure (mapTextWithPos (expandText tabWidth) inputLine)
+    tw <- tabWidth
+    pure (mapTextWithPos (expandTextAt tw . Position) inputLine)
 
-expandText :: Int -> Int -> Text -> Text
-expandText tabWidth pos =
-    T.pack . expandSpecialChars . expandTabs tabWidth pos . T.unpack
 
-expandTabs :: Int -> Int -> String -> String
-expandTabs tabWidth = go
+newtype TabWidth = TabWidth Int
+newtype Position = Position Int
+
+tabWidth :: MonadReader Environment m => m TabWidth
+tabWidth = view (config . tabstop . to TabWidth)
+
+expandText :: TabWidth -> Text -> Text
+expandText tw = expandTextAt tw (Position 0)
+
+expandTextAt :: TabWidth -> Position -> Text -> Text
+expandTextAt tw pos =
+    T.pack . expandSpecialChars . expandTabs tw pos . T.unpack
+
+expandTabs :: TabWidth -> Position -> String -> String
+expandTabs (TabWidth tw) (Position p) = go p
   where go pos (c:cs)
-            | c == '\t' = let shift = tabWidth - (pos `mod` tabWidth)
+            | c == '\t' = let shift = tw - (pos `mod` tw)
                           in  replicate shift ' ' ++ go (pos + shift) cs
             | otherwise = c : go (pos + 1) cs
         go _ [] = []
