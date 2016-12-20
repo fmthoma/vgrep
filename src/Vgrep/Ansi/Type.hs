@@ -1,7 +1,7 @@
 module Vgrep.Ansi.Type
   ( Formatted (..)
   -- * Smart constructors
-  , empty
+  , emptyFormatted
   , bare
   , format
   , cat
@@ -47,8 +47,8 @@ instance (Eq attr, Monoid attr) => Monoid (Formatted attr) where
 
 
 -- | Smart constructor for an empty 'Formatted' text.
-empty :: Formatted attr
-empty = Empty
+emptyFormatted :: Formatted attr
+emptyFormatted = Empty
 
 -- | Smart constructor for bare (unformatted) text.
 --
@@ -60,7 +60,7 @@ empty = Empty
 --
 bare :: Text -> Formatted attr
 bare t
-    | T.null t  = empty
+    | T.null t  = emptyFormatted
     | otherwise = Text (T.length t) t
 
 -- | Adds formatting to a 'Formatted' text. The 'Eq' and 'Monoid' instances for
@@ -89,13 +89,13 @@ format' attr formatted = Format (length formatted) attr formatted
 -- of equal formatting are 'fuse'd together.
 cat :: (Eq attr, Monoid attr) => [Formatted attr] -> Formatted attr
 cat = \case
-    []  -> empty
+    []  -> emptyFormatted
     [t] -> t
-    ts  -> foldl' fuse empty ts
+    ts  -> foldl' fuse emptyFormatted ts
 
 cat' :: [Formatted attr] -> Formatted attr
 cat' = \case
-    []  -> empty
+    []  -> emptyFormatted
     [t] -> t
     ts  -> Cat (sum (fmap length ts)) ts
 
@@ -103,7 +103,7 @@ cat' = \case
 -- pieces of text with the same formatting, and flattening redundant
 -- applications of the same style.
 --
--- >>> empty `fuse` bare "Text"
+-- >>> emptyFormatted `fuse` bare "Text"
 -- Text 4 "Text"
 --
 -- >>> format (Just ()) (bare "Left") `fuse` format (Just ()) (bare "Right")
@@ -140,7 +140,7 @@ length = \case
 --
 mapText :: (Text -> Text) -> Formatted a -> Formatted a
 mapText f = \case
-    Empty           -> empty
+    Empty           -> emptyFormatted
     Text _ t        -> bare (f t)
     Format _ attr t -> format' attr (mapText f t)
     Cat _ ts        -> cat' (map (mapText f) ts)
@@ -152,7 +152,7 @@ mapTextWithPos :: (Int -> Text -> Text) -> Formatted a -> Formatted a
 mapTextWithPos f = go 0
   where
     go pos = \case
-        Empty           -> empty
+        Empty           -> emptyFormatted
         Text _ t        -> bare (f pos t)
         Format _ attr t -> format' attr (go pos t)
         Cat _ ts        -> cat' (go2 pos ts)

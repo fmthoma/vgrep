@@ -3,7 +3,7 @@ module Vgrep.Ansi (
   -- * ANSI formatted text
     Formatted ()
   -- ** Smart constructors
-  , empty
+  , emptyFormatted
   , bare
   , format
   , cat
