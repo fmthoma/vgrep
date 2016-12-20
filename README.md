@@ -6,15 +6,24 @@
 ## Usage
 
 * As a pager:
-```bash
-grep -rn data /some/path | vgrep  # -n for line numbers
-```
+
+    ```bash
+    grep -rn data /some/path | vgrep  # -n for line numbers
+    ```
 
 * As a drop-in replacement for `grep`:
-```bash
-vgrep data /some/path                  # recursive by default
-vgrep data /some/path | vgrep default  # works with pipes, too
-```
+
+    ```bash
+    vgrep data /some/path                  # recursive by default
+    vgrep data /some/path | vgrep default  # works with pipes, too
+    ```
+
+* With a `git` alias defined in your `~/.gitconfig`:
+
+    ```bash
+    git config --global alias.vgrep '!__git_vgrep () { git grep --color=always "$@" | vgrep; }; __git_vgrep'
+    git vgrep data
+    ```
 
 ## Installation
 
