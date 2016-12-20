@@ -60,17 +60,12 @@ ansiFormatted = go mempty
   where
     go attr = endOfInput *> pure mempty
           <|> formattedText attr
-          <|> unformattedText attr
     formattedText attr = do
-        acs <- some attrChange
+        acs <- many attrChange
         let attr' = foldr ($) attr acs
         t <- rawText
         rest <- go attr'
         pure (format attr' (bare t) <> rest)
-    unformattedText attr = do
-        t <- rawText
-        rest <- go attr
-        pure (bare t <> rest)
     rawText = atLeastOneTill (== '\ESC') <|> endOfInput *> pure ""
     atLeastOneTill = liftA2 T.cons anyChar . takeTill
 
