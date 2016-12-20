@@ -5,7 +5,7 @@
 sudo: false
 
 # Choose a lightweight base image; we provide our own build tools.
-language: c
+language: generic
 
 # GHC depends on GMP. You can add other dependencies here as well.
 addons:
@@ -15,13 +15,16 @@ addons:
 
 # The different configurations we want to test. You could also do things like
 # change flags or use --stack-yaml to point to a different file.
-env:
-    - ARGS=""
-    # - ARGS="--resolver lts-3"
-    # - ARGS="--resolver lts-4"
-    # - ARGS="--resolver lts-5"
-    # - ARGS="--resolver lts"
-    # - ARGS="--resolver nightly"
+matrix:
+    fast_finish: true
+    include:
+        - env: ARGS=""
+        - env: ARGS="--resolver lts-5"
+        - env: ARGS="--resolver lts-6"
+        - env: ARGS="--resolver lts-7"
+        - env: ARGS="--resolver lts"
+    allow_failures:
+        - env: ARGS="--resolver nightly"
 
 before_install:
     # Download and unpack the stack executable
@@ -29,8 +32,8 @@ before_install:
     - export PATH=$HOME/.local/bin:$PATH
     - travis_retry curl -L https://www.stackage.org/stack/linux-x86_64 | tar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'
 
-    - stack --no-terminal setup
-    - stack --no-terminal install hlint hscolour
+    - stack $ARGS --no-terminal setup
+    - stack $ARGS --no-terminal install hlint hscolour
 
 script:
     - stack $ARGS --no-terminal build --pedantic
