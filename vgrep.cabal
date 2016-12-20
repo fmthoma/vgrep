@@ -21,6 +21,7 @@ category:            Web
 build-type:          Simple
 extra-source-files:  .stylish-haskell.yaml
                    , .travis.yml
+                   , CHANGELOG.md
                    , README.md
                    , config.yaml.example
                    , help.txt
