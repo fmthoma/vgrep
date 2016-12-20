@@ -1,5 +1,6 @@
 module Vgrep.Ansi.Type
   ( Formatted (..)
+  , AnsiFormatted
   -- * Smart constructors
   , emptyFormatted
   , bare
@@ -14,6 +15,7 @@ import           Data.Foldable (foldl')
 import           Data.Monoid   ((<>))
 import           Data.Text     (Text)
 import qualified Data.Text     as T
+import           Graphics.Vty  (Attr)
 import           Prelude       hiding (length)
 
 
@@ -44,6 +46,10 @@ instance Functor Formatted where
 instance (Eq attr, Monoid attr) => Monoid (Formatted attr) where
     mempty = Empty
     mappend = fuse
+
+
+-- | Type alias for Text formatted with 'Attr' from "Graphics.Vty".
+type AnsiFormatted = Formatted Attr
 
 
 -- | Smart constructor for an empty 'Formatted' text.

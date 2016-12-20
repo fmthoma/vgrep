@@ -1,7 +1,8 @@
 -- | Utilities for printing ANSI formatted text.
 module Vgrep.Ansi (
   -- * ANSI formatted text
-    Formatted ()
+    AnsiFormatted
+  , Formatted ()
   -- ** Smart constructors
   , emptyFormatted
   , bare
@@ -14,18 +15,13 @@ module Vgrep.Ansi (
   -- * Converting ANSI formatted text
   , renderAnsi
   , stripAnsi
+  ) where
 
-  -- * Attributes
-  , Vty.Attr ()
-  , combineStyles
-  )where
-
-import           Data.Bits    ((.|.))
-import           Data.Monoid  ((<>))
 import           Data.Text    (Text)
 import qualified Graphics.Vty as Vty
 
 import Vgrep.Ansi.Type
+import Vgrep.Ansi.Vty.Attributes
 
 
 -- | Converts ANSI formatted text to an 'Vty.Image'. Nested formattings are
@@ -35,7 +31,7 @@ import Vgrep.Ansi.Type
 -- >>> renderAnsi Vty.defAttr (bare "Text")
 -- HorizText "Text"@(Attr {attrStyle = Default, attrForeColor = Default, attrBackColor = Default},4,4)
 --
-renderAnsi :: Vty.Attr -> Formatted Vty.Attr -> Vty.Image
+renderAnsi :: Attr -> AnsiFormatted -> Vty.Image
 renderAnsi attr = \case
     Empty            -> Vty.emptyImage
     Text _ t         -> Vty.text' attr t
@@ -49,15 +45,3 @@ stripAnsi = \case
     Text _ t     -> t
     Format _ _ t -> stripAnsi t
     Cat _ ts     -> foldMap stripAnsi ts
-
--- | Combines two 'Vty.Attr's. This differs from 'mappend' from the 'Monoid'
--- instance of 'Vty.Attr' in that 'Vty.Style's are combined rather than
--- overwritten.
-combineStyles :: Vty.Attr -> Vty.Attr -> Vty.Attr
-combineStyles l r = Vty.Attr
-    { Vty.attrStyle = case (Vty.attrStyle l, Vty.attrStyle r) of
-        (Vty.SetTo l', Vty.SetTo r') -> Vty.SetTo (l' .|. r')
-        (l', r')                     -> l' <> r'
-    , Vty.attrForeColor = Vty.attrForeColor l <> Vty.attrForeColor r
-    , Vty.attrBackColor = Vty.attrBackColor l <> Vty.attrBackColor r
-    }

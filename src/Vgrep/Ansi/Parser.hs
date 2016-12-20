@@ -42,7 +42,7 @@ Non-CSI sequences are not parsed, but included in the output:
 Cat 17 [Text 14 "\ESC]710;font\afoo",Format 3 (Attr {attrStyle = KeepCurrent, attrForeColor = SetTo (ISOColor 1), attrBackColor = KeepCurrent}) (Text 3 "bar")]
 
 -}
-parseAnsi :: Text -> Formatted Attr
+parseAnsi :: Text -> AnsiFormatted
 parseAnsi = either error id . parseOnly ansiFormatted
 -- The use of 'error' ↑ is safe: 'ansiFormatted' does not fail.
 
@@ -55,14 +55,14 @@ parseAnsi = either error id . parseOnly ansiFormatted
 --
 -- This parser does not fail, it will rather consume and return the remaining
 -- input as unformatted text.
-ansiFormatted :: Parser (Formatted Attr)
+ansiFormatted :: Parser AnsiFormatted
 ansiFormatted = go mempty
   where
-    go :: Attr -> Parser (Formatted Attr)
+    go :: Attr -> Parser AnsiFormatted
     go attr = endOfInput *> pure mempty
           <|> formattedText attr
 
-    formattedText :: Attr -> Parser (Formatted Attr)
+    formattedText :: Attr -> Parser AnsiFormatted
     formattedText attr = do
         acs <- many attrChange
         let attr' = foldr ($) attr acs

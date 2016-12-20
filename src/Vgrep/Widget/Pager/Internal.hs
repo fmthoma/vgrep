@@ -26,7 +26,7 @@ data Pager = Pager
     { _column      :: Int
     -- ^ The current column offset for horizontal scrolling
 
-    , _highlighted :: IntMap (Formatted Attr)
+    , _highlighted :: IntMap AnsiFormatted
     -- ^ Set of line numbers that are highlighted (i.e. they contain matches)
 
     , _above       :: Seq Text

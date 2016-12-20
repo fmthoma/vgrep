@@ -15,7 +15,7 @@ module Vgrep.Results
 import Control.Lens.TH
 import Data.Text       (Text)
 
-import Vgrep.Ansi (Attr (), Formatted ())
+import Vgrep.Ansi (AnsiFormatted)
 
 
 newtype File = File
@@ -26,7 +26,7 @@ makeLenses ''File
 
 data LineReference = LineReference
     { _lineNumber :: Maybe Int
-    , _lineText   :: Formatted Attr
+    , _lineText   :: AnsiFormatted
     } deriving (Eq, Show)
 
 makeLenses ''LineReference

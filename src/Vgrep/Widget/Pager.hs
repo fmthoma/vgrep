@@ -90,7 +90,7 @@ pagerKeyBindings = dispatchMap $ fromList
 replaceBufferContents
     :: Monad m
     => Seq Text -- ^ Lines of text to display in the pager (starting with line 1)
-    -> Map.IntMap (Formatted Attr) -- ^ Line numbers and formatted text for highlighted lines
+    -> Map.IntMap AnsiFormatted -- ^ Line numbers and formatted text for highlighted lines
     -> VgrepT Pager m ()
 replaceBufferContents newContent newHighlightedLines = put initPager
     { _visible     = newContent

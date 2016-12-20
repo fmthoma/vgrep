@@ -41,6 +41,7 @@ library
                      , Vgrep.Ansi
                      , Vgrep.Ansi.Parser
                      , Vgrep.Ansi.Type
+                     , Vgrep.Ansi.Vty.Attributes
                      , Vgrep.App
                      , Vgrep.Environment
                      , Vgrep.Environment.Config

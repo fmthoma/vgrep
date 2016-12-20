@@ -45,7 +45,7 @@ import qualified Data.Sequence       as S
 import           Data.Text           (Text)
 import           Prelude             hiding (reverse)
 
-import Vgrep.Ansi    (Attr (), Formatted ())
+import Vgrep.Ansi    (AnsiFormatted)
 import Vgrep.Results
 
 
@@ -213,7 +213,7 @@ current = \case
 
 -- | The line numbers with matches in the file of the currentliy selected
 -- item
-currentFileResults :: Getter Results (IntMap (Formatted Attr))
+currentFileResults :: Getter Results (IntMap AnsiFormatted)
 currentFileResults =
     to (Map.fromList . lineReferencesInCurrentFile)
   where

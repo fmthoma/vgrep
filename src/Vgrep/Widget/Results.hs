@@ -188,7 +188,7 @@ renderLine width lineNumberWidth displayLine = do
                           . justifyRight lineNumberWidth
                           . maybe "" (T.pack . show)
 
-    renderLineText :: Attr -> Formatted Attr -> Image
+    renderLineText :: Attr -> AnsiFormatted -> Image
     renderLineText attr txt = cropRight (width - lineNumberWidth) . renderAnsi attr $
         cat [ bare " " , txt , bare (T.replicate width " ") ]
 
