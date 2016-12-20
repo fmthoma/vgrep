@@ -58,15 +58,22 @@ parseAnsi = either error id . parseOnly ansiFormatted
 ansiFormatted :: Parser (Formatted Attr)
 ansiFormatted = go mempty
   where
+    go :: Attr -> Parser (Formatted Attr)
     go attr = endOfInput *> pure mempty
           <|> formattedText attr
+
+    formattedText :: Attr -> Parser (Formatted Attr)
     formattedText attr = do
         acs <- many attrChange
         let attr' = foldr ($) attr acs
         t <- rawText
         rest <- go attr'
         pure (format attr' (bare t) <> rest)
+
+    rawText :: Parser Text
     rawText = atLeastOneTill (== '\ESC') <|> endOfInput *> pure ""
+
+    atLeastOneTill :: (Char -> Bool) -> Parser Text
     atLeastOneTill = liftA2 T.cons anyChar . takeTill
 
 
