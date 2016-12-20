@@ -17,36 +17,36 @@ import Vgrep.Environment.Config.Sources
 --------------------------------------------------------------------------
 
 data Config = Config
-    { _colors  :: Colors
+    { _colors :: Colors
     -- ^ Color configuration
 
     , _tabstop :: Int
     -- ^ Tabstop width (default: 8)
 
-    , _editor  :: String
+    , _editor :: String
     -- ^ Executable for @e@ key (default: environment variable @$EDITOR@,
     -- or @vi@ if @$EDITOR@ is not set)
 
     } deriving (Eq, Show)
 
 data Colors = Colors
-    { _lineNumbers   :: Attr
+    { _lineNumbers :: Attr
     -- ^ Line numbers (default: blue)
 
     , _lineNumbersHl :: Attr
     -- ^ Highlighted line numbers (default: bold blue)
 
-    , _normal        :: Attr
+    , _normal :: Attr
     -- ^ Normal text (default: terminal default)
 
-    , _normalHl      :: Attr
+    , _normalHl :: Attr
     -- ^ Highlighted text (default: bold)
 
-    , _fileHeaders   :: Attr
+    , _fileHeaders :: Attr
     -- ^ File names in results view (default: terminal default color on
     -- green background)
 
-    , _selected      :: Attr
+    , _selected :: Attr
     -- ^ Selected entry (default: terminal default, inverted)
 
     } deriving (Eq, Show)
