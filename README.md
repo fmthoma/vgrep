@@ -36,7 +36,7 @@ stack install vgrep
 ```
 This will install `vgrep` to your `~/.local/bin` directory.
 
-### From source
+### From [source][4]
 
 ```bash
 git clone https://github.com/fmthoma/vgrep.git
@@ -48,3 +48,4 @@ stack install
 [1]: https://github.com/fmthoma/vgrep/releases/latest
 [2]: https://hackage.haskell.org/packages/vgrep
 [3]: https://github.com/commercialhaskell/stack/blob/master/doc/install_and_upgrade.md
+[4]: https://github.com/fmthoma/vgrep
