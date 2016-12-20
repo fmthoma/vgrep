@@ -33,10 +33,10 @@ before_install:
     - stack --no-terminal install hlint hscolour
 
 script:
-    - stack $ARGS --no-terminal build --ghc-options -Werror
+    - stack $ARGS --no-terminal build --pedantic
 
     # Tests
-    - stack $ARGS --no-terminal test --ghc-options -Werror
+    - stack $ARGS --no-terminal test --pedantic
     - stack $ARGS --no-terminal haddock --no-haddock-deps
 
     - stack $ARGS --no-terminal sdist
