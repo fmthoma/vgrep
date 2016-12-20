@@ -21,6 +21,7 @@ module Vgrep.Ansi (
   )where
 
 import           Data.Bits    ((.|.))
+import           Data.Monoid  ((<>))
 import           Data.Text    (Text)
 import qualified Graphics.Vty as Vty
 
@@ -56,7 +57,7 @@ combineStyles :: Vty.Attr -> Vty.Attr -> Vty.Attr
 combineStyles l r = Vty.Attr
     { Vty.attrStyle = case (Vty.attrStyle l, Vty.attrStyle r) of
         (Vty.SetTo l', Vty.SetTo r') -> Vty.SetTo (l' .|. r')
-        (l', r')                     -> mappend l' r'
-    , Vty.attrForeColor = mappend (Vty.attrForeColor l) (Vty.attrForeColor r)
-    , Vty.attrBackColor = mappend (Vty.attrBackColor l) (Vty.attrBackColor r)
+        (l', r')                     -> l' <> r'
+    , Vty.attrForeColor = Vty.attrForeColor l <> Vty.attrForeColor r
+    , Vty.attrBackColor = Vty.attrBackColor l <> Vty.attrBackColor r
     }

@@ -11,6 +11,7 @@ module Vgrep.Ansi.Type
   ) where
 
 import           Data.Foldable (foldl')
+import           Data.Monoid   ((<>))
 import           Data.Text     (Text)
 import qualified Data.Text     as T
 import           Prelude       hiding (length)
@@ -78,7 +79,7 @@ format :: (Eq attr, Monoid attr) => attr -> Formatted attr -> Formatted attr
 format attr formatted
     | attr == mempty = formatted
     | Format l attr' formatted' <- formatted
-                     = Format l (attr `mappend` attr') formatted'
+                     = Format l (attr <> attr') formatted'
     | otherwise      = format' attr formatted
 
 format' :: attr -> Formatted attr -> Formatted attr
@@ -112,9 +113,9 @@ fuse :: (Eq attr, Monoid attr) => Formatted attr -> Formatted attr -> Formatted 
 fuse left right = case (left, right) of
     (Empty,           formatted)    -> formatted
     (formatted,       Empty)        -> formatted
-    (Text l t,        Text l' t')   -> Text (l + l') (t `mappend` t')
+    (Text l t,        Text l' t')   -> Text (l + l') (t <> t')
     (Format l attr t, Format l' attr' t')
-        | attr' == attr             -> Format (l + l') attr (t `mappend` t')
+        | attr' == attr             -> Format (l + l') attr (t <> t')
 
     (Cat l ts,        Cat l' ts')   -> Cat (l + l') (ts ++ ts')
     (Cat l ts,        formatted)    -> Cat (l + length formatted) (ts ++ [formatted])
