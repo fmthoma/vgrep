@@ -38,7 +38,7 @@ withEvThread sink vty =
 
 -- | Passes a 'Vty' instance to the action and shuts it down properly after the
 -- action finishes. The 'Vty.inputFd' and 'Vty.outputFd' handles are connected
--- to @/dev/tty@ (see 'tty').
+-- to @\/dev\/tty@ (see 'tty').
 withVty :: (Vty -> IO a) -> IO a
 -- | Like 'withVty', but lifted to @'VgrepT' s 'IO'@.
 withVgrepVty :: (Vty -> VgrepT s IO a) -> VgrepT s IO a
@@ -51,9 +51,8 @@ withVgrepVty :: (Vty -> VgrepT s IO a) -> VgrepT s IO a
         , \action -> withVgrepTty $ \fd -> vgrepBracket (initVty fd) Vty.shutdown action)
 
 
--- | Passes two file descriptors for read and write access to @/dev/tty@ to the
--- action. After the action has finished, the file descriptors will be closed
--- again.
+-- | Passes two file descriptors for read and write access to @\/dev\/tty@ to
+-- the action, and closes them after the action has finished.
 withTty :: (Fd -> IO a) -> IO a
 -- | Like 'withTty', but lifted to @'VgrepT' s 'IO'@.
 withVgrepTty :: (Fd -> VgrepT s IO a) -> VgrepT s IO a
@@ -64,7 +63,7 @@ withVgrepTty :: (Fd -> VgrepT s IO a) -> VgrepT s IO a
     ignoreIOException :: IOException -> IO ()
     ignoreIOException _ = pure ()
 
--- | Opens @/dev/tty@ in Read/Write mode. Should be connected to the @stdin@ and
+-- | Opens @\/dev\/tty@ in Read/Write mode. Should be connected to the @stdin@ and
 -- @stdout@ of a GUI process (e. g. 'Vty.Vty').
 tty :: IO Fd
 tty = openFd "/dev/tty" ReadWrite Nothing defaultFileFlags
