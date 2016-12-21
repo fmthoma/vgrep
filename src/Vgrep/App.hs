@@ -6,8 +6,8 @@ module Vgrep.App
     , runApp, runApp_
 
     -- * Auxiliary definitions
-    , ttyIn
-    , ttyOut
+    , withTty
+    , withVgrepTty
     ) where
 
 import           Control.Concurrent.Async
@@ -86,20 +86,19 @@ contramap f (Output a) = Output (a . f)
 -- once 'Vty.Vty' in order to determine the display region, and shut it
 -- down again immediately.
 displayRegionHack :: IO DisplayRegion
-displayRegionHack = bracket initVty Vty.shutdown $ \vty ->
-        Vty.displayBounds (Vty.outputIface vty)
+displayRegionHack = withVty (Vty.displayBounds . Vty.outputIface)
 
 appEventLoop :: forall e s. App e s -> Input e -> Output e -> VgrepT s IO ()
 appEventLoop app evSource evSink = startEventLoop >>= suspendAndResume
 
   where
     startEventLoop :: VgrepT s IO Interrupt
-    startEventLoop = withVty vtyEventSink $ \vty -> do
+    startEventLoop = withVgrepVty $ \vty -> withEvThread vtyEventSink vty $ do
         refresh vty
         runEffect ((fromInput evSource >> pure Halt) >-> eventLoop vty)
 
     continueEventLoop :: VgrepT s IO Interrupt
-    continueEventLoop = withVty vtyEventSink $ \vty -> do
+    continueEventLoop = withVgrepVty $ \vty -> withEvThread vtyEventSink vty $ do
         refresh vty
         runEffect ((fromInput evSource >> pure Halt) >-> eventLoop vty)
 
@@ -133,30 +132,45 @@ appEventLoop app evSource evSink = startEventLoop >>= suspendAndResume
 -- the application stays responsive even in case of event queue congestion.
 data EventPriority = User | System deriving (Eq, Ord, Enum)
 
-withVty :: Consumer Vty.Event IO () -> (Vty -> VgrepT s IO a) -> VgrepT s IO a
-withVty sink action = vgrepBracket before after (\(vty, _) -> action vty)
+
+-- | Spawns a thread parallel to the action that listens to 'Vty' events and
+-- redirects them to the 'Consumer'.
+withEvThread :: Consumer Vty.Event IO () -> Vty -> VgrepT s IO a -> VgrepT s IO a
+withEvThread sink vty =
+    vgrepBracket createEvThread cancel . const
   where
-    before = do
-        vty <- initVty
-        evThread <- (async . runEffect) $
-            lift (Vty.nextEvent vty) >~ sink
-        pure (vty, evThread)
-    after (vty, evThread) = do
-        cancel evThread
-        Vty.shutdown vty
+    createEvThread = (async . runEffect) $ lift (Vty.nextEvent vty) >~ sink
 
 
-initVty :: IO Vty
-initVty = do
-    cfg <- Vty.standardIOConfig
-    fdIn  <- ttyIn
-    fdOut <- ttyOut
-    Vty.mkVty (cfg { Vty.inputFd = Just fdIn , Vty.outputFd = Just fdOut })
+-- | Passes a 'Vty' instance to the action and shuts it down properly after the
+-- action finishes. The 'Vty.inputFd' and 'Vty.outputFd' handles are connected
+-- to @/dev/tty@ (see 'tty').
+withVty :: (Vty -> IO a) -> IO a
+-- | Like 'withVty', but lifted to @'VgrepT' s 'IO'@.
+withVgrepVty :: (Vty -> VgrepT s IO a) -> VgrepT s IO a
+(withVty, withVgrepVty) =
+    let initVty fd = do
+            cfg <- Vty.standardIOConfig
+            Vty.mkVty cfg { Vty.inputFd  = Just fd
+                          , Vty.outputFd = Just fd }
+    in  ( \action -> withTty      $ \fd -> bracket      (initVty fd) Vty.shutdown action
+        , \action -> withVgrepTty $ \fd -> vgrepBracket (initVty fd) Vty.shutdown action)
 
-ttyIn, ttyOut :: IO Fd
--- | Opens @/dev/tty@ read-only. Should be connected to the @stdin@ of
--- a GUI process (e. g. 'Vty.Vty').
-ttyIn  = openFd "/dev/tty" ReadOnly  Nothing defaultFileFlags
--- | Opens @/dev/tty@ write-only. Should be connected to the @stdout@ of
--- a GUI process (e. g. 'Vty.Vty').
-ttyOut = openFd "/dev/tty" WriteOnly Nothing defaultFileFlags
+
+-- | Passes two file descriptors for read and write access to @/dev/tty@ to the
+-- action. After the action has finished, the file descriptors will be closed
+-- again.
+withTty :: (Fd -> IO a) -> IO a
+-- | Like 'withTty', but lifted to @'VgrepT' s 'IO'@.
+withVgrepTty :: (Fd -> VgrepT s IO a) -> VgrepT s IO a
+(withTty, withVgrepTty) = (bracket before after, vgrepBracket before after)
+  where
+    before = tty
+    after fd = closeFd fd `catch` ignoreIOException
+    ignoreIOException :: IOException -> IO ()
+    ignoreIOException _ = pure ()
+
+-- | Opens @/dev/tty@ in Read/Write mode. Should be connected to the @stdin@ and
+-- @stdout@ of a GUI process (e. g. 'Vty.Vty').
+tty :: IO Fd
+tty = openFd "/dev/tty" ReadWrite Nothing defaultFileFlags
