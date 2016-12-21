@@ -43,6 +43,7 @@ library
                      , Vgrep.Ansi.Type
                      , Vgrep.Ansi.Vty.Attributes
                      , Vgrep.App
+                     , Vgrep.App.Internal
                      , Vgrep.Environment
                      , Vgrep.Environment.Config
                      , Vgrep.Environment.Config.Monoid
