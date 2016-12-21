@@ -24,7 +24,7 @@ module Vgrep.Widget.Results.Internal (
     ) where
 
 import           Control.Applicative
-import           Control.Lens        (Getter, pre, to, _Just)
+import           Control.Lens.Compat (Getter, pre, to, _Just)
 import           Data.Foldable
 import           Data.Function
 import           Data.List           (groupBy)

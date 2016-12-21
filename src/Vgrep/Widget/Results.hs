@@ -27,7 +27,7 @@ module Vgrep.Widget.Results (
     ) where
 
 import           Control.Applicative
-import           Control.Lens
+import           Control.Lens.Compat
 import           Control.Monad.State.Extended
 import           Data.Foldable
 import           Data.Maybe

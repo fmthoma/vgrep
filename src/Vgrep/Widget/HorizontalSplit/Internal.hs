@@ -19,8 +19,8 @@ module Vgrep.Widget.HorizontalSplit.Internal (
     , (%)
     ) where
 
-import Control.Lens
-import Data.Ratio   ((%))
+import Control.Lens.Compat
+import Data.Ratio          ((%))
 
 
 -- $setup

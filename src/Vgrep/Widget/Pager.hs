@@ -15,7 +15,7 @@ module Vgrep.Widget.Pager (
     , replaceBufferContents
     ) where
 
-import           Control.Lens         hiding ((:<), (:>))
+import           Control.Lens.Compat  hiding ((:<), (:>))
 import           Data.Foldable
 import           Data.Sequence        (Seq, (><))
 import qualified Data.Sequence        as Seq

@@ -19,7 +19,7 @@ module Test.Case (
     , TestTree ()
     ) where
 
-import Control.Lens
+import Control.Lens.Compat
 import Test.QuickCheck.Monadic
 import Test.Tasty
 import Test.Tasty.QuickCheck

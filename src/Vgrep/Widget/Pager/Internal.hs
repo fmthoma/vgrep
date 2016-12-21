@@ -12,10 +12,10 @@ module Vgrep.Widget.Pager.Internal (
     , highlighted
     ) where
 
-import Control.Lens
-import Data.Sequence (Seq)
-import Data.Set      (Set)
-import Data.Text     (Text)
+import Control.Lens.Compat
+import Data.Sequence       (Seq)
+import Data.Set            (Set)
+import Data.Text           (Text)
 
 
 -- | Keeps track of the lines of text to display, the current scroll

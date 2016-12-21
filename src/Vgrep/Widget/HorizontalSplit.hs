@@ -22,9 +22,9 @@ module Vgrep.Widget.HorizontalSplit (
     , rightWidgetFocused
     ) where
 
-import Control.Lens
+import Control.Lens.Compat
 import Data.Monoid
-import Graphics.Vty.Image hiding (resize)
+import Graphics.Vty.Image  hiding (resize)
 import Graphics.Vty.Input
 
 import Vgrep.Environment
