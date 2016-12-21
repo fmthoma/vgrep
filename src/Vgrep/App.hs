@@ -4,10 +4,6 @@
 module Vgrep.App
     ( App(..)
     , runApp, runApp_
-
-    -- * Auxiliary definitions
-    , withTty
-    , withVgrepTty
     ) where
 
 import           Control.Concurrent.Async
@@ -97,11 +93,6 @@ appEventLoop app evSource evSink = startEventLoop >>= suspendAndResume
         refresh vty
         runEffect ((fromInput evSource >> pure Halt) >-> eventLoop vty)
 
-    continueEventLoop :: VgrepT s IO Interrupt
-    continueEventLoop = withVgrepVty $ \vty -> withEvThread vtyEventSink vty $ do
-        refresh vty
-        runEffect ((fromInput evSource >> pure Halt) >-> eventLoop vty)
-
     eventLoop :: Vty -> Consumer e (VgrepT s IO) Interrupt
     eventLoop vty = go
       where
@@ -120,7 +111,7 @@ appEventLoop app evSource evSink = startEventLoop >>= suspendAndResume
         Halt                  -> pure ()
         Suspend outsideAction -> do env <- ask
                                     outsideAction env
-                                    continueEventLoop >>= suspendAndResume
+                                    startEventLoop >>= suspendAndResume
 
     refresh :: Vty -> VgrepT s IO ()
     refresh vty = render app >>= lift . Vty.update vty
