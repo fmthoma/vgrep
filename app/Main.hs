@@ -4,7 +4,7 @@
 module Main (main) where
 
 import           Control.Concurrent.Async
-import           Control.Lens
+import           Control.Lens.Compat
 import           Control.Monad.Reader
 import           Data.Maybe
 import           Data.Monoid

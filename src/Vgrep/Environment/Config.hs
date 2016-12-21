@@ -2,7 +2,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Vgrep.Environment.Config where
 
-import Control.Lens
+import Control.Lens.Compat
 import Control.Monad.IO.Class
 import Data.Maybe
 import Data.Monoid

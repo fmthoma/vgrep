@@ -2,7 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 module Test.Vgrep.Widget.Pager (test) where
 
-import           Control.Lens
+import           Control.Lens.Compat
 import qualified Data.Sequence           as S
 import           Data.Text.Testable      ()
 import qualified Data.Text.Testable      as T

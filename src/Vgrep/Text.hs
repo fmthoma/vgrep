@@ -8,7 +8,7 @@ module Vgrep.Text (
     , expandLineForDisplay
     ) where
 
-import           Control.Lens
+import           Control.Lens.Compat
 import           Control.Monad.Reader.Class
 import           Data.Char
 import           Data.Text                  (Text)

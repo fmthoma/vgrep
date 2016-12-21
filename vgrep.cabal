@@ -35,6 +35,7 @@ library
   default-extensions:  LambdaCase
                      , MultiWayIf
   exposed-Modules:     Control.Concurrent.STM.TPQueue
+                     , Control.Lens.Compat
                      , Control.Monad.State.Extended
                      , Pipes.Concurrent.PQueue
                      , Vgrep.App

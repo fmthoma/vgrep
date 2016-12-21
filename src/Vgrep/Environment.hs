@@ -11,7 +11,7 @@ module Vgrep.Environment
     , module Graphics.Vty.Prelude
     ) where
 
-import Control.Lens
+import Control.Lens.Compat
 import Graphics.Vty.Prelude
 
 import Vgrep.Environment.Config
