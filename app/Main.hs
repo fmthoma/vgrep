@@ -226,7 +226,7 @@ invokeEditor state = case views (results . currentFileName) (fmap T.unpack) stat
 
 exec :: MonadIO io => FilePath -> [String] -> io ()
 exec command args = liftIO $ do
-    (_,_,_,h) <- createProcess $ (proc command args)
+    (_,_,_,h) <- createProcess (proc command args)
     void (waitForProcess h)
 
 ---------------------------------------------------------------------------
