@@ -21,6 +21,9 @@ import           System.IO
 
 import Vgrep.Environment.Config.Monoid
 
+-- $setup
+-- >>> import Data.List (isInfixOf)
+
 
 {- |
 Reads the configuration from a JSON or YAML file. The file should be
@@ -212,8 +215,9 @@ Right [Black,Red,BrightBlack]
 
 Fails with error message if the 'Color' cannot be parsed:
 
->>> decodeEither "foo" :: Either String Color
-Left "Unknown Color: foo"
+>>> let Left err = decodeEither "foo" :: Either String Color
+>>> "Unknown Color: foo" `isInfixOf` err
+True
 -}
 data Color
     = Black
@@ -287,8 +291,9 @@ Right [Standout,Underline,Bold]
 
 Fails with error message if the 'Style' cannot be parsed:
 
->>> decodeEither "foo" :: Either String Style
-Left "Unknown Style: foo"
+>>> let Left err = decodeEither "foo" :: Either String Style
+>>> "Unknown Style: foo" `isInfixOf` err
+True
 -}
 data Style
     = Standout
