@@ -77,16 +77,26 @@ contramap f (Output a) = Output (a . f)
 
 
 appEventLoop :: forall e s. App e s -> Input e -> Output e -> VgrepT s IO ()
-appEventLoop app evSource evSink = startEventLoop >>= suspendAndResume
+appEventLoop app evSource evSink = eventLoop
 
   where
+    eventLoop :: VgrepT s IO ()
+    eventLoop = startEventLoop >>= suspendAndResume
+
     startEventLoop :: VgrepT s IO Interrupt
     startEventLoop = withVgrepVty $ \vty -> withEvThread vtyEventSink vty $ do
         refresh vty
-        runEffect ((fromInput evSource >> pure Halt) >-> eventLoop vty)
+        runEffect ((fromInput evSource >> pure Halt) >-> eventHandler vty)
 
-    eventLoop :: Vty -> Consumer e (VgrepT s IO) Interrupt
-    eventLoop vty = go
+    suspendAndResume :: Interrupt -> VgrepT s IO ()
+    suspendAndResume = \case
+        Halt                  -> pure ()
+        Suspend outsideAction -> do env <- ask
+                                    outsideAction env
+                                    eventLoop
+
+    eventHandler :: Vty -> Consumer e (VgrepT s IO) Interrupt
+    eventHandler vty = go
       where
         go = do
             event <- await
@@ -97,13 +107,6 @@ appEventLoop app evSource evSink = startEventLoop >>= suspendAndResume
                     Unchanged   -> go
                     Redraw      -> lift (refresh vty) >> go
                 Interrupt int   -> pure int
-
-    suspendAndResume :: Interrupt -> VgrepT s IO ()
-    suspendAndResume = \case
-        Halt                  -> pure ()
-        Suspend outsideAction -> do env <- ask
-                                    outsideAction env
-                                    startEventLoop >>= suspendAndResume
 
     refresh :: Vty -> VgrepT s IO ()
     refresh vty = render app >>= lift . Vty.update vty
