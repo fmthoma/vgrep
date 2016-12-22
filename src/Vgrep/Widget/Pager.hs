@@ -161,22 +161,34 @@ renderPager = do
     visibleLines      <- use (visible . to (Seq.take height) . to toList)
     highlightedLines  <- use highlighted
 
-    let renderLineNumber attr = padWithSpace attr . string attr . show
-        renderLineText   attr = padWithSpace attr . cropScroll attr . text' attr
-        renderFormatted  attr = padWithSpace attr . cropScroll attr . renderAnsi attr
-        padWithSpace attr txt = let space = string attr " "
-                                in  space <|> txt <|> space
-        cropScroll attr = translateX (-startColumn)
-                        . (<|> charFill attr ' ' (width + startColumn) 1)
-        renderLine (num, txt) = case Map.lookup num highlightedLines of
-            Just formatted -> ( renderLineNumber lineNumberColorHl num
-                              , renderFormatted textColorHl formatted )
-            Nothing        -> ( renderLineNumber lineNumberColor num
-                              , renderLineText textColor txt )
-
-        (renderedLineNumbers, renderedTextLines)
-            = over both fold . unzip
+    let (renderedLineNumbers, renderedTextLines)
+            = over both fold
+            . unzip
             . map renderLine
             $ zip [startPosition+1..] visibleLines
+          where
+            renderLine :: (Int, Text) -> (Image, Image)
+            renderLine (num, txt) = case Map.lookup num highlightedLines of
+                Just formatted -> ( renderLineNumber lineNumberColorHl num
+                                  , renderFormatted textColorHl formatted )
+                Nothing        -> ( renderLineNumber lineNumberColor num
+                                  , renderLineText textColor txt )
+
+            renderLineNumber :: Attr -> Int -> Image
+            renderLineNumber attr = padWithSpace attr . string attr . show
+
+            renderLineText :: Attr -> Text -> Image
+            renderLineText   attr = padWithSpace attr . cropScroll attr . text' attr
+
+            renderFormatted :: Attr -> AnsiFormatted -> Image
+            renderFormatted  attr = padWithSpace attr . cropScroll attr . renderAnsi attr
+
+            padWithSpace :: Attr -> Image -> Image
+            padWithSpace attr txt = let space = string attr " "
+                                    in  space <|> txt <|> space
+
+            cropScroll :: Attr -> Image -> Image
+            cropScroll attr = translateX (-startColumn)
+                            . (<|> charFill attr ' ' (width + startColumn) 1)
 
     pure (resizeWidth width (renderedLineNumbers <|> renderedTextLines))
