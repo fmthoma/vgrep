@@ -152,7 +152,8 @@ renderResultList = do
             = foldl' max 0
             . map (twoExtraSpaces . length . show)
             . mapMaybe displayLineNumber
-        twoExtraSpaces = (+ 2)
+        twoExtraSpaces = (+ 2) -- because line numbers are padded,
+                               -- see `justifyRight` below
 
 renderLine
     :: Monad m
