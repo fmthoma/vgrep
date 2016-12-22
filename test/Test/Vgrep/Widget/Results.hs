@@ -2,7 +2,8 @@
 {-# LANGUAGE LambdaCase       #-}
 module Test.Vgrep.Widget.Results (test) where
 
-import           Control.Lens.Compat     (Getter, over, to, view, views, _1)
+import           Control.Lens.Compat     (Getter, over, to, view, _1)
+import           Control.Monad           (void)
 import           Data.Map.Strict         ((!))
 import qualified Data.Map.Strict         as Map
 import           Data.Monoid             ((<>))
@@ -79,7 +80,7 @@ linesBelowCurrent p = \case
     Results _ _ _ ds es -> p (length ds + length es)
 
 screenHeight :: Environment -> Int
-screenHeight = view (region . to regionHeight)
+screenHeight = view (viewport . viewportHeight)
 
 moveToLastLineOnScreen :: (Results, Environment) -> (Results, Environment)
 moveToLastLineOnScreen = over _1 $ \case
@@ -113,7 +114,7 @@ assertWidgetFitsOnScreen
     :: (MonadState Results m, MonadReader Environment m)
     => m Property
 assertWidgetFitsOnScreen = do
-    height <- views region regionHeight
+    height <- view (viewport . viewportHeight)
     linesOnScreen <- numberOfLinesOnScreen
     pure $ counterexample
         (show linesOnScreen ++ " > " ++ show height)

@@ -59,14 +59,14 @@ runApp_ app conf externalEvents = void (runApp app conf externalEvents)
 -- 'Vty.Vty' again.
 runApp :: App e s -> Config -> Producer e IO () -> IO s
 runApp app conf externalEvents = withSpawn $ \(evSink, evSource) -> do
-    displayRegion <- displayRegionHack
+    initialViewport <- viewportHack
     let userEventSink   = contramap (User,)   evSink
         systemEventSink = contramap (System,) evSink
     externalEventThread <- (async . runEffect) (externalEvents >-> toOutput systemEventSink)
     initialState <- initialize app
     (_, finalState) <- runVgrepT (appEventLoop app evSource userEventSink)
                                  initialState
-                                 (Env conf displayRegion)
+                                 (Env conf initialViewport)
     cancel externalEventThread
     pure finalState
 

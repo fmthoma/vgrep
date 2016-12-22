@@ -19,13 +19,14 @@ import Vgrep.Type
 data EventPriority = User | System deriving (Eq, Ord, Enum)
 
 
--- | We need the display region in order to initialize the app, which in
--- turn will start 'Vty.Vty'. To resolve this circular dependency, we start
--- once 'Vty.Vty' in order to determine the display region, and shut it
--- down again immediately.
-displayRegionHack :: IO DisplayRegion
-displayRegionHack = withVty (Vty.displayBounds . Vty.outputIface)
-
+-- | We need the viewport in order to initialize the app, which in turn will
+-- start 'Vty.Vty'. To resolve this circular dependency, we start once 'Vty.Vty'
+-- in order to determine the display viewport, and shut it down again
+-- immediately.
+viewportHack :: IO Viewport
+viewportHack = withVty $ \vty -> do
+    (width, height) <- Vty.displayBounds (Vty.outputIface vty)
+    pure Viewport { _viewportWidth = width , _viewportHeight = height }
 
 -- | Spawns a thread parallel to the action that listens to 'Vty' events and
 -- redirects them to the 'Consumer'.

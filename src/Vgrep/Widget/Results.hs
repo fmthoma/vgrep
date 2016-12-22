@@ -36,7 +36,6 @@ import           Data.Text                    (Text)
 import qualified Data.Text                    as T
 import           Graphics.Vty.Image           hiding ((<|>))
 import           Graphics.Vty.Input
-import           Graphics.Vty.Prelude
 import           Prelude
 
 import Vgrep.Ansi
@@ -144,7 +143,7 @@ renderResultList :: Monad m => VgrepT Results m Image
 renderResultList = do
     void resizeToWindow
     visibleLines <- use (to toLines)
-    width <- views region regionWidth
+    width <- view (viewport . viewportWidth)
     let render = renderLine width (lineNumberWidth visibleLines)
     renderedLines <- traverse render visibleLines
     pure (vertCat renderedLines)
@@ -198,7 +197,7 @@ renderLine width lineNumberWidth displayLine = do
 
 resizeToWindow :: Monad m => VgrepT Results m Redraw
 resizeToWindow = do
-    height <- views region regionHeight
+    height <- view (viewport . viewportHeight)
     currentBuffer <- get
     case Internal.resize height currentBuffer of
         Just resizedBuffer -> put resizedBuffer >> pure Redraw

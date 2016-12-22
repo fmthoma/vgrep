@@ -22,6 +22,7 @@ module Vgrep.Widget.HorizontalSplit (
     , rightWidgetFocused
     ) where
 
+import Control.Applicative (liftA2)
 import Control.Lens.Compat
 import Data.Monoid
 import Graphics.Vty.Image  hiding (resize)
@@ -45,7 +46,7 @@ type HSplitWidget s t = Widget (HSplit s t)
 -- * __Drawing the Widgets__
 --
 --     Drawing is delegated to the child widgets in a local environment
---     reduced to thir respective 'DisplayRegion'.
+--     reduced to thir respective 'Viewport'.
 --
 -- * __Default keybindings__
 --
@@ -121,7 +122,7 @@ runInLeftWidget
     -> VgrepT s m Image
     -> VgrepT (HSplit s t) m Image
 runInLeftWidget ratio action =
-    let leftRegion = over (region . _1) $ \w ->
+    let leftRegion = over (viewport . viewportWidth) $ \w ->
             ceiling (ratio * fromIntegral w)
     in  zoom leftWidget (local leftRegion action)
 
@@ -132,7 +133,7 @@ runInRightWidget
     -> VgrepT t m Image
     -> VgrepT (HSplit s t) m Image
 runInRightWidget ratio action =
-    let rightRegion = over (region . _1) $ \w ->
+    let rightRegion = over (viewport . viewportWidth) $ \w ->
             floor ((1-ratio) * fromIntegral w)
     in  zoom rightWidget (local rightRegion action)
 
@@ -140,7 +141,7 @@ runInRightWidget ratio action =
 -- Events & Keybindings
 -- ------------------------------------------------------------------------
 
--- FIXME: local region!
+-- FIXME: local viewport!
 handleEvents
     :: Monad m
     => Widget s
