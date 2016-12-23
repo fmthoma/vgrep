@@ -9,6 +9,9 @@ module Vgrep.Ansi.Type
   -- * Modifying the underlying text
   , mapText
   , mapTextWithPos
+  , takeFormatted
+  , dropFormatted
+  , padFormatted
   -- * Internal helpers
   , fuse
   ) where
@@ -170,3 +173,40 @@ mapTextWithPos f = go 0
                       l'  = length t'
                       ts' = go2 (pos + l') ts
                   in  t' : ts'
+
+
+-- | Crops the text to a given length. If the text is already shorter than the
+-- desired width, it is returned as-is.
+takeFormatted :: Int -> Formatted a -> Formatted a
+takeFormatted w txt
+    | length txt > w  = mapTextWithPos cropChunk txt
+    | otherwise       = txt
+  where
+    cropChunk pos
+        | pos >= w   = const T.empty
+        | otherwise  = T.take (w - pos)
+
+-- | Drops a prefix of the given length. If the text is already shorter than the
+-- number of characters to be dropped, 'emptyFormatted' is returned.
+dropFormatted :: Int -> Formatted a -> Formatted a
+dropFormatted amount txt
+    | amount <= 0          = txt
+    | length txt < amount  = emptyFormatted
+    | otherwise = case txt of
+        Empty             -> emptyFormatted
+        Text _ t          -> bare (T.drop amount t)
+        Format _ attr t   -> format' attr (dropFormatted amount t)
+        Cat _ ts          -> cat' (dropChunks amount ts)
+  where
+    dropChunks n = \case
+        []   -> []
+        t:ts -> dropFormatted n t : dropChunks (n - length t) ts
+
+-- | Pads the text to a given width. If the text is already longer than the
+-- desired width, it is returned as-is.
+padFormatted :: Int -> Char -> Formatted a -> Formatted a
+padFormatted w c txt
+    | w > length txt  = cat' [txt, padding (w - length txt)]
+    | otherwise       = txt
+  where
+    padding l = bare (T.replicate l (T.singleton c))

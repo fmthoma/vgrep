@@ -1,4 +1,5 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 module Vgrep.Widget.Pager (
     -- * Pager widget
       pagerWidget
@@ -18,9 +19,11 @@ module Vgrep.Widget.Pager (
 import           Control.Lens.Compat  hiding ((:<), (:>))
 import           Data.Foldable
 import qualified Data.IntMap.Strict   as Map
+import           Data.Monoid          ((<>))
 import           Data.Sequence        (Seq, (><))
 import qualified Data.Sequence        as Seq
 import           Data.Text            (Text)
+import qualified Data.Text            as T
 import           Graphics.Vty.Image   hiding (resize)
 import           Graphics.Vty.Input
 import           Graphics.Vty.Prelude
@@ -175,20 +178,28 @@ renderPager = do
                                   , renderLineText textColor txt )
 
             renderLineNumber :: Attr -> Int -> Image
-            renderLineNumber attr = padWithSpace attr . string attr . show
+            renderLineNumber attr
+                = text' attr
+                . (`snoc` ' ')
+                . cons ' '
+                . T.pack
+                . show
 
             renderLineText :: Attr -> Text -> Image
-            renderLineText   attr = padWithSpace attr . cropScroll attr . text' attr
+            renderLineText   attr
+                = text' attr
+                . T.justifyLeft width ' '
+                . T.take width
+                . cons ' '
+                . T.drop startColumn
 
             renderFormatted :: Attr -> AnsiFormatted -> Image
-            renderFormatted  attr = padWithSpace attr . cropScroll attr . renderAnsi attr
+            renderFormatted  attr
+                = renderAnsi attr
+                . padFormatted width ' '
+                . takeFormatted width
+                . (bare " " <>)
+                . dropFormatted startColumn
 
-            padWithSpace :: Attr -> Image -> Image
-            padWithSpace attr txt = let space = string attr " "
-                                    in  space <|> txt <|> space
-
-            cropScroll :: Attr -> Image -> Image
-            cropScroll attr = translateX (-startColumn)
-                            . (<|> charFill attr ' ' (width + startColumn) 1)
 
     pure (resizeWidth width (renderedLineNumbers <|> renderedTextLines))

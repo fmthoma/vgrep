@@ -11,6 +11,9 @@ module Vgrep.Ansi (
   -- ** Modifying text nodes
   , mapText
   , mapTextWithPos
+  , takeFormatted
+  , dropFormatted
+  , padFormatted
 
   -- * Converting ANSI formatted text
   , renderAnsi

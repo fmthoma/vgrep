@@ -190,8 +190,11 @@ renderLine width lineNumberWidth displayLine = do
                           . maybe "" (T.pack . show)
 
     renderLineText :: Attr -> AnsiFormatted -> Image
-    renderLineText attr txt = cropRight (width - lineNumberWidth) . renderAnsi attr $
-        cat [ bare " " , txt , bare (T.replicate width " ") ]
+    renderLineText attr txt
+        = renderAnsi attr
+        . takeFormatted (width - lineNumberWidth)
+        . padFormatted  (width - lineNumberWidth) ' '
+        $ cat [ bare " ", txt, bare (T.replicate width " ") ]
 
 resizeToWindow :: Monad m => VgrepT Results m Redraw
 resizeToWindow = do
