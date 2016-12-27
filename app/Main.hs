@@ -13,7 +13,8 @@ import           Data.Sequence                      (Seq)
 import qualified Data.Sequence                      as S
 import           Data.Text                          (Text)
 import qualified Data.Text                          as T
-import qualified Data.Text.IO                       as T
+import qualified Data.Text.Lazy                     as TL
+import qualified Data.Text.Lazy.IO                  as TL
 import           Distribution.PackageDescription.TH
 import qualified Graphics.Vty                       as Vty
 import           Graphics.Vty.Input.Events          hiding (Event)
@@ -192,13 +193,19 @@ loadSelectedFileToPager = do
     whenJust maybeFileName $ \fileName -> do
         fileExists <- liftIO (doesFileExist fileName)
         fileContent <- if fileExists
-            then liftIO (fmap (S.fromList . T.lines) (T.readFile fileName))
+            then readLinesFrom fileName
             else use inputLines
         displayContent <- expandForDisplay fileContent
         highlightLineNumbers <- use (results . currentFileResultLineNumbers)
         zoom pager (replaceBufferContents displayContent highlightLineNumbers)
         moveToSelectedLineNumber
         zoom widgetState (splitView FocusRight (1 % 3))
+  where
+    readLinesFrom file = liftIO $ do
+        content <- TL.readFile file
+        pure (fileLines content)
+    fileLines = S.fromList . map TL.toStrict . TL.lines
+
 
 moveToSelectedLineNumber :: Monad m => VgrepT AppState m ()
 moveToSelectedLineNumber =
