@@ -28,7 +28,7 @@ Cat 12 [Text 6 "Hello ",Format 5 (Attr {attrStyle = KeepCurrent, attrForeColor =
 
 More elaborate example with nested foreground and background colors:
 
->>> parseAnsi "\ESC[40mHello \ESC[31mWorld\ESC[39m!"
+>>> parseAnsi "\ESC[m\ESC[40mHello \ESC[31mWorld\ESC[39m!"
 Cat 12 [Format 6 (Attr {attrStyle = KeepCurrent, attrForeColor = KeepCurrent, attrBackColor = SetTo (ISOColor 0)}) (Text 6 "Hello "),Format 5 (Attr {attrStyle = KeepCurrent, attrForeColor = SetTo (ISOColor 1), attrBackColor = SetTo (ISOColor 0)}) (Text 5 "World"),Format 1 (Attr {attrStyle = KeepCurrent, attrForeColor = KeepCurrent, attrBackColor = SetTo (ISOColor 0)}) (Text 1 "!")]
 
 Some CSI sequences are ignored, since they are not supported by 'Vty':
@@ -65,7 +65,7 @@ ansiFormatted = go mempty
     formattedText :: Attr -> Parser AnsiFormatted
     formattedText attr = do
         acs <- many attrChange
-        let attr' = foldr ($) attr acs
+        let attr' = foldr ($) attr (reverse acs)
         t <- rawText
         rest <- go attr'
         pure (format attr' (bare t) <> rest)
