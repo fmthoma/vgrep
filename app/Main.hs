@@ -134,11 +134,11 @@ eventHandler = \case
         :: MonadIO m
         => Text
         -> Next (VgrepT AppState m Redraw)
-    handleFeedResult line = Continue $ do
-        expandedLine <- expandLineForDisplay line
-        case parseLine expandedLine of
-            Just l  -> zoom results (feedResult l)
-            Nothing -> pure Unchanged
+    handleFeedResult line = Continue $ case parseLine line of
+        Just l  -> do
+            l' <- traverseOf (lineReference . lineText) expandFormattedLine l
+            zoom results (feedResult l')
+        Nothing -> pure Unchanged
     handleFeedInput line = Continue $ do
         expandedLine <- expandLineForDisplay line
         modifying inputLines (|> expandedLine)
@@ -190,19 +190,19 @@ loadSelectedFileToPager :: MonadIO m => VgrepT AppState m Redraw
 loadSelectedFileToPager = do
     maybeFileName <- uses (results . currentFileName)
                           (fmap T.unpack)
-    whenJust maybeFileName $ \fileName -> do
-        fileExists <- liftIO (doesFileExist fileName)
+    whenJust maybeFileName $ \selectedFile -> do
+        fileExists <- liftIO (doesFileExist selectedFile)
         fileContent <- if fileExists
-            then readLinesFrom fileName
+            then readLinesFrom selectedFile
             else use inputLines
         displayContent <- expandForDisplay fileContent
-        highlightLineNumbers <- use (results . currentFileResultLineNumbers)
-        zoom pager (replaceBufferContents displayContent highlightLineNumbers)
+        highlightedLines <- use (results . currentFileResults)
+        zoom pager (replaceBufferContents displayContent highlightedLines)
         moveToSelectedLineNumber
         zoom widgetState (splitView FocusRight (1 % 3))
   where
-    readLinesFrom file = liftIO $ do
-        content <- TL.readFile file
+    readLinesFrom f = liftIO $ do
+        content <- TL.readFile f
         pure (fileLines content)
     fileLines = S.fromList . map TL.toStrict . TL.lines
 
@@ -217,12 +217,12 @@ whenJust item action = maybe (pure mempty) action item
 
 invokeEditor :: AppState -> Next (VgrepT AppState m Redraw)
 invokeEditor state = case views (results . currentFileName) (fmap T.unpack) state of
-    Just file -> Interrupt $ Suspend $ \environment -> do
+    Just selectedFile -> Interrupt $ Suspend $ \environment -> do
         let configuredEditor = view (config . editor) environment
-            lineNumber = views (results . currentLineNumber) (fromMaybe 0) state
-        liftIO $ doesFileExist file >>= \case
-            True  -> exec configuredEditor ['+' : show lineNumber, file]
-            False -> hPutStrLn stderr ("File not found: " ++ show file)
+            selectedLineNumber = views (results . currentLineNumber) (fromMaybe 0) state
+        liftIO $ doesFileExist selectedFile >>= \case
+            True  -> exec configuredEditor ['+' : show selectedLineNumber, selectedFile]
+            False -> hPutStrLn stderr ("File not found: " ++ show selectedFile)
     Nothing -> Skip
 
 exec :: MonadIO io => FilePath -> [String] -> io ()

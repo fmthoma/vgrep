@@ -20,7 +20,7 @@ module Vgrep.Widget.Results (
     -- ** Lenses
     , currentFileName
     , currentLineNumber
-    , currentFileResultLineNumbers
+    , currentFileResults
 
     -- * Re-exports
     , module Vgrep.Results
@@ -39,6 +39,7 @@ import           Graphics.Vty.Input
 import           Graphics.Vty.Prelude
 import           Prelude
 
+import Vgrep.Ansi
 import Vgrep.Environment
 import Vgrep.Event
 import Vgrep.Results
@@ -150,8 +151,9 @@ renderResultList = do
   where lineNumberWidth
             = foldl' max 0
             . map (twoExtraSpaces . length . show)
-            . mapMaybe lineNumber
-        twoExtraSpaces = (+ 2)
+            . mapMaybe displayLineNumber
+        twoExtraSpaces = (+ 2) -- because line numbers are padded,
+                               -- see `justifyRight` below
 
 renderLine
     :: Monad m
@@ -165,9 +167,9 @@ renderLine width lineNumberWidth displayLine = do
     resultLineStyle <- view (config . colors . normal)
     selectedStyle   <- view (config . colors . selected)
     pure $ case displayLine of
-        FileHeader (File file)
-            -> renderFileHeader fileHeaderStyle file
-        Line         (LineReference n t)
+        FileHeader (File f)
+            -> renderFileHeader fileHeaderStyle f
+        Line (LineReference n t)
             -> horizCat [ renderLineNumber lineNumberStyle n
                         , renderLineText   resultLineStyle t ]
         SelectedLine (LineReference n t)
@@ -187,10 +189,12 @@ renderLine width lineNumberWidth displayLine = do
                           . justifyRight lineNumberWidth
                           . maybe "" (T.pack . show)
 
-    renderLineText :: Attr -> Text -> Image
-    renderLineText attr = text' attr
-                        . padWithSpace (width - lineNumberWidth)
-
+    renderLineText :: Attr -> AnsiFormatted -> Image
+    renderLineText attr txt
+        = renderAnsi attr
+        . takeFormatted (width - lineNumberWidth)
+        . padFormatted  (width - lineNumberWidth) ' '
+        $ cat [ bare " ", txt, bare (T.replicate width " ") ]
 
 resizeToWindow :: Monad m => VgrepT Results m Redraw
 resizeToWindow = do

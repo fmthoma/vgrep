@@ -38,6 +38,10 @@ library
                      , Control.Lens.Compat
                      , Control.Monad.State.Extended
                      , Pipes.Concurrent.PQueue
+                     , Vgrep.Ansi
+                     , Vgrep.Ansi.Parser
+                     , Vgrep.Ansi.Type
+                     , Vgrep.Ansi.Vty.Attributes
                      , Vgrep.App
                      , Vgrep.Environment
                      , Vgrep.Environment.Config

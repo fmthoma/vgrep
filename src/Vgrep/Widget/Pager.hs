@@ -1,4 +1,5 @@
-{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RecordWildCards   #-}
 module Vgrep.Widget.Pager (
     -- * Pager widget
       pagerWidget
@@ -17,15 +18,17 @@ module Vgrep.Widget.Pager (
 
 import           Control.Lens.Compat  hiding ((:<), (:>))
 import           Data.Foldable
+import qualified Data.IntMap.Strict   as Map
+import           Data.Monoid          ((<>))
 import           Data.Sequence        (Seq, (><))
 import qualified Data.Sequence        as Seq
-import qualified Data.Set             as Set
 import           Data.Text            (Text)
 import qualified Data.Text            as T
 import           Graphics.Vty.Image   hiding (resize)
 import           Graphics.Vty.Input
 import           Graphics.Vty.Prelude
 
+import Vgrep.Ansi
 import Vgrep.Environment
 import Vgrep.Event
 import Vgrep.Type
@@ -64,7 +67,7 @@ pagerWidget = Widget
 initPager :: Pager
 initPager = Pager
     { _column      = 0
-    , _highlighted = Set.empty
+    , _highlighted = Map.empty
     , _above       = Seq.empty
     , _visible     = Seq.empty }
 
@@ -90,11 +93,11 @@ pagerKeyBindings = dispatchMap $ fromList
 replaceBufferContents
     :: Monad m
     => Seq Text -- ^ Lines of text to display in the pager (starting with line 1)
-    -> [Int]    -- ^ List of line numbers that should be highlighted
+    -> Map.IntMap AnsiFormatted -- ^ Line numbers and formatted text for highlighted lines
     -> VgrepT Pager m ()
 replaceBufferContents newContent newHighlightedLines = put initPager
     { _visible     = newContent
-    , _highlighted = Set.fromList newHighlightedLines }
+    , _highlighted = newHighlightedLines }
 
 -- | Scroll to the given line number.
 moveToLine :: Monad m => Int -> VgrepT Pager m Redraw
@@ -161,19 +164,42 @@ renderPager = do
     visibleLines      <- use (visible . to (Seq.take height) . to toList)
     highlightedLines  <- use highlighted
 
-    let renderLine (num, txt) =
-            let (numColor, txtColor) = if num `Set.member` highlightedLines
-                    then (lineNumberColorHl, textColorHl)
-                    else (lineNumberColor,   textColor)
-                visibleCharacters = T.unpack (T.drop startColumn txt)
-            in  ( string numColor (padWithSpace (show num))
-                , string txtColor (padWithSpace visibleCharacters) )
-
-        (renderedLineNumbers, renderedTextLines)
-            = over both fold . unzip
+    let (renderedLineNumbers, renderedTextLines)
+            = over both fold
+            . unzip
             . map renderLine
             $ zip [startPosition+1..] visibleLines
+          where
+            renderLine :: (Int, Text) -> (Image, Image)
+            renderLine (num, txt) = case Map.lookup num highlightedLines of
+                Just formatted -> ( renderLineNumber lineNumberColorHl num
+                                  , renderFormatted textColorHl formatted )
+                Nothing        -> ( renderLineNumber lineNumberColor num
+                                  , renderLineText textColor txt )
+
+            renderLineNumber :: Attr -> Int -> Image
+            renderLineNumber attr
+                = text' attr
+                . (`snoc` ' ')
+                . cons ' '
+                . T.pack
+                . show
+
+            renderLineText :: Attr -> Text -> Image
+            renderLineText   attr
+                = text' attr
+                . T.justifyLeft width ' '
+                . T.take width
+                . cons ' '
+                . T.drop startColumn
+
+            renderFormatted :: Attr -> AnsiFormatted -> Image
+            renderFormatted  attr
+                = renderAnsi attr
+                . padFormatted width ' '
+                . takeFormatted width
+                . (bare " " <>)
+                . dropFormatted startColumn
+
 
     pure (resizeWidth width (renderedLineNumbers <|> renderedTextLines))
-
-  where padWithSpace s = ' ' : s ++ " "

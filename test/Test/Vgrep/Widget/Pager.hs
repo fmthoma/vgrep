@@ -62,7 +62,7 @@ test = runTestCases "Pager widget"
         , testData = arbitrary
         , testCase = do
             newContent <- pick (fmap (S.fromList . map T.pack) arbitrary)
-            run (replaceBufferContents newContent [])
+            run (replaceBufferContents newContent mempty)
             pure newContent
         , assertion = \expectedContent -> do
             actualContent <- use visible

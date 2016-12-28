@@ -13,7 +13,9 @@ import Data.Maybe
 import Data.Text            hiding (takeWhile)
 import Prelude              hiding (takeWhile)
 
-import Vgrep.Results
+import Vgrep.Ansi        (stripAnsi)
+import Vgrep.Ansi.Parser (attrChange, parseAnsi)
+import Vgrep.Results     (File (..), FileLineReference (..), LineReference (..))
 
 
 -- | Parses lines of 'Text', skipping lines that are not valid @grep@
@@ -28,17 +30,23 @@ parseGrepOutput = catMaybes . fmap parseLine
 -- separated by colons:
 --
 -- >>> parseLine "path/to/file:123:foobar"
--- Just (FileLineReference {getFile = File {getFileName = "path/to/file"}, getLineReference = LineReference {getLineNumber = Just 123, getLineText = "foobar"}})
+-- Just (FileLineReference {_file = File {_fileName = "path/to/file"}, _lineReference = LineReference {_lineNumber = Just 123, _lineText = Text 6 "foobar"}})
 --
 -- Omitting the line number still produces valid output:
 --
 -- >>> parseLine "path/to/file:foobar"
--- Just (FileLineReference {getFile = File {getFileName = "path/to/file"}, getLineReference = LineReference {getLineNumber = Nothing, getLineText = "foobar"}})
+-- Just (FileLineReference {_file = File {_fileName = "path/to/file"}, _lineReference = LineReference {_lineNumber = Nothing, _lineText = Text 6 "foobar"}})
 --
 -- However, an file name must be present:
 --
 -- >>> parseLine "foobar"
 -- Nothing
+--
+-- ANSI escape codes in the line text are parsed correctly:
+--
+-- >>> parseLine "path/to/file:foo\ESC[31mbar\ESC[mbaz"
+-- Just (FileLineReference {_file = File {_fileName = "path/to/file"}, _lineReference = LineReference {_lineNumber = Nothing, _lineText = Cat 9 [Text 3 "foo",Format 3 (Attr {attrStyle = KeepCurrent, attrForeColor = SetTo (ISOColor 1), attrBackColor = KeepCurrent}) (Text 3 "bar"),Text 3 "baz"]}})
+--
 parseLine :: Text -> Maybe FileLineReference
 parseLine line = case parseOnly lineParser line of
     Left  _      -> Nothing
@@ -47,11 +55,11 @@ parseLine line = case parseOnly lineParser line of
 lineParser :: Parser FileLineReference
 lineParser = do
     file       <- takeWhile (/= ':') <* char ':'
-    lineNumber <- optional (decimal <* char ':')
+    lineNumber <- optional (skipMany attrChange *> decimal <* skipMany attrChange <* char ':')
     result     <- takeText
     pure FileLineReference
-        { getFile = File
-            { getFileName = file }
-        , getLineReference = LineReference
-            { getLineNumber = lineNumber
-            , getLineText   = result } }
+        { _file = File
+            { _fileName = stripAnsi (parseAnsi file) }
+        , _lineReference = LineReference
+            { _lineNumber = lineNumber
+            , _lineText   = parseAnsi result } }
