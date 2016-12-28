@@ -49,18 +49,18 @@ True
 Example YAML config file for 'Vgrep.Environment.Config.defaultConfig':
 
 > colors:
->   lineNumbers:
->     foreColor: "blue"
->   lineNumbersHl:
->     foreColor: "blue"
->     style: "bold"
+>   line-numbers:
+>     fore-color: blue
+>   line-numbers-hl:
+>     fore-color: blue
+>     style: bold
 >   normal:
->   normalHl:
->     style: "bold"
->   fileHeaders:
->     backColor: "green"
+>   normal-hl:
+>     style: bold
+>   file-headers:
+>     back-color: green
 >   selected:
->     style: "standout"
+>     style: standout
 > tabstop: 8
 > editor: "vi"
 
@@ -68,19 +68,19 @@ Example JSON file for the same config:
 
 > {
 >   "colors": {
->     "lineNumbers" : {
->       "foreColor": "blue"
+>     "line-numbers" : {
+>       "fore-color": "blue"
 >     },
->     "lineNumbersHl": {
->       "foreColor": "blue",
+>     "line-numbers-hl": {
+>       "fore-color": "blue",
 >       "style": "bold"
 >     },
 >     "normal": {},
->     "normalHl": {
+>     "normal-hl": {
 >       "style": "bold"
 >     },
->     "fileHeaders": {
->       "backColor": "green"
+>     "file-headers": {
+>       "back-color": "green"
 >     },
 >     "selected": {
 >       "style": "standout"
@@ -133,11 +133,11 @@ instance FromJSON ConfigMonoid where
 
 instance FromJSON ColorsMonoid where
     parseJSON = withObject "ColorsMonoid" $ \o -> do
-        _mlineNumbers   <- fmap First (o .:? "lineNumbers")
-        _mlineNumbersHl <- fmap First (o .:? "lineNumbersHl")
+        _mlineNumbers   <- fmap First (o .:? "line-numbers")
+        _mlineNumbersHl <- fmap First (o .:? "line-numbers-hl")
         _mnormal        <- fmap First (o .:? "normal")
-        _mnormalHl      <- fmap First (o .:? "normalHl")
-        _mfileHeaders   <- fmap First (o .:? "fileHeaders")
+        _mnormalHl      <- fmap First (o .:? "normal-hl")
+        _mfileHeaders   <- fmap First (o .:? "file-headers")
         _mselected      <- fmap First (o .:? "selected")
         pure ColorsMonoid{..}
 
@@ -150,20 +150,20 @@ A JSON-parsable data type for 'Vty.Attr'.
 
 JSON example:
 
->>> decodeEither "{\"foreColor\": \"black\", \"style\": \"standout\"}" :: Either String Attr
+>>> decodeEither "{\"fore-color\": \"black\", \"style\": \"standout\"}" :: Either String Attr
 Right (Attr {foreColor = Just Black, backColor = Nothing, style = Just Standout})
 
 JSON example without quotes:
->>> decodeEither "{foreColor: black, style: standout}" :: Either String Attr
+>>> decodeEither "{fore-color: black, style: standout}" :: Either String Attr
 Right (Attr {foreColor = Just Black, backColor = Nothing, style = Just Standout})
 
 YAML example:
 
 >>> :{
 >>> decodeEither
->>>   $  "foreColor: \"blue\"\n"
->>>   <> "backColor: \"brightBlue\"\n"
->>>   <> "style: \"reverseVideo\"\n"
+>>>   $  "fore-color: \"blue\"\n"
+>>>   <> "back-color: \"bright-blue\"\n"
+>>>   <> "style: \"reverse-video\"\n"
 >>>   :: Either String Attr
 >>> :}
 Right (Attr {foreColor = Just Blue, backColor = Just BrightBlue, style = Just ReverseVideo})
@@ -172,9 +172,9 @@ YAML example without quotes:
 
 >>> :{
 >>> decodeEither
->>>   $  "foreColor: blue\n"
->>>   <> "backColor: brightBlue\n"
->>>   <> "style: reverseVideo\n"
+>>>   $  "fore-color: blue\n"
+>>>   <> "back-color: bright-blue\n"
+>>>   <> "style: reverse-video\n"
 >>>   :: Either String Attr
 >>> :}
 Right (Attr {foreColor = Just Blue, backColor = Just BrightBlue, style = Just ReverseVideo})
@@ -188,8 +188,8 @@ data Attr = Attr
 
 instance FromJSON Attr where
     parseJSON = withObject "Attr" $ \o -> do
-        foreColor <- o .:? "foreColor"
-        backColor <- o .:? "backColor"
+        foreColor <- o .:? "fore-color"
+        backColor <- o .:? "back-color"
         style     <- o .:? "style"
         pure Attr{..}
 
@@ -205,12 +205,12 @@ attrToVty Attr{..} = foldAttrs
 {- |
 A JSON-parsable data type for 'Vty.Color'.
 
->>> decodeEither "[\"black\",\"red\",\"brightBlack\"]" :: Either String [Color]
+>>> decodeEither "[\"black\",\"red\",\"bright-black\"]" :: Either String [Color]
 Right [Black,Red,BrightBlack]
 
 Also works without quotes:
 
->>> decodeEither "[black,red,brightBlack]" :: Either String [Color]
+>>> decodeEither "[black,red,bright-black]" :: Either String [Color]
 Right [Black,Red,BrightBlack]
 
 Fails with error message if the 'Color' cannot be parsed:
@@ -240,42 +240,42 @@ data Color
 
 instance FromJSON Color where
     parseJSON = withText "Color" $ \case
-        "black"         -> pure Black
-        "red"           -> pure Red
-        "green"         -> pure Green
-        "yellow"        -> pure Yellow
-        "blue"          -> pure Blue
-        "magenta"       -> pure Magenta
-        "cyan"          -> pure Cyan
-        "white"         -> pure White
-        "brightBlack"   -> pure BrightBlack
-        "brightRed"     -> pure BrightRed
-        "brightGreen"   -> pure BrightGreen
-        "brightYellow"  -> pure BrightYellow
-        "brightBlue"    -> pure BrightBlue
-        "brightMagenta" -> pure BrightMagenta
-        "brightCyan"    -> pure BrightCyan
-        "brightWhite"   -> pure BrightWhite
-        s               -> fail ("Unknown Color: " <> unpack s)
+        "black"          -> pure Black
+        "red"            -> pure Red
+        "green"          -> pure Green
+        "yellow"         -> pure Yellow
+        "blue"           -> pure Blue
+        "magenta"        -> pure Magenta
+        "cyan"           -> pure Cyan
+        "white"          -> pure White
+        "bright-black"   -> pure BrightBlack
+        "bright-red"     -> pure BrightRed
+        "bright-green"   -> pure BrightGreen
+        "bright-yellow"  -> pure BrightYellow
+        "bright-blue"    -> pure BrightBlue
+        "bright-magenta" -> pure BrightMagenta
+        "bright-cyan"    -> pure BrightCyan
+        "bright-white"   -> pure BrightWhite
+        s                -> fail ("Unknown Color: " <> unpack s)
 
 colorToVty :: Color -> Vty.Color
 colorToVty = \case
-        Black         -> Vty.black
-        Red           -> Vty.red
-        Green         -> Vty.green
-        Yellow        -> Vty.yellow
-        Blue          -> Vty.blue
-        Magenta       -> Vty.magenta
-        Cyan          -> Vty.cyan
-        White         -> Vty.white
-        BrightBlack   -> Vty.brightBlack
-        BrightRed     -> Vty.brightRed
-        BrightGreen   -> Vty.brightGreen
-        BrightYellow  -> Vty.brightYellow
-        BrightBlue    -> Vty.brightBlue
-        BrightMagenta -> Vty.brightMagenta
-        BrightCyan    -> Vty.brightCyan
-        BrightWhite   -> Vty.brightWhite
+    Black         -> Vty.black
+    Red           -> Vty.red
+    Green         -> Vty.green
+    Yellow        -> Vty.yellow
+    Blue          -> Vty.blue
+    Magenta       -> Vty.magenta
+    Cyan          -> Vty.cyan
+    White         -> Vty.white
+    BrightBlack   -> Vty.brightBlack
+    BrightRed     -> Vty.brightRed
+    BrightGreen   -> Vty.brightGreen
+    BrightYellow  -> Vty.brightYellow
+    BrightBlue    -> Vty.brightBlue
+    BrightMagenta -> Vty.brightMagenta
+    BrightCyan    -> Vty.brightCyan
+    BrightWhite   -> Vty.brightWhite
 
 
 {- |
@@ -306,13 +306,13 @@ data Style
 
 instance FromJSON Style where
     parseJSON = withText "Style" $ \case
-        "standout"     -> pure Standout
-        "underline"    -> pure Underline
-        "reverseVideo" -> pure ReverseVideo
-        "blink"        -> pure Blink
-        "dim"          -> pure Dim
-        "bold"         -> pure Bold
-        s              -> fail ("Unknown Style: " <> unpack s)
+        "standout"      -> pure Standout
+        "underline"     -> pure Underline
+        "reverse-video" -> pure ReverseVideo
+        "blink"         -> pure Blink
+        "dim"           -> pure Dim
+        "bold"          -> pure Bold
+        s               -> fail ("Unknown Style: " <> unpack s)
 
 styleToVty :: Style -> Vty.Style
 styleToVty = \case

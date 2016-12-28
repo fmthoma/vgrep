@@ -1,15 +1,15 @@
 # Color configuration
 #
 # For each item, the following three attributes can be specified:
-# * foreColor: The text color
-# * backColor: The background color
+# * fore-color: The text color
+# * back-color: The background color
 #     * Valid colors are the usual 16 terminal colors:
-#         black, red, green, blue, magenta, cyan, white,
-#         brightBlack, brightRed, brightGreen, brightYellow,
-#         brightBlue, brightMagenta, brightCyan, brightWhite
+#         black, red, green, blue, yellow, magenta, cyan, white,
+#         bright-black, bright-red, bright-green, bright-yellow,
+#         bright-blue, bright-magenta, bright-cyan, bright-white
 # * style:
 #     * Valid styles are:
-#         standout, underline, reverseVideo, blink, dim, bold
+#         standout, underline, reverse-video, blink, dim, bold
 #       Please note that not all styles are necessarily supported
 #       by your terminal.
 #
@@ -19,27 +19,27 @@
 colors:
 
     # Line numbers
-    lineNumbers:
-        foreColor: "blue"
+    line-numbers:
+        fore-color: blue
     # Highlighted line numbers
-    lineNumbersHl:
-        foreColor: "blue"
-        style: "bold"
+    line-numbers-hl:
+        fore-color: blue
+        style: bold
 
     # Normal text
     normal:
 
     # Highlighted text
-    normalHl:
-        style: "bold"
+    normal-hl:
+        style: bold
 
     # The file names in the results list
-    fileHeaders:
-        backColor: "green"
+    file-headers:
+        back-color: green
 
     # The line currently selected by the cursor
     selected:
-        style: "standout"
+        style: standout
 
 # The tabstop witdth (a tab character moves the indentation to the
 # next multiple of this value)
