@@ -24,6 +24,15 @@
     git config --global alias.vgrep '!__git_vgrep () { git grep --color=always "$@" | vgrep; }; __git_vgrep'
     git vgrep data
     ```
+* Using [`ack`][ack]/[`ag`][ag] instead of `grep`? No problem:
+
+    ```bash
+    ack data | vgrep           # Output of `ack` is compatible
+    ack --color data | vgrep   # Even coloring works
+    ag --color data | vgrep    # Same for `ag`
+    ```
+[ack]: http://beyondgrep.com/
+[ag]:  https://github.com/ggreer/the_silver_searcher
 
 ## Installation
 
