@@ -27,7 +27,6 @@ import           System.Directory
 import           System.Environment                 (getArgs)
 import           System.Exit
 import           System.IO
-import           System.Posix.IO
 import           System.Process
 
 import           Vgrep.App                    as App
@@ -227,13 +226,8 @@ invokeEditor state = case views (results . currentFileName) (fmap T.unpack) stat
 
 exec :: MonadIO io => FilePath -> [String] -> io ()
 exec command args = liftIO $ do
-    inHandle  <- fdToHandle =<< ttyIn
-    outHandle <- fdToHandle =<< ttyOut
-    (_,_,_,h) <- createProcess $ (proc command args)
-        { std_in  = UseHandle inHandle
-        , std_out = UseHandle outHandle }
-    _ <- waitForProcess h
-    return ()
+    (_,_,_,h) <- createProcess (proc command args)
+    void (waitForProcess h)
 
 ---------------------------------------------------------------------------
 -- Lenses

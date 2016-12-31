@@ -4,22 +4,16 @@
 module Vgrep.App
     ( App(..)
     , runApp, runApp_
-
-    -- * Auxiliary definitions
-    , ttyIn
-    , ttyOut
     ) where
 
 import           Control.Concurrent.Async
-import           Control.Exception
 import           Graphics.Vty             (Vty)
 import qualified Graphics.Vty             as Vty
 import           Pipes                    hiding (next)
 import           Pipes.Concurrent.PQueue
 import           Pipes.Prelude            as P
-import           System.Posix.IO
-import           System.Posix.Types       (Fd)
 
+import Vgrep.App.Internal
 import Vgrep.Environment
 import Vgrep.Event
 import Vgrep.Type
@@ -81,30 +75,28 @@ runApp app conf externalEvents = withSpawn $ \(evSink, evSource) -> do
 contramap :: (b -> a) -> Output a -> Output b
 contramap f (Output a) = Output (a . f)
 
--- | We need the display region in order to initialize the app, which in
--- turn will start 'Vty.Vty'. To resolve this circular dependency, we start
--- once 'Vty.Vty' in order to determine the display region, and shut it
--- down again immediately.
-displayRegionHack :: IO DisplayRegion
-displayRegionHack = bracket initVty Vty.shutdown $ \vty ->
-        Vty.displayBounds (Vty.outputIface vty)
 
 appEventLoop :: forall e s. App e s -> Input e -> Output e -> VgrepT s IO ()
-appEventLoop app evSource evSink = startEventLoop >>= suspendAndResume
+appEventLoop app evSource evSink = eventLoop
 
   where
+    eventLoop :: VgrepT s IO ()
+    eventLoop = startEventLoop >>= suspendAndResume
+
     startEventLoop :: VgrepT s IO Interrupt
-    startEventLoop = withVty vtyEventSink $ \vty -> do
+    startEventLoop = withVgrepVty $ \vty -> withEvThread vtyEventSink vty $ do
         refresh vty
-        runEffect ((fromInput evSource >> pure Halt) >-> eventLoop vty)
+        runEffect ((fromInput evSource >> pure Halt) >-> eventHandler vty)
 
-    continueEventLoop :: VgrepT s IO Interrupt
-    continueEventLoop = withVty vtyEventSink $ \vty -> do
-        refresh vty
-        runEffect ((fromInput evSource >> pure Halt) >-> eventLoop vty)
+    suspendAndResume :: Interrupt -> VgrepT s IO ()
+    suspendAndResume = \case
+        Halt                  -> pure ()
+        Suspend outsideAction -> do env <- ask
+                                    outsideAction env
+                                    eventLoop
 
-    eventLoop :: Vty -> Consumer e (VgrepT s IO) Interrupt
-    eventLoop vty = go
+    eventHandler :: Vty -> Consumer e (VgrepT s IO) Interrupt
+    eventHandler vty = go
       where
         go = do
             event <- await
@@ -116,47 +108,7 @@ appEventLoop app evSource evSink = startEventLoop >>= suspendAndResume
                     Redraw      -> lift (refresh vty) >> go
                 Interrupt int   -> pure int
 
-    suspendAndResume :: Interrupt -> VgrepT s IO ()
-    suspendAndResume = \case
-        Halt                  -> pure ()
-        Suspend outsideAction -> do env <- ask
-                                    outsideAction env
-                                    continueEventLoop >>= suspendAndResume
-
     refresh :: Vty -> VgrepT s IO ()
     refresh vty = render app >>= lift . Vty.update vty
     vtyEventSink = P.map (liftEvent app) >-> toOutput evSink
     handleAppEvent = handleEvent app
-
-
--- | 'User' events do have higher priority than 'System' events, so that
--- the application stays responsive even in case of event queue congestion.
-data EventPriority = User | System deriving (Eq, Ord, Enum)
-
-withVty :: Consumer Vty.Event IO () -> (Vty -> VgrepT s IO a) -> VgrepT s IO a
-withVty sink action = vgrepBracket before after (\(vty, _) -> action vty)
-  where
-    before = do
-        vty <- initVty
-        evThread <- (async . runEffect) $
-            lift (Vty.nextEvent vty) >~ sink
-        pure (vty, evThread)
-    after (vty, evThread) = do
-        cancel evThread
-        Vty.shutdown vty
-
-
-initVty :: IO Vty
-initVty = do
-    cfg <- Vty.standardIOConfig
-    fdIn  <- ttyIn
-    fdOut <- ttyOut
-    Vty.mkVty (cfg { Vty.inputFd = Just fdIn , Vty.outputFd = Just fdOut })
-
-ttyIn, ttyOut :: IO Fd
--- | Opens @/dev/tty@ read-only. Should be connected to the @stdin@ of
--- a GUI process (e. g. 'Vty.Vty').
-ttyIn  = openFd "/dev/tty" ReadOnly  Nothing defaultFileFlags
--- | Opens @/dev/tty@ write-only. Should be connected to the @stdout@ of
--- a GUI process (e. g. 'Vty.Vty').
-ttyOut = openFd "/dev/tty" WriteOnly Nothing defaultFileFlags
