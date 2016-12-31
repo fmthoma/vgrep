@@ -42,7 +42,7 @@ test = runTestCases "Pager widget"
         , assertion = \line -> do
             pos <- use position
             let posOnScreen = line - pos
-            height <- view (viewport . viewportHeight)
+            height <- view viewportHeight
             pure $ counterexample
                 ("Failed: 0 <= " ++ show posOnScreen ++ " <= " ++ show height)
                 (posOnScreen >= 0 .&&. posOnScreen <= height)
@@ -56,7 +56,7 @@ test = runTestCases "Pager widget"
         , assertion = const $ do
             pos <- use position
             linesVisible <- uses visible length
-            height <- view (viewport . viewportHeight)
+            height <- view viewportHeight
             pure (pos >= 0 .&&. linesVisible >= height)
         }
     , TestProperty
@@ -78,7 +78,7 @@ emptyPager (pager, _env) = views visible length pager == 0
                         && views above   length pager == 0
 
 coversScreen :: (Pager, Environment) -> Bool
-coversScreen (pager, env) = length (view visible pager) >= view (viewport . viewportHeight) env
+coversScreen (pager, env) = length (view visible pager) >= view viewportHeight env
 
 atTop :: (Pager, Environment) -> Bool
 atTop (pager, _env) = view position pager == 0

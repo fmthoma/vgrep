@@ -101,7 +101,7 @@ replaceBufferContents newContent newHighlightedLines = put initPager
 
 -- | Scroll to the given line number.
 moveToLine :: Monad m => Int -> VgrepT Pager m Redraw
-moveToLine n = view (viewport . viewportHeight) >>= \height -> do
+moveToLine n = view viewportHeight >>= \height -> do
     setPosition (n - height `div` 2)
     pure Redraw
 
@@ -116,7 +116,7 @@ scroll n = do
     pure Redraw
 
 setPosition :: Monad m => Int -> VgrepT Pager m ()
-setPosition n = view (viewport . viewportHeight) >>= \height -> do
+setPosition n = view viewportHeight >>= \height -> do
     allLines <- liftA2 (+) (uses visible length) (uses above length)
     let newPosition = if
             | n < 0 || allLines < height -> 0
@@ -134,7 +134,7 @@ setPosition n = view (viewport . viewportHeight) >>= \height -> do
 -- > scrollPage (-1)  -- scroll one page up
 -- > scrollPage 1     -- scroll one page down
 scrollPage :: Monad m => Int -> VgrepT Pager m Redraw
-scrollPage n = view (viewport . viewportHeight) >>= \height ->
+scrollPage n = view viewportHeight >>= \height ->
     scroll (n * (height - 1))
   -- gracefully leave one ^ line on the screen
 
@@ -157,8 +157,8 @@ renderPager = do
     textColorHl       <- view (config . colors . normalHl)
     lineNumberColor   <- view (config . colors . lineNumbers)
     lineNumberColorHl <- view (config . colors . lineNumbersHl)
-    width             <- view (viewport . viewportWidth)
-    height            <- view (viewport . viewportHeight)
+    width             <- view viewportWidth
+    height            <- view viewportHeight
     startPosition     <- use position
     startColumn       <- use (column . to fromIntegral)
     visibleLines      <- use (visible . to (Seq.take height) . to toList)

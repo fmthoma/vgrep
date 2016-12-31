@@ -143,7 +143,7 @@ renderResultList :: Monad m => VgrepT Results m Image
 renderResultList = do
     void resizeToWindow
     visibleLines <- use (to toLines)
-    width <- view (viewport . viewportWidth)
+    width <- view viewportWidth
     let render = renderLine width (lineNumberWidth visibleLines)
     renderedLines <- traverse render visibleLines
     pure (vertCat renderedLines)
@@ -197,7 +197,7 @@ renderLine width lineNumberWidth displayLine = do
 
 resizeToWindow :: Monad m => VgrepT Results m Redraw
 resizeToWindow = do
-    height <- view (viewport . viewportHeight)
+    height <- view viewportHeight
     currentBuffer <- get
     case Internal.resize height currentBuffer of
         Just resizedBuffer -> put resizedBuffer >> pure Redraw

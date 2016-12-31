@@ -80,7 +80,7 @@ linesBelowCurrent p = \case
     Results _ _ _ ds es -> p (length ds + length es)
 
 screenHeight :: Environment -> Int
-screenHeight = view (viewport . viewportHeight)
+screenHeight = view viewportHeight
 
 moveToLastLineOnScreen :: (Results, Environment) -> (Results, Environment)
 moveToLastLineOnScreen = over _1 $ \case
@@ -114,7 +114,7 @@ assertWidgetFitsOnScreen
     :: (MonadState Results m, MonadReader Environment m)
     => m Property
 assertWidgetFitsOnScreen = do
-    height <- view (viewport . viewportHeight)
+    height <- view viewportHeight
     linesOnScreen <- numberOfLinesOnScreen
     pure $ counterexample
         (show linesOnScreen ++ " > " ++ show height)

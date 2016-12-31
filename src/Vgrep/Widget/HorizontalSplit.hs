@@ -122,7 +122,7 @@ runInLeftWidget
     -> VgrepT s m Image
     -> VgrepT (HSplit s t) m Image
 runInLeftWidget ratio action =
-    let leftRegion = over (viewport . viewportWidth) $ \w ->
+    let leftRegion = over viewportWidth $ \w ->
             ceiling (ratio * fromIntegral w)
     in  zoom leftWidget (local leftRegion action)
 
@@ -133,7 +133,7 @@ runInRightWidget
     -> VgrepT t m Image
     -> VgrepT (HSplit s t) m Image
 runInRightWidget ratio action =
-    let rightRegion = over (viewport . viewportWidth) $ \w ->
+    let rightRegion = over viewportWidth $ \w ->
             floor ((1-ratio) * fromIntegral w)
     in  zoom rightWidget (local rightRegion action)
 

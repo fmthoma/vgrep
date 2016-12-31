@@ -26,7 +26,7 @@ data EventPriority = User | System deriving (Eq, Ord, Enum)
 viewportHack :: IO Viewport
 viewportHack = withVty $ \vty -> do
     (width, height) <- Vty.displayBounds (Vty.outputIface vty)
-    pure Viewport { _viewportWidth = width , _viewportHeight = height }
+    pure Viewport { _vpWidth = width , _vpHeight = height }
 
 -- | Spawns a thread parallel to the action that listens to 'Vty' events and
 -- redirects them to the 'Consumer'.

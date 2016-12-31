@@ -179,7 +179,7 @@ globalEventBindings
 globalEventBindings = \case
     EvResize w h         -> const . Continue $ do
         modifyEnvironment . set viewport $
-            Viewport { _viewportWidth = w, _viewportHeight = h }
+            Viewport { _vpWidth = w, _vpHeight = h }
         pure Redraw
     EvKey (KChar 'q') [] -> const (Interrupt Halt)
     EvKey (KChar 'e') [] -> invokeEditor

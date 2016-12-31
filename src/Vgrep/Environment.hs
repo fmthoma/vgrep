@@ -6,6 +6,10 @@ module Vgrep.Environment
     -- * Auto-generated Lenses
     , config
     , viewport
+    , vpHeight
+    , vpWidth
+
+    -- * Convenience Lenses
     , viewportWidth
     , viewportHeight
 
@@ -19,14 +23,15 @@ import Vgrep.Environment.Config
 
 
 -- | The bounds (width and height) of a display viewport.
-data Viewport = Viewport { _viewportWidth :: Int, _viewportHeight :: Int }
+data Viewport = Viewport { _vpWidth :: Int, _vpHeight :: Int }
     deriving (Eq, Show)
 
 makeLenses ''Viewport
 
+
 -- | 'Vgrep.Type.VgrepT' actions can read from the environment.
 data Environment = Env
-    { _config :: Config
+    { _config   :: Config
     -- ^ External configuration (colors, editor executable, …)
 
     , _viewport :: Viewport
@@ -35,3 +40,8 @@ data Environment = Env
     } deriving (Eq, Show)
 
 makeLenses ''Environment
+
+
+viewportHeight, viewportWidth :: Lens' Environment Int
+viewportHeight = viewport . vpHeight
+viewportWidth  = viewport . vpWidth
