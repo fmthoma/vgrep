@@ -20,6 +20,7 @@ module Test.Case (
     ) where
 
 import Control.Lens.Compat
+import Control.Monad
 import Test.QuickCheck.Monadic
 import Test.Tasty
 import Test.Tasty.QuickCheck

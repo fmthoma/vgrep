@@ -16,17 +16,17 @@ module Vgrep.Widget.Pager (
     , replaceBufferContents
     ) where
 
-import           Control.Lens.Compat  hiding ((:<), (:>))
+import           Control.Applicative (liftA2)
+import           Control.Lens.Compat hiding ((:<), (:>))
 import           Data.Foldable
-import qualified Data.IntMap.Strict   as Map
-import           Data.Monoid          ((<>))
-import           Data.Sequence        (Seq, (><))
-import qualified Data.Sequence        as Seq
-import           Data.Text            (Text)
-import qualified Data.Text            as T
-import           Graphics.Vty.Image   hiding (resize)
+import qualified Data.IntMap.Strict  as Map
+import           Data.Monoid         ((<>))
+import           Data.Sequence       (Seq, (><))
+import qualified Data.Sequence       as Seq
+import           Data.Text           (Text)
+import qualified Data.Text           as T
+import           Graphics.Vty.Image  hiding (resize)
 import           Graphics.Vty.Input
-import           Graphics.Vty.Prelude
 
 import Vgrep.Ansi
 import Vgrep.Environment
@@ -101,7 +101,7 @@ replaceBufferContents newContent newHighlightedLines = put initPager
 
 -- | Scroll to the given line number.
 moveToLine :: Monad m => Int -> VgrepT Pager m Redraw
-moveToLine n = views region regionHeight >>= \height -> do
+moveToLine n = view viewportHeight >>= \height -> do
     setPosition (n - height `div` 2)
     pure Redraw
 
@@ -116,7 +116,7 @@ scroll n = do
     pure Redraw
 
 setPosition :: Monad m => Int -> VgrepT Pager m ()
-setPosition n = views region regionHeight >>= \height -> do
+setPosition n = view viewportHeight >>= \height -> do
     allLines <- liftA2 (+) (uses visible length) (uses above length)
     let newPosition = if
             | n < 0 || allLines < height -> 0
@@ -134,10 +134,9 @@ setPosition n = views region regionHeight >>= \height -> do
 -- > scrollPage (-1)  -- scroll one page up
 -- > scrollPage 1     -- scroll one page down
 scrollPage :: Monad m => Int -> VgrepT Pager m Redraw
-scrollPage n = view region >>= \displayRegion ->
-    let height = regionHeight displayRegion
-    in  scroll (n * (height - 1))
-      -- gracefully leave one ^ line on the screen
+scrollPage n = view viewportHeight >>= \height ->
+    scroll (n * (height - 1))
+  -- gracefully leave one ^ line on the screen
 
 -- | Horizontal scrolling. Increment is one 'tabstop'.
 --
@@ -158,7 +157,8 @@ renderPager = do
     textColorHl       <- view (config . colors . normalHl)
     lineNumberColor   <- view (config . colors . lineNumbers)
     lineNumberColorHl <- view (config . colors . lineNumbersHl)
-    (width, height)   <- view region
+    width             <- view viewportWidth
+    height            <- view viewportHeight
     startPosition     <- use position
     startColumn       <- use (column . to fromIntegral)
     visibleLines      <- use (visible . to (Seq.take height) . to toList)
