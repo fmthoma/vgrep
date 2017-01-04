@@ -6,6 +6,7 @@ module Main (main) where
 import           Control.Concurrent.Async
 import           Control.Lens.Compat
 import           Control.Monad.Reader
+import qualified Data.Map.Strict                    as M
 import           Data.Maybe
 import           Data.Monoid
 import           Data.Ratio
@@ -30,6 +31,7 @@ import           System.IO
 import           System.Process
 
 import           Vgrep.App                    as App
+import           Vgrep.Commands
 import           Vgrep.Environment
 import           Vgrep.Event
 import           Vgrep.Parser
@@ -122,11 +124,12 @@ mainWidget = hSplitWidget resultsWidget pagerWidget
 eventHandler
     :: MonadIO m
     => Event
+    -> Environment
     -> AppState
     -> Next (VgrepT AppState m Redraw)
 eventHandler = \case
-    ReceiveInputEvent line  -> const (handleFeedInput line)
-    ReceiveResultEvent line -> const (handleFeedResult line)
+    ReceiveInputEvent line  -> \_ _ -> handleFeedInput line
+    ReceiveResultEvent line -> \_ _ -> handleFeedResult line
     VtyEvent event          -> handleVty event
   where
     handleFeedResult, handleFeedInput
@@ -146,45 +149,65 @@ eventHandler = \case
 handleVty
     :: MonadIO m
     => Vty.Event
+    -> Environment
     -> AppState
     -> Next (VgrepT AppState m Redraw)
-handleVty event = do
-    localKeyBindings <- view (widgetState . currentWidget) >>= \case
-        Left  _ -> pure resultsKeyBindings
-        Right _ -> pure pagerKeyBindings
-    (pure . localKeyBindings <> delegateToWidget <> globalEventBindings) event
+handleVty = \case
+    EvKey key modifiers -> handleKeyEvent key modifiers
+    EvResize w h        -> \_ _ -> handleResizeEvent w h
+    _otherwise          -> \_ _ -> Skip
 
-delegateToWidget
+handleResizeEvent :: Monad m => Int -> Int -> Next (VgrepT AppState m Redraw)
+handleResizeEvent w h = Continue $ do
+    modifyEnvironment . set viewport $
+        Viewport { _vpWidth = w, _vpHeight = h }
+    pure Redraw
+
+handleKeyEvent
     :: MonadIO m
-    => Vty.Event
+    => Key
+    -> [Modifier]
+    -> Environment
     -> AppState
     -> Next (VgrepT AppState m Redraw)
-delegateToWidget event = fmap (zoom widgetState)
-                       . Widget.handle mainWidget event
-                       . view widgetState
+handleKeyEvent key modifiers environment state =
+    executeCommand (lookupCmd (localBindings <> globalBindings)) state
+  where
+    globalBindings  = view (config . keybindings . globalKeybindings)  environment
+    resultsBindings = view (config . keybindings . resultsKeybindings) environment
+    pagerBindings   = view (config . keybindings . pagerKeybindings)   environment
+    localBindings = case view (widgetState . currentWidget) state of
+        Left  _ -> resultsBindings
+        Right _ -> pagerBindings
+    lookupCmd = fromMaybe None . M.lookup (key, modifiers)
 
-resultsKeyBindings :: MonadIO m => Vty.Event -> Next (VgrepT AppState m Redraw)
-resultsKeyBindings = dispatchMap $ fromList
-    [ (EvKey KEnter      [], loadSelectedFileToPager) ]
 
-pagerKeyBindings :: Vty.Event -> Next (VgrepT AppState m Redraw)
-pagerKeyBindings = dispatchMap $ fromList
-    []
-
-globalEventBindings
-    :: MonadIO m
-    => Vty.Event
-    -> AppState
-    -> Next (VgrepT AppState m Redraw)
-globalEventBindings = \case
-    EvResize w h         -> const . Continue $ do
-        modifyEnvironment . set viewport $
-            Viewport { _vpWidth = w, _vpHeight = h }
-        pure Redraw
-    EvKey (KChar 'q') [] -> const (Interrupt Halt)
-    EvKey (KChar 'e') [] -> invokeEditor
-    _otherwise           -> const Skip
-
+executeCommand :: MonadIO m => Command -> AppState -> Next (VgrepT AppState m Redraw)
+executeCommand = \case
+    None               -> skip
+    DisplayPagerOnly   -> continue (zoom widgetState rightOnly)
+    DisplayResultsOnly -> continue (zoom widgetState leftOnly)
+    SplitFocusPager    -> continue (zoom widgetState (splitView FocusRight (1 % 3)))
+    SplitFocusResults  -> continue (zoom widgetState (splitView FocusLeft (2 % 3)))
+    PagerUp            -> continue (zoom pager (scroll (-1)))
+    PagerDown          -> continue (zoom pager (scroll 1))
+    PagerPgUp          -> continue (zoom pager (scrollPage (-1)))
+    PagerPgDown        -> continue (zoom pager (scrollPage 1))
+    PagerScrollLeft    -> continue (zoom pager (hScroll (-1)))
+    PagerScrollRight   -> continue (zoom pager (hScroll 1))
+    ResultsUp          -> continue (zoom results prevLine >> pure Redraw)
+    ResultsDown        -> continue (zoom results nextLine >> pure Redraw)
+    ResultsPgUp        -> continue (zoom results pageUp   >> pure Redraw)
+    ResultsPgDown      -> continue (zoom results pageDown >> pure Redraw)
+    PrevResult         -> continue (zoom results prevLine >> loadSelectedFileToPager)
+    NextResult         -> continue (zoom results nextLine >> loadSelectedFileToPager)
+    PagerGotoResult    -> continue loadSelectedFileToPager
+    OpenFileInEditor   -> invokeEditor
+    Exit               -> halt
+  where
+    continue = const . Continue
+    skip = const Skip
+    halt = const (Interrupt Halt)
 
 loadSelectedFileToPager :: MonadIO m => VgrepT AppState m Redraw
 loadSelectedFileToPager = do

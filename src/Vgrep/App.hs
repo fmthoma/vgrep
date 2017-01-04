@@ -28,7 +28,7 @@ data App e s = App
     , liftEvent   :: Vty.Event -> e
     -- ^ How to convert an external 'Vty.Event' to the App's event
 
-    , handleEvent :: forall m. MonadIO m => e -> s -> Next (VgrepT s m Redraw)
+    , handleEvent :: forall m. MonadIO m => e -> Environment -> s -> Next (VgrepT s m Redraw)
     -- ^ Handles an event, possibly modifying the App's state.
     --
     -- @
@@ -101,7 +101,8 @@ appEventLoop app evSource evSink = eventLoop
         go = do
             event <- await
             currentState <- get
-            case handleAppEvent event currentState of
+            env <- ask
+            case handleAppEvent event env currentState of
                 Skip            -> go
                 Continue action -> lift action >>= \case
                     Unchanged   -> go

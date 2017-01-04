@@ -137,6 +137,7 @@ instance FromJSON ConfigMonoid where
         _mcolors  <- o .:? "colors" .!= mempty
         _mtabstop <- fmap First (o .:? "tabstop")
         _meditor  <- fmap First (o .:? "editor")
+        _mkeybindings <- pure mempty
         pure ConfigMonoid{..}
 
 instance FromJSON ColorsMonoid where
