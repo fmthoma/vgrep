@@ -2,12 +2,25 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Vgrep.Environment.Config where
 
-import Control.Lens.Compat
-import Control.Monad.IO.Class
-import Data.Maybe
-import Data.Monoid
-import Graphics.Vty.Image
+import           Control.Lens.Compat
+import           Control.Monad.IO.Class
+import           Data.Map.Strict           (Map)
+import           Data.Maybe
+import           Data.Monoid
+import           Graphics.Vty.Image
+    ( Attr
+    , blue
+    , bold
+    , defAttr
+    , green
+    , standout
+    , withBackColor
+    , withForeColor
+    , withStyle
+    )
+import           Graphics.Vty.Input.Events (Key, Modifier)
 
+import Vgrep.Commands
 import Vgrep.Environment.Config.Monoid
 import Vgrep.Environment.Config.Sources
 
@@ -17,38 +30,46 @@ import Vgrep.Environment.Config.Sources
 --------------------------------------------------------------------------
 
 data Config = Config
-    { _colors :: Colors
+    { _colors      :: Colors
     -- ^ Color configuration
 
-    , _tabstop :: Int
+    , _tabstop     :: Int
     -- ^ Tabstop width (default: 8)
 
-    , _editor :: String
+    , _editor      :: String
     -- ^ Executable for @e@ key (default: environment variable @$EDITOR@,
     -- or @vi@ if @$EDITOR@ is not set)
+
+    , _keybindings :: Keybindings
 
     } deriving (Eq, Show)
 
 data Colors = Colors
-    { _lineNumbers :: Attr
+    { _lineNumbers   :: Attr
     -- ^ Line numbers (default: blue)
 
     , _lineNumbersHl :: Attr
     -- ^ Highlighted line numbers (default: bold blue)
 
-    , _normal :: Attr
+    , _normal        :: Attr
     -- ^ Normal text (default: terminal default)
 
-    , _normalHl :: Attr
+    , _normalHl      :: Attr
     -- ^ Highlighted text (default: bold)
 
-    , _fileHeaders :: Attr
+    , _fileHeaders   :: Attr
     -- ^ File names in results view (default: terminal default color on
     -- green background)
 
-    , _selected :: Attr
+    , _selected      :: Attr
     -- ^ Selected entry (default: terminal default, inverted)
 
+    } deriving (Eq, Show)
+
+data Keybindings = Keybindings
+    { _resultsKeybindings :: Map (Key, [Modifier]) Command
+    , _pagerKeybindings   :: Map (Key, [Modifier]) Command
+    , _globalKeybindings  :: Map (Key, [Modifier]) Command
     } deriving (Eq, Show)
 
 
@@ -58,6 +79,7 @@ data Colors = Colors
 
 makeLenses ''Config
 makeLenses ''Colors
+makeLenses ''Keybindings
 
 
 --------------------------------------------------------------------------
@@ -70,7 +92,8 @@ fromConfigMonoid :: ConfigMonoid -> Config
 fromConfigMonoid ConfigMonoid{..} = Config
     { _colors  = fromColorsMonoid _mcolors
     , _tabstop = fromFirst (_tabstop defaultConfig) _mtabstop
-    , _editor  = fromFirst (_editor  defaultConfig) _meditor }
+    , _editor  = fromFirst (_editor  defaultConfig) _meditor
+    , _keybindings = fromKeybindingsMonoid _mkeybindings }
 
 -- | Convert a 'ColorsMonoid' to a 'Colors' config.
 fromColorsMonoid :: ColorsMonoid -> Colors
@@ -85,6 +108,12 @@ fromColorsMonoid ColorsMonoid{..} = Colors
 fromFirst :: a -> First a -> a
 fromFirst a = fromMaybe a . getFirst
 
+fromKeybindingsMonoid :: KeybindingsMonoid -> Keybindings
+fromKeybindingsMonoid KeybindingsMonoid{..} = Keybindings
+    { _resultsKeybindings = _mresultsKeybindings <> _resultsKeybindings defaultKeybindings
+    , _pagerKeybindings   = _mpagerKeybindings   <> _pagerKeybindings   defaultKeybindings
+    , _globalKeybindings  = _mglobalKeybindings  <> _globalKeybindings  defaultKeybindings }
+
 
 --------------------------------------------------------------------------
 -- * Default Config
@@ -94,7 +123,8 @@ defaultConfig :: Config
 defaultConfig = Config
     { _colors = defaultColors
     , _tabstop = 8
-    , _editor = "vi" }
+    , _editor = "vi"
+    , _keybindings = defaultKeybindings }
 
 defaultColors :: Colors
 defaultColors = Colors
@@ -105,6 +135,12 @@ defaultColors = Colors
     , _normalHl      = defAttr `withStyle` bold
     , _fileHeaders   = defAttr `withBackColor` green
     , _selected      = defAttr `withStyle` standout }
+
+defaultKeybindings :: Keybindings
+defaultKeybindings = Keybindings
+    { _resultsKeybindings = mempty
+    , _pagerKeybindings   = mempty
+    , _globalKeybindings  = mempty }
 
 
 --------------------------------------------------------------------------

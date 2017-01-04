@@ -44,6 +44,7 @@ library
                      , Vgrep.Ansi.Vty.Attributes
                      , Vgrep.App
                      , Vgrep.App.Internal
+                     , Vgrep.Commands
                      , Vgrep.Environment
                      , Vgrep.Environment.Config
                      , Vgrep.Environment.Config.Monoid

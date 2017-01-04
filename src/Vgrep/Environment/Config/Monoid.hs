@@ -2,12 +2,17 @@
 module Vgrep.Environment.Config.Monoid
   ( ConfigMonoid (..)
   , ColorsMonoid (..)
+  , KeybindingsMonoid (..)
   ) where
 
-import Data.Monoid
-import Generics.Deriving.Monoid (mappenddefault, memptydefault)
-import GHC.Generics
-import Graphics.Vty.Attributes  (Attr)
+import           Data.Map.Strict           (Map)
+import           Data.Monoid
+import           Generics.Deriving.Monoid  (mappenddefault, memptydefault)
+import           GHC.Generics
+import           Graphics.Vty.Attributes   (Attr)
+import           Graphics.Vty.Input.Events (Key, Modifier)
+
+import Vgrep.Commands
 
 
 -- | A 'Monoid' for reading partial configs. The 'ConfigMonoid' can be converted
@@ -17,9 +22,10 @@ import Graphics.Vty.Attributes  (Attr)
 -- The Monoid consists mostly of 'First a' values, so the most important config
 -- (the one that overrides all the others) should be read first.
 data ConfigMonoid = ConfigMonoid
-    { _mcolors  :: ColorsMonoid
-    , _mtabstop :: First Int
-    , _meditor  :: First String
+    { _mcolors      :: ColorsMonoid
+    , _mtabstop     :: First Int
+    , _meditor      :: First String
+    , _mkeybindings :: KeybindingsMonoid
     } deriving (Eq, Show, Generic)
 
 instance Monoid ConfigMonoid where
@@ -51,5 +57,16 @@ data ColorsMonoid = ColorsMonoid
     } deriving (Eq, Show, Generic)
 
 instance Monoid ColorsMonoid where
+    mempty = memptydefault
+    mappend = mappenddefault
+
+
+data KeybindingsMonoid = KeybindingsMonoid
+    { _mresultsKeybindings :: Map (Key, [Modifier]) Command
+    , _mpagerKeybindings   :: Map (Key, [Modifier]) Command
+    , _mglobalKeybindings  :: Map (Key, [Modifier]) Command
+    } deriving (Eq, Show, Generic)
+
+instance Monoid KeybindingsMonoid where
     mempty = memptydefault
     mappend = mappenddefault
