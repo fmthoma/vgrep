@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 
@@ -10,11 +11,17 @@ module Vgrep.Environment.Config.Sources.File
     ) where
 
 import           Control.Monad.IO.Class
-import           Data.Aeson              (withObject, withText)
+import           Data.Aeson.Types
+    ( Options (..)
+    , camelTo
+    , defaultOptions
+    , genericParseJSON
+    , withObject
+    )
 import           Data.Maybe
 import           Data.Monoid
-import           Data.Text               (unpack)
 import           Data.Yaml.Aeson
+import           GHC.Generics
 import qualified Graphics.Vty.Attributes as Vty
 import           System.Directory
 import           System.IO
@@ -132,14 +139,7 @@ instance FromJSON ConfigMonoid where
         pure ConfigMonoid{..}
 
 instance FromJSON ColorsMonoid where
-    parseJSON = withObject "ColorsMonoid" $ \o -> do
-        _mlineNumbers   <- fmap First (o .:? "line-numbers")
-        _mlineNumbersHl <- fmap First (o .:? "line-numbers-hl")
-        _mnormal        <- fmap First (o .:? "normal")
-        _mnormalHl      <- fmap First (o .:? "normal-hl")
-        _mfileHeaders   <- fmap First (o .:? "file-headers")
-        _mselected      <- fmap First (o .:? "selected")
-        pure ColorsMonoid{..}
+    parseJSON = genericParseJSON jsonOptions
 
 instance FromJSON Vty.Attr where
     parseJSON = fmap attrToVty . parseJSON
@@ -184,14 +184,10 @@ data Attr = Attr
     , backColor :: Maybe Color
     , style     :: Maybe Style
     }
-    deriving (Eq, Show)
+    deriving (Eq, Show, Generic)
 
 instance FromJSON Attr where
-    parseJSON = withObject "Attr" $ \o -> do
-        foreColor <- o .:? "fore-color"
-        backColor <- o .:? "back-color"
-        style     <- o .:? "style"
-        pure Attr{..}
+    parseJSON = genericParseJSON jsonOptions
 
 attrToVty :: Attr -> Vty.Attr
 attrToVty Attr{..} = foldAttrs
@@ -216,7 +212,7 @@ Right [Black,Red,BrightBlack]
 Fails with error message if the 'Color' cannot be parsed:
 
 >>> let Left err = decodeEither "foo" :: Either String Color
->>> "Unknown Color: foo" `isInfixOf` err
+>>> "The key \"foo\" was not found" `isInfixOf` err
 True
 -}
 data Color
@@ -236,27 +232,10 @@ data Color
     | BrightMagenta
     | BrightCyan
     | BrightWhite
-    deriving (Eq, Show)
+    deriving (Eq, Show, Generic)
 
 instance FromJSON Color where
-    parseJSON = withText "Color" $ \case
-        "black"          -> pure Black
-        "red"            -> pure Red
-        "green"          -> pure Green
-        "yellow"         -> pure Yellow
-        "blue"           -> pure Blue
-        "magenta"        -> pure Magenta
-        "cyan"           -> pure Cyan
-        "white"          -> pure White
-        "bright-black"   -> pure BrightBlack
-        "bright-red"     -> pure BrightRed
-        "bright-green"   -> pure BrightGreen
-        "bright-yellow"  -> pure BrightYellow
-        "bright-blue"    -> pure BrightBlue
-        "bright-magenta" -> pure BrightMagenta
-        "bright-cyan"    -> pure BrightCyan
-        "bright-white"   -> pure BrightWhite
-        s                -> fail ("Unknown Color: " <> unpack s)
+    parseJSON = genericParseJSON jsonOptions
 
 colorToVty :: Color -> Vty.Color
 colorToVty = \case
@@ -292,7 +271,7 @@ Right [Standout,Underline,Bold]
 Fails with error message if the 'Style' cannot be parsed:
 
 >>> let Left err = decodeEither "foo" :: Either String Style
->>> "Unknown Style: foo" `isInfixOf` err
+>>> "The key \"foo\" was not found" `isInfixOf` err
 True
 -}
 data Style
@@ -302,17 +281,10 @@ data Style
     | Blink
     | Dim
     | Bold
-    deriving (Eq, Show)
+    deriving (Eq, Show, Generic)
 
 instance FromJSON Style where
-    parseJSON = withText "Style" $ \case
-        "standout"      -> pure Standout
-        "underline"     -> pure Underline
-        "reverse-video" -> pure ReverseVideo
-        "blink"         -> pure Blink
-        "dim"           -> pure Dim
-        "bold"          -> pure Bold
-        s               -> fail ("Unknown Style: " <> unpack s)
+    parseJSON = genericParseJSON jsonOptions
 
 styleToVty :: Style -> Vty.Style
 styleToVty = \case
@@ -322,3 +294,14 @@ styleToVty = \case
     Blink        -> Vty.blink
     Dim          -> Vty.dim
     Bold         -> Vty.bold
+
+
+jsonOptions :: Options
+jsonOptions = defaultOptions
+    { constructorTagModifier = camelTo '-'
+    , fieldLabelModifier     = camelTo '-' . stripPrefix }
+  where
+    stripPrefix = \case
+        '_' : 'm' : name -> name
+        '_' : name       -> name
+        name             -> name
