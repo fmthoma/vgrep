@@ -5,6 +5,7 @@ module Vgrep.Environment.Config where
 import           Control.Lens.Compat
 import           Control.Monad.IO.Class
 import           Data.Map.Strict           (Map)
+import qualified Data.Map.Strict           as M
 import           Data.Maybe
 import           Data.Monoid
 import           Graphics.Vty.Image
@@ -18,7 +19,7 @@ import           Graphics.Vty.Image
     , withForeColor
     , withStyle
     )
-import           Graphics.Vty.Input.Events (Key, Modifier)
+import           Graphics.Vty.Input.Events (Key (..), Modifier (..))
 
 import Vgrep.Commands
 import Vgrep.Environment.Config.Monoid
@@ -138,9 +139,28 @@ defaultColors = Colors
 
 defaultKeybindings :: Keybindings
 defaultKeybindings = Keybindings
-    { _resultsKeybindings = mempty
-    , _pagerKeybindings   = mempty
-    , _globalKeybindings  = mempty }
+    { _resultsKeybindings = M.fromList
+        [ ((KUp,        []), ResultsUp)
+        , ((KDown,      []), ResultsDown)
+        , ((KPageUp,    []), ResultsPgUp)
+        , ((KPageDown,  []), ResultsPgDown)
+        , ((KEnter,     []), PagerGotoResult)
+        , ((KChar 'f',  []), DisplayResultsOnly)
+        , ((KChar '\t', []), SplitFocusPager)
+        , ((KChar 'q',  []), Exit) ]
+    , _pagerKeybindings = M.fromList
+        [ ((KUp,        []), PagerUp)
+        , ((KDown,      []), PagerDown)
+        , ((KPageUp,    []), PagerPgUp)
+        , ((KPageDown,  []), PagerPgDown)
+        , ((KLeft,      []), PagerScrollLeft)
+        , ((KRight,     []), PagerScrollRight)
+        , ((KChar 'f',  []), DisplayPagerOnly)
+        , ((KChar '\t', []), SplitFocusResults)
+        , ((KChar 'q',  []), DisplayResultsOnly) ]
+    , _globalKeybindings = M.fromList
+        [ ((KChar 'e',  []), OpenFileInEditor) ]
+    }
 
 
 --------------------------------------------------------------------------

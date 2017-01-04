@@ -42,6 +42,9 @@ data Command
     | OpenFileInEditor
     -- ^ Open file in external editor and jump to currently selected result
 
+    | Exit
+    -- ^ Exit the application
+
     | None
     -- ^ Do nothing (used to override a config)
 
