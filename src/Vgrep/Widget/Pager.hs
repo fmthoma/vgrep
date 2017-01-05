@@ -26,7 +26,6 @@ import qualified Data.Sequence       as Seq
 import           Data.Text           (Text)
 import qualified Data.Text           as T
 import           Graphics.Vty.Image  hiding (resize)
-import           Graphics.Vty.Input
 
 import Vgrep.Ansi
 import Vgrep.Environment
@@ -51,18 +50,10 @@ type PagerWidget = Widget Pager
 --     adjusted until either the screen is filled, or the first line is
 --     reached. Highlighted lines are displayed according to the config
 --     values 'normalHl' and 'lineNumbersHl' (default: bold).
---
--- * __Default keybindings__
---
---     @
---     ←↓↑→, hjkl    'hScroll' (-1), 'scroll' 1, 'scroll' (-1), 'hScroll' 1
---     PgUp, PgDn    'scrollPage' (-1), 'scrollPage' 1
---     @
 pagerWidget :: PagerWidget
 pagerWidget = Widget
     { initialize = initPager
-    , draw       = renderPager
-    , handle     = fmap const pagerKeyBindings }
+    , draw       = renderPager }
 
 initPager :: Pager
 initPager = Pager
@@ -71,23 +62,6 @@ initPager = Pager
     , _above       = Seq.empty
     , _visible     = Seq.empty }
 
-
-pagerKeyBindings
-    :: Monad m
-    => Event
-    -> Next (VgrepT Pager m Redraw)
-pagerKeyBindings = dispatchMap $ fromList
-    [ (EvKey KUp         [], scroll up      )
-    , (EvKey KDown       [], scroll down    )
-    , (EvKey (KChar 'k') [], scroll up      )
-    , (EvKey (KChar 'j') [], scroll down    )
-    , (EvKey KLeft       [], hScroll left   )
-    , (EvKey KRight      [], hScroll right  )
-    , (EvKey (KChar 'h') [], hScroll left   )
-    , (EvKey (KChar 'l') [], hScroll right  )
-    , (EvKey KPageUp     [], scrollPage up  )
-    , (EvKey KPageDown   [], scrollPage down) ]
-  where up = -1; down = 1; left = -1; right = 1
 
 -- | Replace the currently displayed text.
 replaceBufferContents

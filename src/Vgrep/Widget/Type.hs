@@ -8,7 +8,6 @@ module Vgrep.Widget.Type
   ) where
 
 import Graphics.Vty.Image (Image)
-import Graphics.Vty.Input
 
 import Vgrep.Event (Next (..), Redraw (..))
 import Vgrep.Type
@@ -30,8 +29,4 @@ data Widget s = Widget
     , draw       :: forall m. Monad m => VgrepT s m Image
     -- ^ Generate a renderable 'Image' from the widget state. The state can
     -- be modified (e. g. for resizing).
-
-    , handle     :: forall m. Monad m => Event -> s -> Next (VgrepT s m Redraw)
-    -- ^ The default event handler for this 'Widget'. May provide e.g.
-    -- default keybindings.
     }

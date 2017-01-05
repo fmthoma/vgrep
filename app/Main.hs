@@ -39,7 +39,6 @@ import           Vgrep.Parser
 import           Vgrep.System.Grep
 import           Vgrep.Text
 import           Vgrep.Type
-import           Vgrep.Widget                 hiding (handle)
 import qualified Vgrep.Widget                 as Widget
 import           Vgrep.Widget.HorizontalSplit
 import           Vgrep.Widget.Pager
@@ -113,7 +112,7 @@ app = App
             { _widgetState = Widget.initialize mainWidget
             , _inputLines  = S.empty }
     renderMainWidget :: Monad m => VgrepT AppState m Vty.Picture
-    renderMainWidget = fmap picForImage (zoom widgetState (draw mainWidget))
+    renderMainWidget = fmap picForImage (zoom widgetState (Widget.draw mainWidget))
 
 mainWidget :: MainWidget
 mainWidget = hSplitWidget resultsWidget pagerWidget

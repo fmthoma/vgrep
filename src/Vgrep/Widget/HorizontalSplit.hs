@@ -24,9 +24,7 @@ module Vgrep.Widget.HorizontalSplit (
 
 import Control.Applicative (liftA2)
 import Control.Lens.Compat
-import Data.Monoid
 import Graphics.Vty.Image  hiding (resize)
-import Graphics.Vty.Input
 
 import Vgrep.Environment
 import Vgrep.Event
@@ -47,25 +45,13 @@ type HSplitWidget s t = Widget (HSplit s t)
 --
 --     Drawing is delegated to the child widgets in a local environment
 --     reduced to thir respective 'Viewport'.
---
--- * __Default keybindings__
---
---     Events are routed to the focused widget. Additionally, the
---     following keybindings are defined:
---
---     @
---     Tab   'switchFocus'
---     f     full screen ('leftOnly' / 'rightOnly')
---     q     close right widget ('leftOnly' if right widget is focused)
---     @
 hSplitWidget
     :: Widget s
     -> Widget t
     -> HSplitWidget s t
 hSplitWidget left right = Widget
     { initialize = initHSplit   left right
-    , draw       = drawWidgets  left right
-    , handle     = handleEvents left right }
+    , draw       = drawWidgets  left right }
 
 initHSplit :: Widget s -> Widget t -> HSplit s t
 initHSplit left right = HSplit
@@ -136,37 +122,3 @@ runInRightWidget ratio action =
     let rightRegion = over viewportWidth $ \w ->
             floor ((1-ratio) * fromIntegral w)
     in  zoom rightWidget (local rightRegion action)
-
--- ------------------------------------------------------------------------
--- Events & Keybindings
--- ------------------------------------------------------------------------
-
--- FIXME: local viewport!
-handleEvents
-    :: Monad m
-    => Widget s
-    -> Widget t
-    -> Event
-    -> HSplit s t
-    -> Next (VgrepT (HSplit s t) m Redraw)
-handleEvents left right e s = case view currentWidget s of
-    Left  ls -> hSplitKeyBindingsLeft  e <> fmap (zoom leftWidget)  (handle left  e ls)
-    Right rs -> hSplitKeyBindingsRight e <> fmap (zoom rightWidget) (handle right e rs)
-
-hSplitKeyBindingsLeft
-    :: Monad m
-    => Event
-    -> Next (VgrepT (HSplit s t) m Redraw)
-hSplitKeyBindingsLeft = dispatchMap $ fromList
-    [ (EvKey (KChar '\t') [], switchFocus)
-    , (EvKey (KChar 'f')  [], leftOnly) ]
-
-hSplitKeyBindingsRight
-    :: Monad m
-    => Event
-    -> Next (VgrepT (HSplit s t) m Redraw)
-hSplitKeyBindingsRight = dispatchMap $ fromList
-    [ (EvKey (KChar '\t') [], switchFocus)
-    , (EvKey (KChar 'q')  [], leftOnly)
-    , (EvKey (KChar 'f')  [], rightOnly) ]
-
