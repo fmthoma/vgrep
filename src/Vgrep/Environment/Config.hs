@@ -142,9 +142,12 @@ defaultKeybindings = Keybindings
     { _resultsKeybindings = M.fromList
         [ (Key.key Key.Up,          ResultsUp)
         , (Key.key Key.Down,        ResultsDown)
+        , (Key.key Key.Down,        ResultsDown)
         , (Key.key Key.PageUp,      ResultsPgUp)
         , (Key.key Key.PageDown,    ResultsPgDown)
         , (Key.key Key.Enter,       PagerGotoResult)
+        , (Key.key (Key.Char 'k'),  ResultsUp)
+        , (Key.key (Key.Char 'j'),  ResultsDown)
         , (Key.key (Key.Char 'f'),  DisplayResultsOnly)
         , (Key.key (Key.Char '\t'), SplitFocusPager)
         , (Key.key (Key.Char 'q'),  Exit) ]
@@ -155,6 +158,10 @@ defaultKeybindings = Keybindings
         , (Key.key Key.PageDown,    PagerPgDown)
         , (Key.key Key.Left,        PagerScrollLeft)
         , (Key.key Key.Right,       PagerScrollRight)
+        , (Key.key (Key.Char 'k'),  PagerUp)
+        , (Key.key (Key.Char 'j'),  PagerDown)
+        , (Key.key (Key.Char 'h'),  PagerScrollLeft)
+        , (Key.key (Key.Char 'l'),  PagerScrollRight)
         , (Key.key (Key.Char 'f'),  DisplayPagerOnly)
         , (Key.key (Key.Char '\t'), SplitFocusResults)
         , (Key.key (Key.Char 'q'),  DisplayResultsOnly) ]
