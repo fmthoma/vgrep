@@ -142,7 +142,6 @@ defaultKeybindings = Keybindings
     { _resultsKeybindings = M.fromList
         [ (Key.key Key.Up,          ResultsUp)
         , (Key.key Key.Down,        ResultsDown)
-        , (Key.key Key.Down,        ResultsDown)
         , (Key.key Key.PageUp,      ResultsPgUp)
         , (Key.key Key.PageDown,    ResultsPgDown)
         , (Key.key Key.Enter,       PagerGotoResult)
