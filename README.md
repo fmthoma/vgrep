@@ -24,6 +24,7 @@
     git config --global alias.vgrep '!__git_vgrep () { git grep --color=always "$@" | vgrep; }; __git_vgrep'
     git vgrep data
     ```
+
 * Using [`ack`][ack]/[`ag`][ag] instead of `grep`? No problem:
 
     ```bash
@@ -33,6 +34,14 @@
     ```
 [ack]: http://beyondgrep.com/
 [ag]:  https://github.com/ggreer/the_silver_searcher
+
+Keybindings:
+
+* Use `hjkl` or the arrow keys to navigate
+* `Enter` opens a pager with the selected file
+* `e` opens the selected file in `$EDITOR`
+* `Tab` switches between results list and pager
+* `q` closes the pager and then the entire application.
 
 ## Installation
 
