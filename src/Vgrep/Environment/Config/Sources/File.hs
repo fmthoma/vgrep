@@ -328,9 +328,9 @@ parseChord = \case
     'S' : '-' : t -> fmap (`Key.withModifier` Key.Shift) (parseChord t)
     'M' : '-' : t -> fmap (`Key.withModifier` Key.Meta)  (parseChord t)
     [c]           -> pure (Key.key (Key.Char c))
-    "PgUp"        -> pure (Key.key (Key.PageUp))
-    "PgDown"      -> pure (Key.key (Key.PageDown))
-    "PgDn"        -> pure (Key.key (Key.PageDown))
+    "PgUp"        -> pure (Key.key Key.PageUp)
+    "PgDown"      -> pure (Key.key Key.PageDown)
+    "PgDn"        -> pure (Key.key Key.PageDown)
     s | Just k <- readMaybe s
                   -> pure (Key.key k)
       | otherwise -> fail ("Unknown key '" <> s <> "'")
