@@ -170,7 +170,7 @@ handleKeyEvent
     -> AppState
     -> Next (VgrepT AppState m Redraw)
 handleKeyEvent chord environment state =
-    executeCommand (lookupCmd (localBindings <> globalBindings)) state
+    executeCommand command state
   where
     globalBindings  = view (config . keybindings . globalKeybindings)  environment
     resultsBindings = view (config . keybindings . resultsKeybindings) environment
@@ -178,12 +178,15 @@ handleKeyEvent chord environment state =
     localBindings = case view (widgetState . currentWidget) state of
         Left  _ -> resultsBindings
         Right _ -> pagerBindings
-    lookupCmd = fromMaybe None . M.lookup chord
+    lookupCmd = fromMaybe Unset . M.lookup chord
+    command = case lookupCmd localBindings of
+        Unset   -> lookupCmd globalBindings
+        defined -> defined
 
 
 executeCommand :: MonadIO m => Command -> AppState -> Next (VgrepT AppState m Redraw)
 executeCommand = \case
-    None               -> skip
+    Unset              -> skip
     DisplayPagerOnly   -> continue (zoom widgetState rightOnly)
     DisplayResultsOnly -> continue (zoom widgetState leftOnly)
     SplitFocusPager    -> continue (zoom widgetState (splitView FocusRight (1 % 3)))

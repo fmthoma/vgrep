@@ -75,8 +75,8 @@ tabstop: 8
 # * open-file-in-editor    -- Open file in external editor and jump to
 #                             currently selected result
 # * exit                   -- Exit the application
-# * none                   -- Do nothing (used to unmap keys that are mapped by
-#                             default)
+# * unset                  -- ^ Treat keybinding as if not present, fall back to
+#                          -- alternative binding (used to override keybindings)
 # A command can be mapped to different keys.
 #
 # Key notation examples
@@ -89,6 +89,8 @@ tabstop: 8
 #                             (both correspond to Control-Alt-Shift-Up)
 # * The Shift key can only be applied to non-character keys (like Up, Down,
 #   Space, Enter): Shift-'j' is represented by 'J', not by 'S-j'.
+#
+# Default keybindings:
 keybindings:
 
     # These keybindings are always in effect, but can be overridden.
@@ -124,3 +126,38 @@ keybindings:
         l        : pager-scroll-right
         Tab      : split-focus-results
         q        : display-results-only
+
+# Alternative keybindings: tig-style
+#
+# tig uses jk to navigate the pager, and Up/Down to navigate the commit list.
+## keybindings:
+##     global-keybindings:
+##         q        : exit
+##         e        : open-file-in-editor
+##         Up       : prev-result
+##         Down     : next-result
+##         PageUp   : pager-pg-up
+##         PageDown : pager-pg-down
+##         k        : pager-up
+##         j        : pager-down
+##         h        : pager-scroll-left
+##         l        : pager-scroll-right
+##         Enter    : pager-goto-result
+##     results-keybindings:
+##         f        : display-results-only
+##         Tab      : split-focus-pager
+##         k        : unset
+##         j        : unset
+##         PageUp   : unset
+##         PageDown : unset
+##     pager-keybindings:
+##         f        : display-pager-only
+##         Tab      : split-focus-results
+##         q        : display-results-only
+##         k        : unset
+##         j        : unset
+##         PageUp   : unset
+##         PageDown : unset
+##
+##         # Need to unset default keybindings that would otherwise override our
+##         # newly defined global bindings.

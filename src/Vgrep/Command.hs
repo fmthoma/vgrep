@@ -30,6 +30,7 @@ data Command
 
     | Exit                 -- ^ Exit the application
 
-    | None                 -- ^ Do nothing (used to override a config)
+    | Unset                -- ^ Treat keybinding as if not present, fall back to
+                           -- alternative binding (used to override keybindings)
 
     deriving (Eq, Show, Generic)
