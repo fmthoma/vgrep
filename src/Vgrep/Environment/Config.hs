@@ -148,7 +148,7 @@ defaultKeybindings = Keybindings
         , (Key.key (Key.Char 'k'),  ResultsUp)
         , (Key.key (Key.Char 'j'),  ResultsDown)
         , (Key.key (Key.Char 'f'),  DisplayResultsOnly)
-        , (Key.key (Key.Char '\t'), SplitFocusPager) ]
+        , (Key.key Key.Tab,         SplitFocusPager) ]
     , _pagerKeybindings = M.fromList
         [ (Key.key Key.Up,          PagerUp)
         , (Key.key Key.Down,        PagerDown)
@@ -161,7 +161,7 @@ defaultKeybindings = Keybindings
         , (Key.key (Key.Char 'h'),  PagerScrollLeft)
         , (Key.key (Key.Char 'l'),  PagerScrollRight)
         , (Key.key (Key.Char 'f'),  DisplayPagerOnly)
-        , (Key.key (Key.Char '\t'), SplitFocusResults)
+        , (Key.key Key.Tab,         SplitFocusResults)
         , (Key.key (Key.Char 'q'),  DisplayResultsOnly) ]
     , _globalKeybindings = M.fromList
         [ (Key.key (Key.Char 'e'),  OpenFileInEditor)
