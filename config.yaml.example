@@ -1,21 +1,22 @@
-# Color configuration
-#
-# For each item, the following three attributes can be specified:
-# * fore-color: The text color
-# * back-color: The background color
-#     * Valid colors are the usual 16 terminal colors:
-#         black, red, green, blue, yellow, magenta, cyan, white,
-#         bright-black, bright-red, bright-green, bright-yellow,
-#         bright-blue, bright-magenta, bright-cyan, bright-white
-# * style:
-#     * Valid styles are:
-#         standout, underline, reverse-video, blink, dim, bold
-#       Please note that not all styles are necessarily supported
-#       by your terminal.
-#
-# If a color/style is not given, it falls back to the terminal
-# default. If no config is given for a color, the vgrep default
-# config steps in (which may differ from your terminal's default).
+##  Color configuration
+##
+##  For each item, the following three attributes can be specified:
+##  * fore-color: The text color
+##  * back-color: The background color
+##      * Valid colors are the usual 16 terminal colors:
+##          black, red, green, blue, yellow, magenta, cyan, white,
+##          bright-black, bright-red, bright-green, bright-yellow,
+##          bright-blue, bright-magenta, bright-cyan, bright-white
+##  * style:
+##      * Valid styles are:
+##          standout, underline, reverse-video, blink, dim, bold
+##        Please note that not all styles are necessarily supported
+##        by your terminal.
+##
+##  If a color/style is not given, it falls back to the terminal
+##  default. If no config is given for a color, the vgrep default
+##  config steps in (which may differ from your terminal's default).
+##
 colors:
 
     # Line numbers
@@ -42,55 +43,57 @@ colors:
         style: standout
 
 
-# The tabstop witdth (a tab character moves the indentation to the
-# next multiple of this value)
+##  The tabstop witdth (a tab character moves the indentation to the
+##  next multiple of this value)
+##
 tabstop: 8
 
 
-# The editor to be used by the 'e' key (read from $EDITOR by
-# default, but can be overridden here).
+##  The editor to be used by the 'e' key (read from $EDITOR by
+##  default, but can be overridden here).
+##
 # editor: "vi"
 
 
-# Keybindings
-#
-# The following commands can be mapped:
-# * display-pager-only     -- Display the pager full-screen
-# * display-results-only   -- Display the results list full-screen
-# * split-focus-pager      -- Split screen, focus on pager
-# * split-focus-results    -- Split screen, focus on results list
-# * pager-up               -- Scroll one line up in pager
-# * pager-down             -- Scroll one line down in pager
-# * pager-pg-up            -- Scroll one page up in pager
-# * pager-pg-down          -- Scroll one page down in pager
-# * pager-scroll-left      -- Scroll eight characters left in pager
-# * pager-scroll-right     -- Scroll eight characters right in pager
-# * results-up             -- Move to previous result
-# * results-down           -- Move to next result
-# * results-pg-up          -- Move one page up in results list
-# * results-pg-down        -- Move one page down in results list
-# * prev-result            -- Move to previous result and update pager
-# * next-result            -- Move to next result and update pager
-# * pager-goto-result      -- Update pager with currently selected result
-# * open-file-in-editor    -- Open file in external editor and jump to
-#                             currently selected result
-# * exit                   -- Exit the application
-# * unset                  -- ^ Treat keybinding as if not present, fall back to
-#                          -- alternative binding (used to override keybindings)
-# A command can be mapped to different keys.
-#
-# Key notation examples
-# * j                      -- the 'j' key
-# * J                      -- the 'J' key (Shift-'j')
-# * Up, Down, Left, Right  -- the corresponding arrow keys
-# * S-Up, C-Up, M-Up       -- Modifiers Shift, Ctrl, Alt/Meta combined with the
-#                             Up key
-# * C-M-S-Up, C-S-M-Up     -- Modifiers can be combined, the order is irrelevant
-#                             (both correspond to Control-Alt-Shift-Up)
-# * The Shift key can only be applied to non-character keys (like Up, Down,
-#   Space, Enter): Shift-'j' is represented by 'J', not by 'S-j'.
-#
-# Default keybindings:
+##  Keybindings
+##
+##  The following commands can be mapped:
+##  * display-pager-only     -- Display the pager full-screen
+##  * display-results-only   -- Display the results list full-screen
+##  * split-focus-pager      -- Split screen, focus on pager
+##  * split-focus-results    -- Split screen, focus on results list
+##  * pager-up               -- Scroll one line up in pager
+##  * pager-down             -- Scroll one line down in pager
+##  * pager-pg-up            -- Scroll one page up in pager
+##  * pager-pg-down          -- Scroll one page down in pager
+##  * pager-scroll-left      -- Scroll eight characters left in pager
+##  * pager-scroll-right     -- Scroll eight characters right in pager
+##  * results-up             -- Move to previous result
+##  * results-down           -- Move to next result
+##  * results-pg-up          -- Move one page up in results list
+##  * results-pg-down        -- Move one page down in results list
+##  * prev-result            -- Move to previous result and update pager
+##  * next-result            -- Move to next result and update pager
+##  * pager-goto-result      -- Update pager with currently selected result
+##  * open-file-in-editor    -- Open file in external editor and jump to
+##                              currently selected result
+##  * exit                   -- Exit the application
+##  * unset                  -- Treat keybinding as if not present, fall back to
+##                           -- alternative binding (used to override keybindings)
+##  A command can be mapped to different keys.
+##
+##  Key notation examples
+##  * j                      -- the 'j' key
+##  * J                      -- the 'J' key (Shift-'j')
+##  * Up, Down, Left, Right  -- the corresponding arrow keys
+##  * S-Up, C-Up, M-Up       -- Modifiers Shift, Ctrl, Alt/Meta combined with the
+##                              Up key
+##  * C-M-S-Up, C-S-M-Up     -- Modifiers can be combined, the order is irrelevant
+##                              (both correspond to Control-Alt-Shift-Up)
+##  * The Shift key can only be applied to non-character keys (like Up, Down,
+##    Space, Enter): Shift-'j' is represented by 'J', not by 'S-j'.
+##
+##  Default keybindings:
 keybindings:
 
     # These keybindings are always in effect, but can be overridden.
@@ -125,39 +128,18 @@ keybindings:
         h        : pager-scroll-left
         l        : pager-scroll-right
         Tab      : split-focus-results
+        f        : display-pager-only
         q        : display-results-only
 
-# Alternative keybindings: tig-style
-#
-# tig uses jk to navigate the pager, and Up/Down to navigate the commit list.
-## keybindings:
-##     global-keybindings:
-##         q        : exit
-##         e        : open-file-in-editor
-##         Up       : prev-result
-##         Down     : next-result
-##         PageUp   : pager-pg-up
-##         PageDown : pager-pg-down
-##         k        : pager-up
-##         j        : pager-down
-##         h        : pager-scroll-left
-##         l        : pager-scroll-right
-##         Enter    : pager-goto-result
-##     results-keybindings:
-##         f        : display-results-only
-##         Tab      : split-focus-pager
-##         k        : unset
-##         j        : unset
-##         PageUp   : unset
-##         PageDown : unset
-##     pager-keybindings:
-##         f        : display-pager-only
-##         Tab      : split-focus-results
-##         q        : display-results-only
-##         k        : unset
-##         j        : unset
-##         PageUp   : unset
-##         PageDown : unset
+##  Alternative keybindings: tig-style
+##  (jk to navigate the pager, Up/Down to navigate the results list)
 ##
-##         # Need to unset default keybindings that would otherwise override our
-##         # newly defined global bindings.
+# keybindings:
+#     results-keybindings:
+#         O        : display-results-only
+#         f        : unset
+#     pager-keybindings:
+#         O        : display-pager-only
+#         Up       : prev-result
+#         Down     : next-result
+#         f        : unset

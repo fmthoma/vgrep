@@ -189,8 +189,8 @@ executeCommand = \case
     Unset              -> skip
     DisplayPagerOnly   -> continue (zoom widgetState rightOnly)
     DisplayResultsOnly -> continue (zoom widgetState leftOnly)
-    SplitFocusPager    -> continue (zoom widgetState (splitView FocusRight (1 % 3)))
-    SplitFocusResults  -> continue (zoom widgetState (splitView FocusLeft (2 % 3)))
+    SplitFocusPager    -> continue splitViewPager
+    SplitFocusResults  -> continue splitViewResults
     PagerUp            -> continue (zoom pager (scroll (-1)))
     PagerDown          -> continue (zoom pager (scroll 1))
     PagerPgUp          -> continue (zoom pager (scrollPage (-1)))
@@ -203,13 +203,17 @@ executeCommand = \case
     ResultsPgDown      -> continue (zoom results pageDown >> pure Redraw)
     PrevResult         -> continue (zoom results prevLine >> loadSelectedFileToPager)
     NextResult         -> continue (zoom results nextLine >> loadSelectedFileToPager)
-    PagerGotoResult    -> continue loadSelectedFileToPager
+    PagerGotoResult    -> continue (loadSelectedFileToPager >> splitViewPager)
     OpenFileInEditor   -> invokeEditor
     Exit               -> halt
   where
     continue = const . Continue
     skip = const Skip
     halt = const (Interrupt Halt)
+
+splitViewPager, splitViewResults :: Monad m => VgrepT AppState m Redraw
+splitViewPager   = zoom widgetState (splitView FocusRight (1 % 3))
+splitViewResults = zoom widgetState (splitView FocusLeft  (2 % 3))
 
 loadSelectedFileToPager :: MonadIO m => VgrepT AppState m Redraw
 loadSelectedFileToPager = do
@@ -224,7 +228,7 @@ loadSelectedFileToPager = do
         highlightedLines <- use (results . currentFileResults)
         zoom pager (replaceBufferContents displayContent highlightedLines)
         moveToSelectedLineNumber
-        zoom widgetState (splitView FocusRight (1 % 3))
+        pure Redraw
   where
     readLinesFrom f = liftIO $ do
         content <- TL.readFile f
