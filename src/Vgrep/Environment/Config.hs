@@ -69,8 +69,15 @@ data Colors = Colors
 
 data Keybindings = Keybindings
     { _resultsKeybindings :: Map Key.Chord Command
+    -- ^ Keybindings in effect when results list is focused.
+
     , _pagerKeybindings   :: Map Key.Chord Command
+    -- ^ Keybindings in effect when pager is focused.
+
     , _globalKeybindings  :: Map Key.Chord Command
+    -- ^ Global keybindings are in effect both for pager and results list, but
+    -- can be overridden by either one.
+
     } deriving (Eq, Show)
 
 
