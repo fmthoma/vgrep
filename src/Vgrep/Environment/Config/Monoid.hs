@@ -62,9 +62,9 @@ instance Monoid ColorsMonoid where
 
 
 data KeybindingsMonoid = KeybindingsMonoid
-    { _mresultsKeybindings :: Map Key.Chord Command
-    , _mpagerKeybindings   :: Map Key.Chord Command
-    , _mglobalKeybindings  :: Map Key.Chord Command
+    { _mresultsKeybindings :: Maybe (Map Key.Chord Command)
+    , _mpagerKeybindings   :: Maybe (Map Key.Chord Command)
+    , _mglobalKeybindings  :: Maybe (Map Key.Chord Command)
     } deriving (Eq, Show, Generic)
 
 instance Monoid KeybindingsMonoid where

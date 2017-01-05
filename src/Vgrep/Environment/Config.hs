@@ -111,9 +111,9 @@ fromFirst a = fromMaybe a . getFirst
 
 fromKeybindingsMonoid :: KeybindingsMonoid -> Keybindings
 fromKeybindingsMonoid KeybindingsMonoid{..} = Keybindings
-    { _resultsKeybindings = _mresultsKeybindings <> _resultsKeybindings defaultKeybindings
-    , _pagerKeybindings   = _mpagerKeybindings   <> _pagerKeybindings   defaultKeybindings
-    , _globalKeybindings  = _mglobalKeybindings  <> _globalKeybindings  defaultKeybindings }
+    { _resultsKeybindings = fromMaybe mempty _mresultsKeybindings <> _resultsKeybindings defaultKeybindings
+    , _pagerKeybindings   = fromMaybe mempty _mpagerKeybindings   <> _pagerKeybindings   defaultKeybindings
+    , _globalKeybindings  = fromMaybe mempty _mglobalKeybindings  <> _globalKeybindings  defaultKeybindings }
 
 
 --------------------------------------------------------------------------
