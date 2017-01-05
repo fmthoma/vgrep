@@ -5,14 +5,14 @@ module Vgrep.Environment.Config.Monoid
   , KeybindingsMonoid (..)
   ) where
 
-import           Data.Map.Strict           (Map)
-import           Data.Monoid
-import           Generics.Deriving.Monoid  (mappenddefault, memptydefault)
-import           GHC.Generics
-import           Graphics.Vty.Attributes   (Attr)
-import           Graphics.Vty.Input.Events (Key, Modifier)
+import Data.Map.Strict          (Map)
+import Data.Monoid
+import Generics.Deriving.Monoid (mappenddefault, memptydefault)
+import GHC.Generics
+import Graphics.Vty.Attributes  (Attr)
 
 import Vgrep.Commands
+import Vgrep.Keys     as Key
 
 
 -- | A 'Monoid' for reading partial configs. The 'ConfigMonoid' can be converted
@@ -62,9 +62,9 @@ instance Monoid ColorsMonoid where
 
 
 data KeybindingsMonoid = KeybindingsMonoid
-    { _mresultsKeybindings :: Map (Key, [Modifier]) Command
-    , _mpagerKeybindings   :: Map (Key, [Modifier]) Command
-    , _mglobalKeybindings  :: Map (Key, [Modifier]) Command
+    { _mresultsKeybindings :: Map Key.Chord Command
+    , _mpagerKeybindings   :: Map Key.Chord Command
+    , _mglobalKeybindings  :: Map Key.Chord Command
     } deriving (Eq, Show, Generic)
 
 instance Monoid KeybindingsMonoid where

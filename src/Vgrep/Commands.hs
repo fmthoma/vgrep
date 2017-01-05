@@ -1,4 +1,7 @@
+{-# LANGUAGE DeriveGeneric #-}
 module Vgrep.Commands where
+
+import GHC.Generics
 
 data Command
     = DisplayPagerOnly
@@ -48,4 +51,4 @@ data Command
     | None
     -- ^ Do nothing (used to override a config)
 
-    deriving (Eq, Show)
+    deriving (Eq, Show, Generic)

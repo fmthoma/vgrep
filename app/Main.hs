@@ -34,6 +34,7 @@ import           Vgrep.App                    as App
 import           Vgrep.Commands
 import           Vgrep.Environment
 import           Vgrep.Event
+import qualified Vgrep.Keys                   as Key
 import           Vgrep.Parser
 import           Vgrep.System.Grep
 import           Vgrep.Text
@@ -153,9 +154,9 @@ handleVty
     -> AppState
     -> Next (VgrepT AppState m Redraw)
 handleVty = \case
-    EvKey key modifiers -> handleKeyEvent key modifiers
-    EvResize w h        -> \_ _ -> handleResizeEvent w h
-    _otherwise          -> \_ _ -> Skip
+    EvResize w h                      -> \_ _ -> handleResizeEvent w h
+    ev | Just chord <- Key.fromVty ev -> handleKeyEvent chord
+       | otherwise                    -> \_ _ -> Skip
 
 handleResizeEvent :: Monad m => Int -> Int -> Next (VgrepT AppState m Redraw)
 handleResizeEvent w h = Continue $ do
@@ -165,12 +166,11 @@ handleResizeEvent w h = Continue $ do
 
 handleKeyEvent
     :: MonadIO m
-    => Key
-    -> [Modifier]
+    => Key.Chord
     -> Environment
     -> AppState
     -> Next (VgrepT AppState m Redraw)
-handleKeyEvent key modifiers environment state =
+handleKeyEvent chord environment state =
     executeCommand (lookupCmd (localBindings <> globalBindings)) state
   where
     globalBindings  = view (config . keybindings . globalKeybindings)  environment
@@ -179,7 +179,7 @@ handleKeyEvent key modifiers environment state =
     localBindings = case view (widgetState . currentWidget) state of
         Left  _ -> resultsBindings
         Right _ -> pagerBindings
-    lookupCmd = fromMaybe None . M.lookup (key, modifiers)
+    lookupCmd = fromMaybe None . M.lookup chord
 
 
 executeCommand :: MonadIO m => Command -> AppState -> Next (VgrepT AppState m Redraw)

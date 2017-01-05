@@ -4,8 +4,8 @@ module Vgrep.Environment.Config where
 
 import           Control.Lens.Compat
 import           Control.Monad.IO.Class
-import           Data.Map.Strict           (Map)
-import qualified Data.Map.Strict           as M
+import           Data.Map.Strict        (Map)
+import qualified Data.Map.Strict        as M
 import           Data.Maybe
 import           Data.Monoid
 import           Graphics.Vty.Image
@@ -19,11 +19,12 @@ import           Graphics.Vty.Image
     , withForeColor
     , withStyle
     )
-import           Graphics.Vty.Input.Events (Key (..), Modifier (..))
 
-import Vgrep.Commands
-import Vgrep.Environment.Config.Monoid
-import Vgrep.Environment.Config.Sources
+import           Vgrep.Commands
+import           Vgrep.Environment.Config.Monoid
+import           Vgrep.Environment.Config.Sources
+import           Vgrep.Keys                       (Chord)
+import qualified Vgrep.Keys                       as Key
 
 
 --------------------------------------------------------------------------
@@ -68,9 +69,9 @@ data Colors = Colors
     } deriving (Eq, Show)
 
 data Keybindings = Keybindings
-    { _resultsKeybindings :: Map (Key, [Modifier]) Command
-    , _pagerKeybindings   :: Map (Key, [Modifier]) Command
-    , _globalKeybindings  :: Map (Key, [Modifier]) Command
+    { _resultsKeybindings :: Map Chord Command
+    , _pagerKeybindings   :: Map Chord Command
+    , _globalKeybindings  :: Map Chord Command
     } deriving (Eq, Show)
 
 
@@ -140,26 +141,26 @@ defaultColors = Colors
 defaultKeybindings :: Keybindings
 defaultKeybindings = Keybindings
     { _resultsKeybindings = M.fromList
-        [ ((KUp,        []), ResultsUp)
-        , ((KDown,      []), ResultsDown)
-        , ((KPageUp,    []), ResultsPgUp)
-        , ((KPageDown,  []), ResultsPgDown)
-        , ((KEnter,     []), PagerGotoResult)
-        , ((KChar 'f',  []), DisplayResultsOnly)
-        , ((KChar '\t', []), SplitFocusPager)
-        , ((KChar 'q',  []), Exit) ]
+        [ (Key.key Key.Up,          ResultsUp)
+        , (Key.key Key.Down,        ResultsDown)
+        , (Key.key Key.PageUp,      ResultsPgUp)
+        , (Key.key Key.PageDown,    ResultsPgDown)
+        , (Key.key Key.Enter,       PagerGotoResult)
+        , (Key.key (Key.Char 'f'),  DisplayResultsOnly)
+        , (Key.key (Key.Char '\t'), SplitFocusPager)
+        , (Key.key (Key.Char 'q'),  Exit) ]
     , _pagerKeybindings = M.fromList
-        [ ((KUp,        []), PagerUp)
-        , ((KDown,      []), PagerDown)
-        , ((KPageUp,    []), PagerPgUp)
-        , ((KPageDown,  []), PagerPgDown)
-        , ((KLeft,      []), PagerScrollLeft)
-        , ((KRight,     []), PagerScrollRight)
-        , ((KChar 'f',  []), DisplayPagerOnly)
-        , ((KChar '\t', []), SplitFocusResults)
-        , ((KChar 'q',  []), DisplayResultsOnly) ]
+        [ (Key.key Key.Up,          PagerUp)
+        , (Key.key Key.Down,        PagerDown)
+        , (Key.key Key.PageUp,      PagerPgUp)
+        , (Key.key Key.PageDown,    PagerPgDown)
+        , (Key.key Key.Left,        PagerScrollLeft)
+        , (Key.key Key.Right,       PagerScrollRight)
+        , (Key.key (Key.Char 'f'),  DisplayPagerOnly)
+        , (Key.key (Key.Char '\t'), SplitFocusResults)
+        , (Key.key (Key.Char 'q'),  DisplayResultsOnly) ]
     , _globalKeybindings = M.fromList
-        [ ((KChar 'e',  []), OpenFileInEditor) ]
+        [ (Key.key (Key.Char 'e'),  OpenFileInEditor) ]
     }
 
 
