@@ -5,8 +5,8 @@ Changelog
 
 * Added support for a config file:
   A YAML file located at `~/.vgrep/config.yaml` is recognized as configuration
-  file for colors and other settings. The default config file can be produced
-  using `vgrep --dump-default-config > ~/.vgrep/config.yaml`.
+  file for colors, keybindings and other settings. The default config file can
+  be produced using `vgrep --dump-default-config > ~/.vgrep/config.yaml`.
 * Added support for colorized input
   ([ANSI CSI/SGR escape codes](https://en.wikipedia.org/wiki/ANSI_escape_code#graphics)).
   `vgrep` can now be used together wit `grep --color=always` (and `git grep
