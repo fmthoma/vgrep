@@ -31,10 +31,10 @@ import           System.IO
 import           System.Process
 
 import           Vgrep.App                    as App
-import           Vgrep.Commands
+import           Vgrep.Command
 import           Vgrep.Environment
 import           Vgrep.Event
-import qualified Vgrep.Keys                   as Key
+import qualified Vgrep.Key                    as Key
 import           Vgrep.Parser
 import           Vgrep.System.Grep
 import           Vgrep.Text

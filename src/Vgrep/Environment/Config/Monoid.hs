@@ -11,8 +11,8 @@ import Generics.Deriving.Monoid (mappenddefault, memptydefault)
 import GHC.Generics
 import Graphics.Vty.Attributes  (Attr)
 
-import Vgrep.Commands
-import Vgrep.Keys     as Key
+import           Vgrep.Command
+import qualified Vgrep.Key     as Key
 
 
 -- | A 'Monoid' for reading partial configs. The 'ConfigMonoid' can be converted

@@ -32,9 +32,9 @@ import           System.Directory
 import           System.IO
 import           Text.Read               (readMaybe)
 
-import           Vgrep.Commands
+import           Vgrep.Command
 import           Vgrep.Environment.Config.Monoid
-import qualified Vgrep.Keys                      as Key
+import qualified Vgrep.Key                       as Key
 
 -- $setup
 -- >>> import Data.List (isInfixOf)

@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
-module Vgrep.Commands where
+module Vgrep.Command where
 
 import GHC.Generics
 

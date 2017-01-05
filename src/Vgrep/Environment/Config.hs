@@ -20,11 +20,10 @@ import           Graphics.Vty.Image
     , withStyle
     )
 
-import           Vgrep.Commands
+import           Vgrep.Command
 import           Vgrep.Environment.Config.Monoid
 import           Vgrep.Environment.Config.Sources
-import           Vgrep.Keys                       (Chord)
-import qualified Vgrep.Keys                       as Key
+import qualified Vgrep.Key                        as Key
 
 
 --------------------------------------------------------------------------
@@ -69,9 +68,9 @@ data Colors = Colors
     } deriving (Eq, Show)
 
 data Keybindings = Keybindings
-    { _resultsKeybindings :: Map Chord Command
-    , _pagerKeybindings   :: Map Chord Command
-    , _globalKeybindings  :: Map Chord Command
+    { _resultsKeybindings :: Map Key.Chord Command
+    , _pagerKeybindings   :: Map Key.Chord Command
+    , _globalKeybindings  :: Map Key.Chord Command
     } deriving (Eq, Show)
 
 

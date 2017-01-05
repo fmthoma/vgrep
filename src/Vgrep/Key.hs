@@ -1,5 +1,5 @@
 {-# LANGUAGE DeriveGeneric #-}
-module Vgrep.Keys where
+module Vgrep.Key where
 
 import Prelude hiding (Left, Right)
 import           Control.Applicative
