@@ -63,7 +63,19 @@ stack setup
 stack install
 ```
 
+### With [nix][5]
+
+Generate the necessary files with
+```bash
+#!/usr/bin/env nix-shell
+#! nix-shell -p cabal2nix -i bash
+cabal2nix .         > default.nix
+cabal2nix --shell . > shell.nix
+```
+and run or install vgrep via the know nix tools, e.g. `nix-shell` or `nix-build`.
+
 [1]: https://github.com/fmthoma/vgrep/releases/latest
 [2]: https://hackage.haskell.org/packages/vgrep
 [3]: https://github.com/commercialhaskell/stack/blob/master/doc/install_and_upgrade.md
 [4]: https://github.com/fmthoma/vgrep
+[5]: https://nixos.org/nix/
