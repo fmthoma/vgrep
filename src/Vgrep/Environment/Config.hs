@@ -149,8 +149,8 @@ defaultKeybindings = Keybindings
     { _resultsKeybindings = M.fromList
         [ (Key.key Key.Up,          ResultsUp)
         , (Key.key Key.Down,        ResultsDown)
-        , (Key.key Key.PageUp,      ResultsPgUp)
-        , (Key.key Key.PageDown,    ResultsPgDown)
+        , (Key.key Key.PageUp,      ResultsPageUp)
+        , (Key.key Key.PageDown,    ResultsPageDown)
         , (Key.key Key.Enter,       PagerGotoResult)
         , (Key.key (Key.Char 'k'),  ResultsUp)
         , (Key.key (Key.Char 'j'),  ResultsDown)
@@ -159,8 +159,8 @@ defaultKeybindings = Keybindings
     , _pagerKeybindings = M.fromList
         [ (Key.key Key.Up,          PagerUp)
         , (Key.key Key.Down,        PagerDown)
-        , (Key.key Key.PageUp,      PagerPgUp)
-        , (Key.key Key.PageDown,    PagerPgDown)
+        , (Key.key Key.PageUp,      PagerPageUp)
+        , (Key.key Key.PageDown,    PagerPageDown)
         , (Key.key Key.Left,        PagerScrollLeft)
         , (Key.key Key.Right,       PagerScrollRight)
         , (Key.key (Key.Char 'k'),  PagerUp)

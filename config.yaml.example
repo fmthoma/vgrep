@@ -64,14 +64,14 @@ tabstop: 8
 ##  * split-focus-results    -- Split screen, focus on results list
 ##  * pager-up               -- Scroll one line up in pager
 ##  * pager-down             -- Scroll one line down in pager
-##  * pager-pg-up            -- Scroll one page up in pager
-##  * pager-pg-down          -- Scroll one page down in pager
+##  * pager-page-up            -- Scroll one page up in pager
+##  * pager-page-down          -- Scroll one page down in pager
 ##  * pager-scroll-left      -- Scroll eight characters left in pager
 ##  * pager-scroll-right     -- Scroll eight characters right in pager
 ##  * results-up             -- Move to previous result
 ##  * results-down           -- Move to next result
-##  * results-pg-up          -- Move one page up in results list
-##  * results-pg-down        -- Move one page down in results list
+##  * results-page-up          -- Move one page up in results list
+##  * results-page-down        -- Move one page down in results list
 ##  * prev-result            -- Move to previous result and update pager
 ##  * next-result            -- Move to next result and update pager
 ##  * pager-goto-result      -- Update pager with currently selected result
@@ -106,8 +106,8 @@ keybindings:
     results-keybindings:
         Up       : results-up
         Down     : results-down
-        PageUp   : results-pg-up
-        PageDown : results-pg-down
+        PageUp   : results-page-up
+        PageDown : results-page-down
         Enter    : pager-goto-result
         k        : results-up
         j        : results-down
@@ -119,8 +119,8 @@ keybindings:
     pager-keybindings:
         Up       : pager-up
         Down     : pager-down
-        PageUp   : pager-pg-up
-        PageDown : pager-pg-down
+        PageUp   : pager-page-up
+        PageDown : pager-page-down
         Left     : pager-scroll-left
         Right    : pager-scroll-right
         k        : pager-up
