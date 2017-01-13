@@ -1,7 +1,7 @@
 Changelog
 =========
 
-## v0.2 (unreleased)
+## v0.2
 
 * Added support for a config file:
   A YAML file located at `~/.vgrep/config.yaml` is recognized as configuration

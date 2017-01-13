@@ -50,8 +50,8 @@ Keybindings:
 Debian/Ubuntu: `.deb` files are available for the [latest release][1].
 
 ```bash
-wget https://github.com/fmthoma/vgrep/releases/download/v0.1.4.1/vgrep_0.1.4.1-1_amd64.deb
-sudo dpkg -i vgrep_0.1.4.1-1_amd64.deb
+wget https://github.com/fmthoma/vgrep/releases/download/v0.2.0.0/vgrep_0.2.0.0-1_amd64.deb
+sudo dpkg -i vgrep_0.2.0.0-1_amd64.deb
 ```
 
 ### From [Hackage][2]
