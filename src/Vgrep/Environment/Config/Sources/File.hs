@@ -1,4 +1,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -fno-warn-warnings-deprecations #-} -- Because of camelTo
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RecordWildCards   #-}
 
@@ -9,17 +12,29 @@ module Vgrep.Environment.Config.Sources.File
     , Style
     ) where
 
+import           Control.Monad           ((>=>))
 import           Control.Monad.IO.Class
-import           Data.Aeson              (withObject, withText)
+import           Data.Aeson.Types
+    ( Options (..)
+    , camelTo
+    , defaultOptions
+    , genericParseJSON
+    , withObject
+    )
+import           Data.Map.Strict         (Map)
+import qualified Data.Map.Strict         as M
 import           Data.Maybe
 import           Data.Monoid
-import           Data.Text               (unpack)
 import           Data.Yaml.Aeson
+import           GHC.Generics
 import qualified Graphics.Vty.Attributes as Vty
 import           System.Directory
 import           System.IO
+import           Text.Read               (readMaybe)
 
-import Vgrep.Environment.Config.Monoid
+import           Vgrep.Command
+import           Vgrep.Environment.Config.Monoid
+import qualified Vgrep.Key                       as Key
 
 -- $setup
 -- >>> import Data.List (isInfixOf)
@@ -129,17 +144,11 @@ instance FromJSON ConfigMonoid where
         _mcolors  <- o .:? "colors" .!= mempty
         _mtabstop <- fmap First (o .:? "tabstop")
         _meditor  <- fmap First (o .:? "editor")
+        _mkeybindings <- o .:? "keybindings" .!= mempty
         pure ConfigMonoid{..}
 
 instance FromJSON ColorsMonoid where
-    parseJSON = withObject "ColorsMonoid" $ \o -> do
-        _mlineNumbers   <- fmap First (o .:? "line-numbers")
-        _mlineNumbersHl <- fmap First (o .:? "line-numbers-hl")
-        _mnormal        <- fmap First (o .:? "normal")
-        _mnormalHl      <- fmap First (o .:? "normal-hl")
-        _mfileHeaders   <- fmap First (o .:? "file-headers")
-        _mselected      <- fmap First (o .:? "selected")
-        pure ColorsMonoid{..}
+    parseJSON = genericParseJSON jsonOptions
 
 instance FromJSON Vty.Attr where
     parseJSON = fmap attrToVty . parseJSON
@@ -184,14 +193,10 @@ data Attr = Attr
     , backColor :: Maybe Color
     , style     :: Maybe Style
     }
-    deriving (Eq, Show)
+    deriving (Eq, Show, Generic)
 
 instance FromJSON Attr where
-    parseJSON = withObject "Attr" $ \o -> do
-        foreColor <- o .:? "fore-color"
-        backColor <- o .:? "back-color"
-        style     <- o .:? "style"
-        pure Attr{..}
+    parseJSON = genericParseJSON jsonOptions
 
 attrToVty :: Attr -> Vty.Attr
 attrToVty Attr{..} = foldAttrs
@@ -216,7 +221,7 @@ Right [Black,Red,BrightBlack]
 Fails with error message if the 'Color' cannot be parsed:
 
 >>> let Left err = decodeEither "foo" :: Either String Color
->>> "Unknown Color: foo" `isInfixOf` err
+>>> "The key \"foo\" was not found" `isInfixOf` err
 True
 -}
 data Color
@@ -236,27 +241,10 @@ data Color
     | BrightMagenta
     | BrightCyan
     | BrightWhite
-    deriving (Eq, Show)
+    deriving (Eq, Show, Generic)
 
 instance FromJSON Color where
-    parseJSON = withText "Color" $ \case
-        "black"          -> pure Black
-        "red"            -> pure Red
-        "green"          -> pure Green
-        "yellow"         -> pure Yellow
-        "blue"           -> pure Blue
-        "magenta"        -> pure Magenta
-        "cyan"           -> pure Cyan
-        "white"          -> pure White
-        "bright-black"   -> pure BrightBlack
-        "bright-red"     -> pure BrightRed
-        "bright-green"   -> pure BrightGreen
-        "bright-yellow"  -> pure BrightYellow
-        "bright-blue"    -> pure BrightBlue
-        "bright-magenta" -> pure BrightMagenta
-        "bright-cyan"    -> pure BrightCyan
-        "bright-white"   -> pure BrightWhite
-        s                -> fail ("Unknown Color: " <> unpack s)
+    parseJSON = genericParseJSON jsonOptions
 
 colorToVty :: Color -> Vty.Color
 colorToVty = \case
@@ -292,7 +280,7 @@ Right [Standout,Underline,Bold]
 Fails with error message if the 'Style' cannot be parsed:
 
 >>> let Left err = decodeEither "foo" :: Either String Style
->>> "Unknown Style: foo" `isInfixOf` err
+>>> "The key \"foo\" was not found" `isInfixOf` err
 True
 -}
 data Style
@@ -302,17 +290,10 @@ data Style
     | Blink
     | Dim
     | Bold
-    deriving (Eq, Show)
+    deriving (Eq, Show, Generic)
 
 instance FromJSON Style where
-    parseJSON = withText "Style" $ \case
-        "standout"      -> pure Standout
-        "underline"     -> pure Underline
-        "reverse-video" -> pure ReverseVideo
-        "blink"         -> pure Blink
-        "dim"           -> pure Dim
-        "bold"          -> pure Bold
-        s               -> fail ("Unknown Style: " <> unpack s)
+    parseJSON = genericParseJSON jsonOptions
 
 styleToVty :: Style -> Vty.Style
 styleToVty = \case
@@ -322,3 +303,44 @@ styleToVty = \case
     Blink        -> Vty.blink
     Dim          -> Vty.dim
     Bold         -> Vty.bold
+
+
+instance FromJSON KeybindingsMonoid where
+    parseJSON = genericParseJSON jsonOptions
+
+instance FromJSON Command where
+    parseJSON = genericParseJSON jsonOptions
+
+instance FromJSON (Map Key.Chord Command) where
+    parseJSON = parseJSON >=> mapMKeys parseChord
+
+mapMKeys :: (Monad m, Ord k') => (k -> m k') -> Map k v -> m (Map k' v)
+mapMKeys f = fmap M.fromList . M.foldrWithKey go (pure [])
+  where
+    go k x mxs = do
+        k' <- f k
+        xs <- mxs
+        pure ((k', x) : xs)
+
+parseChord :: Monad m => String -> m Key.Chord
+parseChord = \case
+    'C' : '-' : t -> fmap (`Key.withModifier` Key.Ctrl)  (parseChord t)
+    'S' : '-' : t -> fmap (`Key.withModifier` Key.Shift) (parseChord t)
+    'M' : '-' : t -> fmap (`Key.withModifier` Key.Meta)  (parseChord t)
+    [c]           -> pure (Key.key (Key.Char c))
+    "PgUp"        -> pure (Key.key Key.PageUp)
+    "PgDown"      -> pure (Key.key Key.PageDown)
+    "PgDn"        -> pure (Key.key Key.PageDown)
+    s | Just k <- readMaybe s
+                  -> pure (Key.key k)
+      | otherwise -> fail ("Unknown key '" <> s <> "'")
+
+jsonOptions :: Options
+jsonOptions = defaultOptions
+    { constructorTagModifier = camelTo '-'
+    , fieldLabelModifier     = camelTo '-' . stripPrefix }
+  where
+    stripPrefix = \case
+        '_' : 'm' : name -> name
+        '_' : name       -> name
+        name             -> name

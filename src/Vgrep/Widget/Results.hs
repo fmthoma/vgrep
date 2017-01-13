@@ -35,8 +35,6 @@ import           Data.Monoid
 import           Data.Text                    (Text)
 import qualified Data.Text                    as T
 import           Graphics.Vty.Image           hiding ((<|>))
-import           Graphics.Vty.Input
-import           Prelude
 
 import Vgrep.Ansi
 import Vgrep.Environment
@@ -64,35 +62,13 @@ type ResultsWidget = Widget Results
 --     be selected with the cursor, the file group headers are skipped.
 --     When only part of a file group is shown at the top of the screen,
 --     the header is shown nevertheless.
---
--- * __Default keybindings__
---
---     @
---     jk, ↓↑      'nextLine', 'prevLine'
---     PgDn, PgUp  'pageDown', 'pageUp'
---     @
 resultsWidget :: ResultsWidget
 resultsWidget =
     Widget { initialize = initResults
-           , draw       = renderResultList
-           , handle     = fmap const resultsKeyBindings }
+           , draw       = renderResultList }
 
 initResults :: Results
 initResults = EmptyResults
-
-resultsKeyBindings
-    :: Monad m
-    => Event
-    -> Next (VgrepT Results m Redraw)
-resultsKeyBindings = dispatchMap $ fromList
-    [ (EvKey KPageUp     [], pageUp   >> pure Redraw)
-    , (EvKey KPageDown   [], pageDown >> pure Redraw)
-    , (EvKey KPageUp     [], pageUp   >> pure Redraw)
-    , (EvKey KPageDown   [], pageDown >> pure Redraw)
-    , (EvKey KUp         [], prevLine >> pure Redraw)
-    , (EvKey KDown       [], nextLine >> pure Redraw)
-    , (EvKey (KChar 'k') [], prevLine >> pure Redraw)
-    , (EvKey (KChar 'j') [], nextLine >> pure Redraw) ]
 
 
 -- | Add a line to the results list. If the result is found in the same

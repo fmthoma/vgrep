@@ -2,14 +2,28 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Vgrep.Environment.Config where
 
-import Control.Lens.Compat
-import Control.Monad.IO.Class
-import Data.Maybe
-import Data.Monoid
-import Graphics.Vty.Image
+import           Control.Lens.Compat
+import           Control.Monad.IO.Class
+import           Data.Map.Strict        (Map)
+import qualified Data.Map.Strict        as M
+import           Data.Maybe
+import           Data.Monoid
+import           Graphics.Vty.Image
+    ( Attr
+    , blue
+    , bold
+    , defAttr
+    , green
+    , standout
+    , withBackColor
+    , withForeColor
+    , withStyle
+    )
 
-import Vgrep.Environment.Config.Monoid
-import Vgrep.Environment.Config.Sources
+import           Vgrep.Command
+import           Vgrep.Environment.Config.Monoid
+import           Vgrep.Environment.Config.Sources
+import qualified Vgrep.Key                        as Key
 
 
 --------------------------------------------------------------------------
@@ -17,37 +31,52 @@ import Vgrep.Environment.Config.Sources
 --------------------------------------------------------------------------
 
 data Config = Config
-    { _colors :: Colors
+    { _colors      :: Colors
     -- ^ Color configuration
 
-    , _tabstop :: Int
+    , _tabstop     :: Int
     -- ^ Tabstop width (default: 8)
 
-    , _editor :: String
+    , _editor      :: String
     -- ^ Executable for @e@ key (default: environment variable @$EDITOR@,
     -- or @vi@ if @$EDITOR@ is not set)
+
+    , _keybindings :: Keybindings
 
     } deriving (Eq, Show)
 
 data Colors = Colors
-    { _lineNumbers :: Attr
+    { _lineNumbers   :: Attr
     -- ^ Line numbers (default: blue)
 
     , _lineNumbersHl :: Attr
     -- ^ Highlighted line numbers (default: bold blue)
 
-    , _normal :: Attr
+    , _normal        :: Attr
     -- ^ Normal text (default: terminal default)
 
-    , _normalHl :: Attr
+    , _normalHl      :: Attr
     -- ^ Highlighted text (default: bold)
 
-    , _fileHeaders :: Attr
+    , _fileHeaders   :: Attr
     -- ^ File names in results view (default: terminal default color on
     -- green background)
 
-    , _selected :: Attr
+    , _selected      :: Attr
     -- ^ Selected entry (default: terminal default, inverted)
+
+    } deriving (Eq, Show)
+
+data Keybindings = Keybindings
+    { _resultsKeybindings :: Map Key.Chord Command
+    -- ^ Keybindings in effect when results list is focused.
+
+    , _pagerKeybindings   :: Map Key.Chord Command
+    -- ^ Keybindings in effect when pager is focused.
+
+    , _globalKeybindings  :: Map Key.Chord Command
+    -- ^ Global keybindings are in effect both for pager and results list, but
+    -- can be overridden by either one.
 
     } deriving (Eq, Show)
 
@@ -58,6 +87,7 @@ data Colors = Colors
 
 makeLenses ''Config
 makeLenses ''Colors
+makeLenses ''Keybindings
 
 
 --------------------------------------------------------------------------
@@ -70,7 +100,8 @@ fromConfigMonoid :: ConfigMonoid -> Config
 fromConfigMonoid ConfigMonoid{..} = Config
     { _colors  = fromColorsMonoid _mcolors
     , _tabstop = fromFirst (_tabstop defaultConfig) _mtabstop
-    , _editor  = fromFirst (_editor  defaultConfig) _meditor }
+    , _editor  = fromFirst (_editor  defaultConfig) _meditor
+    , _keybindings = fromKeybindingsMonoid _mkeybindings }
 
 -- | Convert a 'ColorsMonoid' to a 'Colors' config.
 fromColorsMonoid :: ColorsMonoid -> Colors
@@ -85,6 +116,12 @@ fromColorsMonoid ColorsMonoid{..} = Colors
 fromFirst :: a -> First a -> a
 fromFirst a = fromMaybe a . getFirst
 
+fromKeybindingsMonoid :: KeybindingsMonoid -> Keybindings
+fromKeybindingsMonoid KeybindingsMonoid{..} = Keybindings
+    { _resultsKeybindings = fromMaybe mempty _mresultsKeybindings <> _resultsKeybindings defaultKeybindings
+    , _pagerKeybindings   = fromMaybe mempty _mpagerKeybindings   <> _pagerKeybindings   defaultKeybindings
+    , _globalKeybindings  = fromMaybe mempty _mglobalKeybindings  <> _globalKeybindings  defaultKeybindings }
+
 
 --------------------------------------------------------------------------
 -- * Default Config
@@ -94,7 +131,8 @@ defaultConfig :: Config
 defaultConfig = Config
     { _colors = defaultColors
     , _tabstop = 8
-    , _editor = "vi" }
+    , _editor = "vi"
+    , _keybindings = defaultKeybindings }
 
 defaultColors :: Colors
 defaultColors = Colors
@@ -105,6 +143,37 @@ defaultColors = Colors
     , _normalHl      = defAttr `withStyle` bold
     , _fileHeaders   = defAttr `withBackColor` green
     , _selected      = defAttr `withStyle` standout }
+
+defaultKeybindings :: Keybindings
+defaultKeybindings = Keybindings
+    { _resultsKeybindings = M.fromList
+        [ (Key.key Key.Up,          ResultsUp)
+        , (Key.key Key.Down,        ResultsDown)
+        , (Key.key Key.PageUp,      ResultsPageUp)
+        , (Key.key Key.PageDown,    ResultsPageDown)
+        , (Key.key Key.Enter,       PagerGotoResult)
+        , (Key.key (Key.Char 'k'),  ResultsUp)
+        , (Key.key (Key.Char 'j'),  ResultsDown)
+        , (Key.key (Key.Char 'f'),  DisplayResultsOnly)
+        , (Key.key Key.Tab,         SplitFocusPager) ]
+    , _pagerKeybindings = M.fromList
+        [ (Key.key Key.Up,          PagerUp)
+        , (Key.key Key.Down,        PagerDown)
+        , (Key.key Key.PageUp,      PagerPageUp)
+        , (Key.key Key.PageDown,    PagerPageDown)
+        , (Key.key Key.Left,        PagerScrollLeft)
+        , (Key.key Key.Right,       PagerScrollRight)
+        , (Key.key (Key.Char 'k'),  PagerUp)
+        , (Key.key (Key.Char 'j'),  PagerDown)
+        , (Key.key (Key.Char 'h'),  PagerScrollLeft)
+        , (Key.key (Key.Char 'l'),  PagerScrollRight)
+        , (Key.key (Key.Char 'f'),  DisplayPagerOnly)
+        , (Key.key Key.Tab,         SplitFocusResults)
+        , (Key.key (Key.Char 'q'),  DisplayResultsOnly) ]
+    , _globalKeybindings = M.fromList
+        [ (Key.key (Key.Char 'e'),  OpenFileInEditor)
+        , (Key.key (Key.Char 'q'),  Exit) ]
+    }
 
 
 --------------------------------------------------------------------------

@@ -44,6 +44,7 @@ library
                      , Vgrep.Ansi.Vty.Attributes
                      , Vgrep.App
                      , Vgrep.App.Internal
+                     , Vgrep.Command
                      , Vgrep.Environment
                      , Vgrep.Environment.Config
                      , Vgrep.Environment.Config.Monoid
@@ -51,6 +52,7 @@ library
                      , Vgrep.Environment.Config.Sources.Env
                      , Vgrep.Environment.Config.Sources.File
                      , Vgrep.Event
+                     , Vgrep.Key
                      , Vgrep.Parser
                      , Vgrep.Results
                      , Vgrep.System.Grep
