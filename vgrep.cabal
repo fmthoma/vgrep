@@ -10,6 +10,8 @@ description:
   > vgrep foo /some/path
   > vgrep foo /some/path | vgrep bar
   .
+  Use @hjkl@ or arrow keys to navigate, @Enter@ to view file, @q@ to quit.
+  .
   <<https://raw.githubusercontent.com/fmthoma/vgrep/master/screenshot.gif>>
 homepage:            http://github.com/fmthoma/vgrep#readme
 license:             BSD3
