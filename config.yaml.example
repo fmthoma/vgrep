@@ -80,7 +80,7 @@ tabstop: 8
 ##  * exit                   -- Exit the application
 ##  * unset                  -- Treat keybinding as if not present, fall back to
 ##                           -- alternative binding (used to override keybindings)
-##  A command can be mapped to different keys.
+##  A command can be mapped to multiple keys.
 ##
 ##  Key notation examples
 ##  * j                      -- the 'j' key
