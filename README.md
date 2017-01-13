@@ -1,7 +1,7 @@
 `vgrep` -- A pager for `grep`
 =============================
 
-![Screenshot](./vgrep.png)
+![Screenshot](./screenshot.gif)
 
 ## Usage
 

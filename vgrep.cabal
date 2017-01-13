@@ -25,7 +25,7 @@ extra-source-files:  .stylish-haskell.yaml
                    , README.md
                    , config.yaml.example
                    , help.txt
-                   , vgrep.png
+                   , screenshot.gif
                    , stack.yaml
 cabal-version:       >=1.10
 
