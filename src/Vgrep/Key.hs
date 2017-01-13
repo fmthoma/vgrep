@@ -21,17 +21,32 @@ module Vgrep.Key
   , withModifier
   )where
 
-import Prelude hiding (Left, Right)
 import           Control.Applicative
+import           Control.Monad
+import           Data.Aeson
+    ( FromJSON (..)
+    , FromJSONKey (..)
+    , FromJSONKeyFunction (..)
+    )
+import           Data.Monoid
 import           Data.Set                  (Set)
 import qualified Data.Set                  as S
+import qualified Data.Text                 as T
 import           GHC.Generics
 import qualified Graphics.Vty.Input.Events as Vty
+import           Prelude                   hiding (Left, Right)
+import           Text.Read                 (readMaybe)
 
 
 -- | A chord of keys and modifiers pressed simultaneously.
 data Chord = Chord (Set Mod) Key
     deriving (Eq, Ord, Show, Generic)
+
+instance FromJSON Chord where
+    parseJSON = parseJSON >=> parseChord
+
+instance FromJSONKey Chord where
+    fromJSONKey = FromJSONKeyTextParser (parseChord . T.unpack)
 
 data Key
     = Char Char | Space
@@ -46,6 +61,18 @@ data Mod
     | Shift
     deriving (Eq, Ord, Show, Generic)
 
+parseChord :: Monad m => String -> m Chord
+parseChord = \case
+    'C' : '-' : t -> fmap (`withModifier` Ctrl)  (parseChord t)
+    'S' : '-' : t -> fmap (`withModifier` Shift) (parseChord t)
+    'M' : '-' : t -> fmap (`withModifier` Meta)  (parseChord t)
+    [c]           -> pure (key (Char c))
+    "PgUp"        -> pure (key PageUp)
+    "PgDown"      -> pure (key PageDown)
+    "PgDn"        -> pure (key PageDown)
+    s | Just k <- readMaybe s
+                  -> pure (key k)
+      | otherwise -> fail ("Unknown key '" <> s <> "'")
 
 -- | Reads the key and modifiers from an 'Vty.Event'. Non-key events and events
 -- with unknown keys are mapped to 'Nothing'.

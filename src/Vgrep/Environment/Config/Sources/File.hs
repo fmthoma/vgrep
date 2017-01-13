@@ -12,7 +12,6 @@ module Vgrep.Environment.Config.Sources.File
     , Style
     ) where
 
-import           Control.Monad           ((>=>))
 import           Control.Monad.IO.Class
 import           Data.Aeson.Types
     ( Options (..)
@@ -21,8 +20,6 @@ import           Data.Aeson.Types
     , genericParseJSON
     , withObject
     )
-import           Data.Map.Strict         (Map)
-import qualified Data.Map.Strict         as M
 import           Data.Maybe
 import           Data.Monoid
 import           Data.Yaml.Aeson
@@ -30,11 +27,9 @@ import           GHC.Generics
 import qualified Graphics.Vty.Attributes as Vty
 import           System.Directory
 import           System.IO
-import           Text.Read               (readMaybe)
 
 import           Vgrep.Command
 import           Vgrep.Environment.Config.Monoid
-import qualified Vgrep.Key                       as Key
 
 -- $setup
 -- >>> import Data.List (isInfixOf)
@@ -310,30 +305,6 @@ instance FromJSON KeybindingsMonoid where
 
 instance FromJSON Command where
     parseJSON = genericParseJSON jsonOptions
-
-instance FromJSON (Map Key.Chord Command) where
-    parseJSON = parseJSON >=> mapMKeys parseChord
-
-mapMKeys :: (Monad m, Ord k') => (k -> m k') -> Map k v -> m (Map k' v)
-mapMKeys f = fmap M.fromList . M.foldrWithKey go (pure [])
-  where
-    go k x mxs = do
-        k' <- f k
-        xs <- mxs
-        pure ((k', x) : xs)
-
-parseChord :: Monad m => String -> m Key.Chord
-parseChord = \case
-    'C' : '-' : t -> fmap (`Key.withModifier` Key.Ctrl)  (parseChord t)
-    'S' : '-' : t -> fmap (`Key.withModifier` Key.Shift) (parseChord t)
-    'M' : '-' : t -> fmap (`Key.withModifier` Key.Meta)  (parseChord t)
-    [c]           -> pure (Key.key (Key.Char c))
-    "PgUp"        -> pure (Key.key Key.PageUp)
-    "PgDown"      -> pure (Key.key Key.PageDown)
-    "PgDn"        -> pure (Key.key Key.PageDown)
-    s | Just k <- readMaybe s
-                  -> pure (Key.key k)
-      | otherwise -> fail ("Unknown key '" <> s <> "'")
 
 jsonOptions :: Options
 jsonOptions = defaultOptions
