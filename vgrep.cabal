@@ -10,7 +10,7 @@ description:
   > vgrep foo /some/path
   > vgrep foo /some/path | vgrep bar
   .
-  <<https://raw.githubusercontent.com/fmthoma/vgrep/master/vgrep.png>>
+  <<https://raw.githubusercontent.com/fmthoma/vgrep/master/screenshot.gif>>
 homepage:            http://github.com/fmthoma/vgrep#readme
 license:             BSD3
 license-file:        LICENSE
