@@ -14,6 +14,8 @@ import Vgrep.KeybindingMap
 
 -- $setup
 -- >>> import Data.Map.Strict
+-- >>> import Vgrep.Command
+-- >>> import qualified Vgrep.Key as Key
 
 -- | A 'Monoid' for reading partial configs. The 'ConfigMonoid' can be converted
 -- to an actual 'Vgrep.Environment.Config.Config' using
@@ -66,18 +68,18 @@ instance Monoid ColorsMonoid where
 --
 -- Mappings are combined using left-biased 'Data.Map.Strict.union':
 --
--- >>> let l = Just (fromList [(Key.Chord mempty Key.Down, ResultsDown), (Key.Chord mempty Key.Up, ResultsUp)])
--- >>> let r = Just (fromList [(Key.Chord mempty Key.Down, PagerDown)])
+-- >>> let l = Just (KeybindingMap (fromList [(Key.Chord mempty Key.Down, ResultsDown), (Key.Chord mempty Key.Up, ResultsUp)]))
+-- >>> let r = Just (KeybindingMap (fromList [(Key.Chord mempty Key.Down, PagerDown)]))
 -- >>> l <> r
--- Just (fromList [(Chord (fromList []) Up,ResultsUp),(Chord (fromList []) Down,ResultsDown)])
+-- Just (KeybindingMap {unKeybindingMap = fromList [(Chord (fromList []) Up,ResultsUp),(Chord (fromList []) Down,ResultsDown)]})
 -- >>> r <> l
--- Just (fromList [(Chord (fromList []) Up,ResultsUp),(Chord (fromList []) Down,PagerDown)])
+-- Just (KeybindingMap {unKeybindingMap = fromList [(Chord (fromList []) Up,ResultsUp),(Chord (fromList []) Down,PagerDown)]})
 --
 -- In particular, @'Just' ('Data.Map.Strict.fromList' [])@ (declaring an empty
 -- list of mappings) and @'Nothing'@ (not declaring anything) are equivalent,
 -- given that there are already default mappings:
 --
--- >>> l <> Just (fromList []) == l <> Nothing
+-- >>> l <> Just (KeybindingMap (fromList [])) == l <> Nothing
 -- True
 --
 -- This means that new keybindings override the previous ones if they collide,
