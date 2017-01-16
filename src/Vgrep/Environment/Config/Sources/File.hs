@@ -312,7 +312,7 @@ instance FromJSON KeybindingsMonoid where
 instance FromJSON Command where
     parseJSON = genericParseJSON jsonOptions
 
-instance FromJSON (KeybindingMap) where
+instance FromJSON KeybindingMap where
     parseJSON = fmap KeybindingMap . mapMKeys parseChord <=< parseJSON
 
 mapMKeys :: (Monad m, Ord k') => (k -> m k') -> Map k v -> m (Map k' v)
