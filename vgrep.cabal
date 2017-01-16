@@ -55,6 +55,7 @@ library
                      , Vgrep.Environment.Config.Sources.File
                      , Vgrep.Event
                      , Vgrep.Key
+                     , Vgrep.KeybindingMap
                      , Vgrep.Parser
                      , Vgrep.Results
                      , Vgrep.System.Grep
@@ -69,7 +70,7 @@ library
                      , Vgrep.Widget.Results.Internal
                      , Vgrep.Widget.Type
   build-depends:       base >= 4.7 && < 5
-                     , aeson              (>= 0.11 && < 1.0) || (>= 0.9 && < 0.10)
+                     , aeson              (>= 0.11 && < 1.2) || (>= 0.9 && < 0.10)
                      , async              >= 2.0.2
                      , attoparsec         >= 0.12.1.6
                      , containers         >= 0.5.6.2

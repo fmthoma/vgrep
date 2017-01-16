@@ -5,14 +5,12 @@ module Vgrep.Environment.Config.Monoid
   , KeybindingsMonoid (..)
   ) where
 
-import Data.Map.Strict          (Map)
 import Data.Monoid
 import Generics.Deriving.Monoid (mappenddefault, memptydefault)
 import GHC.Generics
 import Graphics.Vty.Attributes  (Attr)
 
-import           Vgrep.Command
-import qualified Vgrep.Key     as Key
+import Vgrep.KeybindingMap
 
 -- $setup
 -- >>> import Data.Map.Strict
@@ -86,9 +84,9 @@ instance Monoid ColorsMonoid where
 -- otherwise they are simply added. To remove a keybinding, it has to be mapped
 -- to 'Unset' explicitly.
 data KeybindingsMonoid = KeybindingsMonoid
-    { _mresultsKeybindings :: Maybe (Map Key.Chord Command)
-    , _mpagerKeybindings   :: Maybe (Map Key.Chord Command)
-    , _mglobalKeybindings  :: Maybe (Map Key.Chord Command)
+    { _mresultsKeybindings :: Maybe KeybindingMap
+    , _mpagerKeybindings   :: Maybe KeybindingMap
+    , _mglobalKeybindings  :: Maybe KeybindingMap
     } deriving (Eq, Show, Generic)
 
 instance Monoid KeybindingsMonoid where

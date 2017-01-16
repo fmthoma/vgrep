@@ -4,7 +4,6 @@ module Vgrep.Environment.Config where
 
 import           Control.Lens.Compat
 import           Control.Monad.IO.Class
-import           Data.Map.Strict        (Map)
 import qualified Data.Map.Strict        as M
 import           Data.Maybe
 import           Data.Monoid
@@ -24,6 +23,7 @@ import           Vgrep.Command
 import           Vgrep.Environment.Config.Monoid
 import           Vgrep.Environment.Config.Sources
 import qualified Vgrep.Key                        as Key
+import           Vgrep.KeybindingMap
 
 
 --------------------------------------------------------------------------
@@ -68,13 +68,13 @@ data Colors = Colors
     } deriving (Eq, Show)
 
 data Keybindings = Keybindings
-    { _resultsKeybindings :: Map Key.Chord Command
+    { _resultsKeybindings :: KeybindingMap
     -- ^ Keybindings in effect when results list is focused.
 
-    , _pagerKeybindings   :: Map Key.Chord Command
+    , _pagerKeybindings   :: KeybindingMap
     -- ^ Keybindings in effect when pager is focused.
 
-    , _globalKeybindings  :: Map Key.Chord Command
+    , _globalKeybindings  :: KeybindingMap
     -- ^ Global keybindings are in effect both for pager and results list, but
     -- can be overridden by either one.
 
@@ -146,7 +146,7 @@ defaultColors = Colors
 
 defaultKeybindings :: Keybindings
 defaultKeybindings = Keybindings
-    { _resultsKeybindings = M.fromList
+    { _resultsKeybindings = KeybindingMap $ M.fromList
         [ (Key.key Key.Up,          ResultsUp)
         , (Key.key Key.Down,        ResultsDown)
         , (Key.key Key.PageUp,      ResultsPageUp)
@@ -156,7 +156,7 @@ defaultKeybindings = Keybindings
         , (Key.key (Key.Char 'j'),  ResultsDown)
         , (Key.key (Key.Char 'f'),  DisplayResultsOnly)
         , (Key.key Key.Tab,         SplitFocusPager) ]
-    , _pagerKeybindings = M.fromList
+    , _pagerKeybindings = KeybindingMap $ M.fromList
         [ (Key.key Key.Up,          PagerUp)
         , (Key.key Key.Down,        PagerDown)
         , (Key.key Key.PageUp,      PagerPageUp)
@@ -170,7 +170,7 @@ defaultKeybindings = Keybindings
         , (Key.key (Key.Char 'f'),  DisplayPagerOnly)
         , (Key.key Key.Tab,         SplitFocusResults)
         , (Key.key (Key.Char 'q'),  DisplayResultsOnly) ]
-    , _globalKeybindings = M.fromList
+    , _globalKeybindings = KeybindingMap $ M.fromList
         [ (Key.key (Key.Char 'e'),  OpenFileInEditor)
         , (Key.key (Key.Char 'q'),  Exit) ]
     }

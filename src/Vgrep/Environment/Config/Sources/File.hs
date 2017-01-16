@@ -12,7 +12,7 @@ module Vgrep.Environment.Config.Sources.File
     , Style
     ) where
 
-import           Control.Monad           ((>=>))
+import           Control.Monad           ((<=<))
 import           Control.Monad.IO.Class
 import           Data.Aeson.Types
     ( Options (..)
@@ -35,6 +35,7 @@ import           Text.Read               (readMaybe)
 import           Vgrep.Command
 import           Vgrep.Environment.Config.Monoid
 import qualified Vgrep.Key                       as Key
+import           Vgrep.KeybindingMap
 
 -- $setup
 -- >>> import Data.List (isInfixOf)
@@ -311,8 +312,8 @@ instance FromJSON KeybindingsMonoid where
 instance FromJSON Command where
     parseJSON = genericParseJSON jsonOptions
 
-instance FromJSON (Map Key.Chord Command) where
-    parseJSON = parseJSON >=> mapMKeys parseChord
+instance FromJSON (KeybindingMap) where
+    parseJSON = fmap KeybindingMap . mapMKeys parseChord <=< parseJSON
 
 mapMKeys :: (Monad m, Ord k') => (k -> m k') -> Map k v -> m (Map k' v)
 mapMKeys f = fmap M.fromList . M.foldrWithKey go (pure [])

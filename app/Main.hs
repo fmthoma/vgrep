@@ -35,6 +35,7 @@ import           Vgrep.Command
 import           Vgrep.Environment
 import           Vgrep.Event
 import qualified Vgrep.Key                    as Key
+import           Vgrep.KeybindingMap
 import           Vgrep.Parser
 import           Vgrep.System.Grep
 import           Vgrep.Text
@@ -178,7 +179,7 @@ handleKeyEvent chord environment state =
     localBindings = case view (widgetState . currentWidget) state of
         Left  _ -> resultsBindings
         Right _ -> pagerBindings
-    lookupCmd = fromMaybe Unset . M.lookup chord
+    lookupCmd = fromMaybe Unset . M.lookup chord . unKeybindingMap
     command = case lookupCmd localBindings of
         Unset   -> lookupCmd globalBindings
         defined -> defined
