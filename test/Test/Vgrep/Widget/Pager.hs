@@ -64,7 +64,7 @@ test = runTestCases "Pager widget"
         { description = "MoveToLine displays the line on screen"
         , testData = arbitrary `suchThat` (not . emptyPager)
         , testCase = do
-            numLines <- liftA2 (+) (uses above length) (uses visible length)
+            numLines <- liftA2 (+) (use (above . to length)) (use (visible . to length))
             line <- pick ( arbitrary `suchThat` (> 0)
                                      `suchThat` (<= numLines) )
             run (void (moveToLine line))
@@ -85,7 +85,7 @@ test = runTestCases "Pager widget"
             run (void (scroll amount))
         , assertion = const $ do
             pos <- use position
-            linesVisible <- uses visible length
+            linesVisible <- use (visible . to length)
             height <- view viewportHeight
             pure (pos >= 0 .&&. linesVisible >= height)
         }
@@ -104,8 +104,8 @@ test = runTestCases "Pager widget"
 
 
 emptyPager :: (Pager, Environment) -> Bool
-emptyPager (pager, _env) = views visible length pager == 0
-                        && views above   length pager == 0
+emptyPager (pager, _env) = view (visible . to length) pager == 0
+                        && view (above   . to length) pager == 0
 
 coversScreen :: (Pager, Environment) -> Bool
 coversScreen (pager, env) = length (view visible pager) >= view viewportHeight env

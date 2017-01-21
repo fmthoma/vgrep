@@ -12,7 +12,7 @@ module Vgrep.Results
     , lineReference
     ) where
 
-import Control.Lens.TH
+import Lens.Micro.Platform
 import Data.Text       (Text)
 
 import Vgrep.Ansi (AnsiFormatted)

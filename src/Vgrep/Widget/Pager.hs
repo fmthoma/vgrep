@@ -18,7 +18,7 @@ module Vgrep.Widget.Pager (
     ) where
 
 import           Control.Applicative     (liftA2)
-import           Control.Lens.Compat     hiding ((:<), (:>))
+import           Control.Lens.Compat
 import           Data.Foldable
 import qualified Data.IntMap.Strict      as Map
 import           Data.Sequence           (Seq, (><))
@@ -92,7 +92,7 @@ scroll n = do
 
 setPosition :: Monad m => Int -> VgrepT Pager m ()
 setPosition n = view viewportHeight >>= \height -> do
-    allLines <- liftA2 (+) (uses visible length) (uses above length)
+    allLines <- liftA2 (+) (use (visible . to length)) (use (above . to length))
     let newPosition = if
             | n < 0 || allLines < height -> 0
             | n > allLines - height      -> allLines - height
@@ -165,8 +165,8 @@ renderPager = do
             renderLineNumber :: Attr -> Int -> Image
             renderLineNumber attr
                 = text' attr
-                . (`snoc` ' ')
-                . cons ' '
+                . (`T.snoc` ' ')
+                . T.cons ' '
                 . T.pack
                 . show
 
@@ -175,7 +175,7 @@ renderPager = do
                 = text' attr
                 . T.justifyLeft width ' '
                 . T.take width
-                . cons ' '
+                . T.cons ' '
                 . T.drop startColumn
 
             renderFormatted :: Attr -> AnsiFormatted -> Image

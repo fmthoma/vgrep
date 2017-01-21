@@ -1,10 +1,13 @@
 -- | The 'VgrepT' monad transformer allows reading from the 'Environment'
 -- and changing the state of the 'Vgrep.App.App' or a 'Vgrep.Widget.Widget'.
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TupleSections              #-}
 {-# LANGUAGE TypeFamilies               #-}
+{-# LANGUAGE UndecidableInstances       #-}
 module Vgrep.Type
   ( -- * The 'VgrepT' monad transformer
     VgrepT ()
@@ -27,8 +30,7 @@ module Vgrep.Type
 ) where
 
 import qualified Control.Exception            as E
-import           Control.Lens.Internal.Zoom
-import           Control.Lens.Zoom
+import           Control.Lens.Compat
 import           Control.Monad.Identity
 import           Control.Monad.Morph
 import           Control.Monad.Reader
@@ -44,6 +46,7 @@ import qualified Control.Monad.State.Extended as Export
     , modify
     , put
     )
+import           Lens.Micro.Mtl.Internal
 
 import Vgrep.Environment
 
@@ -72,7 +75,7 @@ instance MonadTrans (VgrepT s) where
 instance MFunctor (VgrepT s) where
     hoist f (VgrepT action) = VgrepT (hoist (hoist f) action)
 
-type instance Zoomed (VgrepT s m) = Focusing (StateT Environment m)
+type instance Zoomed (VgrepT s m) = Zoomed (StateT s (StateT Environment m))
 
 instance Monad m => Zoom (VgrepT s m) (VgrepT t m) s t where
     zoom l (VgrepT m) = VgrepT (zoom l m)
