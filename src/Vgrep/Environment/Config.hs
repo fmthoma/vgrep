@@ -4,7 +4,6 @@ module Vgrep.Environment.Config where
 
 import           Control.Lens.Compat
 import           Control.Monad.IO.Class
-import qualified Data.Map.Strict        as M
 import           Data.Maybe
 import           Data.Monoid
 import           Graphics.Vty.Image
@@ -23,7 +22,8 @@ import           Vgrep.Command
 import           Vgrep.Environment.Config.Monoid
 import           Vgrep.Environment.Config.Sources
 import qualified Vgrep.Key                        as Key
-import           Vgrep.KeybindingMap
+import           Vgrep.KeybindingMap              (KeybindingMap (..))
+import qualified Vgrep.KeybindingMap              as KeybindingMap
 
 
 --------------------------------------------------------------------------
@@ -146,7 +146,7 @@ defaultColors = Colors
 
 defaultKeybindings :: Keybindings
 defaultKeybindings = Keybindings
-    { _resultsKeybindings = KeybindingMap $ M.fromList
+    { _resultsKeybindings = KeybindingMap.fromList
         [ (Key.key Key.Up,          ResultsUp)
         , (Key.key Key.Down,        ResultsDown)
         , (Key.key Key.PageUp,      ResultsPageUp)
@@ -156,7 +156,7 @@ defaultKeybindings = Keybindings
         , (Key.key (Key.Char 'j'),  ResultsDown)
         , (Key.key (Key.Char 'f'),  DisplayResultsOnly)
         , (Key.key Key.Tab,         SplitFocusPager) ]
-    , _pagerKeybindings = KeybindingMap $ M.fromList
+    , _pagerKeybindings = KeybindingMap.fromList
         [ (Key.key Key.Up,          PagerUp)
         , (Key.key Key.Down,        PagerDown)
         , (Key.key Key.PageUp,      PagerPageUp)
@@ -170,7 +170,7 @@ defaultKeybindings = Keybindings
         , (Key.key (Key.Char 'f'),  DisplayPagerOnly)
         , (Key.key Key.Tab,         SplitFocusResults)
         , (Key.key (Key.Char 'q'),  DisplayResultsOnly) ]
-    , _globalKeybindings = KeybindingMap $ M.fromList
+    , _globalKeybindings = KeybindingMap.fromList
         [ (Key.key (Key.Char 'e'),  OpenFileInEditor)
         , (Key.key (Key.Char 'q'),  Exit) ]
     }

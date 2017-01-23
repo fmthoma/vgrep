@@ -10,7 +10,7 @@ import Generics.Deriving.Monoid (mappenddefault, memptydefault)
 import GHC.Generics
 import Graphics.Vty.Attributes  (Attr)
 
-import Vgrep.KeybindingMap
+import Vgrep.KeybindingMap (KeybindingMap (..))
 
 -- $setup
 -- >>> import Data.Map.Strict
