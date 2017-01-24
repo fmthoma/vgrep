@@ -6,7 +6,6 @@ module Main (main) where
 import           Control.Concurrent.Async
 import           Control.Lens.Compat
 import           Control.Monad.Reader
-import qualified Data.Map.Strict                    as M
 import           Data.Maybe
 import           Data.Monoid
 import           Data.Ratio
@@ -35,6 +34,7 @@ import           Vgrep.Command
 import           Vgrep.Environment
 import           Vgrep.Event
 import qualified Vgrep.Key                    as Key
+import qualified Vgrep.KeybindingMap          as KeybindingMap
 import           Vgrep.Parser
 import           Vgrep.System.Grep
 import           Vgrep.Text
@@ -178,7 +178,7 @@ handleKeyEvent chord environment state =
     localBindings = case view (widgetState . currentWidget) state of
         Left  _ -> resultsBindings
         Right _ -> pagerBindings
-    lookupCmd = fromMaybe Unset . M.lookup chord
+    lookupCmd = fromMaybe Unset . KeybindingMap.lookup chord
     command = case lookupCmd localBindings of
         Unset   -> lookupCmd globalBindings
         defined -> defined
