@@ -1,6 +1,12 @@
 Changelog
 =========
 
+## v0.2.1 (unreleased)
+
+* Add `less`-like keybindings Ctrl-u, Ctrl-d, Ctrl-b and Ctrl-f. Since a
+  "half-page-up/down" action is not implemented, Ctrl-b/f currently map to full
+  page-up/down, but the behavior might change in the future.
+
 ## v0.2
 
 * Added support for a config file:

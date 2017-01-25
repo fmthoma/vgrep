@@ -154,6 +154,10 @@ defaultKeybindings = Keybindings
         , (Key.key Key.Enter,       PagerGotoResult)
         , (Key.key (Key.Char 'k'),  ResultsUp)
         , (Key.key (Key.Char 'j'),  ResultsDown)
+        , (Key.key (Key.Char 'u') `Key.withModifier` Key.Ctrl, ResultsPageUp)
+        , (Key.key (Key.Char 'd') `Key.withModifier` Key.Ctrl, ResultsPageDown)
+        , (Key.key (Key.Char 'b') `Key.withModifier` Key.Ctrl, ResultsPageUp)
+        , (Key.key (Key.Char 'f') `Key.withModifier` Key.Ctrl, ResultsPageDown)
         , (Key.key (Key.Char 'f'),  DisplayResultsOnly)
         , (Key.key Key.Tab,         SplitFocusPager) ]
     , _pagerKeybindings = KeybindingMap.fromList
@@ -167,6 +171,10 @@ defaultKeybindings = Keybindings
         , (Key.key (Key.Char 'j'),  PagerDown)
         , (Key.key (Key.Char 'h'),  PagerScrollLeft)
         , (Key.key (Key.Char 'l'),  PagerScrollRight)
+        , (Key.key (Key.Char 'u') `Key.withModifier` Key.Ctrl, PagerPageUp)
+        , (Key.key (Key.Char 'd') `Key.withModifier` Key.Ctrl, PagerPageDown)
+        , (Key.key (Key.Char 'b') `Key.withModifier` Key.Ctrl, PagerPageUp)
+        , (Key.key (Key.Char 'f') `Key.withModifier` Key.Ctrl, PagerPageDown)
         , (Key.key (Key.Char 'f'),  DisplayPagerOnly)
         , (Key.key Key.Tab,         SplitFocusResults)
         , (Key.key (Key.Char 'q'),  DisplayResultsOnly) ]

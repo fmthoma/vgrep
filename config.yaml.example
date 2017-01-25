@@ -127,6 +127,10 @@ keybindings:
         Enter    : pager-goto-result
         k        : results-up
         j        : results-down
+        C-u      : results-page-up
+        C-d      : results-page-down
+        C-b      : results-page-up
+        C-f      : results-page-down
         f        : display-results-only
         Tab      : split-focus-pager
 
@@ -143,6 +147,10 @@ keybindings:
         j        : pager-down
         h        : pager-scroll-left
         l        : pager-scroll-right
+        C-u      : pager-page-up
+        C-d      : pager-page-down
+        C-b      : pager-page-up
+        C-f      : pager-page-down
         Tab      : split-focus-results
         f        : display-pager-only
         q        : display-results-only
