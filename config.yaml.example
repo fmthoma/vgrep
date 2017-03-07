@@ -14,21 +14,37 @@
 ##        by your terminal.
 ##
 ##  If a color/style is not given, it falls back to the terminal
-##  default. If no config is given for a color, the vgrep default
-##  config steps in (which may differ from your terminal's default).
+##  default:
+##
+##      # terminal-default back-color and style
+##      line-numbers:
+##        fore-color: blue
+##      ...
+##
+##      # reset line-numbers to terminal default
+##      line-numbers: {}
+##      ...
+##
+##  If no config is given for a color, the vgrep default config
+##  steps in (which may differ from your terminal's default):
+##
+##      # use vgrep default config for line numbers
+##      line-numbers:
+##      ...
 ##
 colors:
 
     # Line numbers
     line-numbers:
         fore-color: blue
+
     # Highlighted line numbers
     line-numbers-hl:
         fore-color: blue
         style: bold
 
     # Normal text
-    normal:
+    normal: {}
 
     # Highlighted text
     normal-hl:

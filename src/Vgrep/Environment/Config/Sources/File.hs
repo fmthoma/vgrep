@@ -70,7 +70,7 @@ Example YAML config file for 'Vgrep.Environment.Config.defaultConfig':
 >   line-numbers-hl:
 >     fore-color: blue
 >     style: bold
->   normal:
+>   normal: {}
 >   normal-hl:
 >     style: bold
 >   file-headers:
@@ -188,6 +188,11 @@ YAML example without quotes:
 >>>   :: Either String Attr
 >>> :}
 Right (Attr {foreColor = Just Blue, backColor = Just BrightBlue, style = Just ReverseVideo})
+
+An empty JSON/YAML object yields the default colors:
+
+>>> decodeEither "{}" :: Either String Attr
+Right (Attr {foreColor = Nothing, backColor = Nothing, style = Nothing})
 -}
 data Attr = Attr
     { foreColor :: Maybe Color
