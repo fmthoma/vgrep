@@ -13,6 +13,8 @@ data Command
     | PagerDown            -- ^ Scroll one line down in pager
     | PagerPageUp          -- ^ Scroll one page up in pager
     | PagerPageDown        -- ^ Scroll one page down in pager
+    | PagerHalfPageUp      -- ^ Scroll half a page up in pager
+    | PagerHalfPageDown    -- ^ Scroll half a page down in pager
     | PagerScrollLeft      -- ^ Scroll eight characters left in pager
     | PagerScrollRight     -- ^ Scroll eight characters right in pager
 

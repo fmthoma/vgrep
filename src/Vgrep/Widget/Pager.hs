@@ -12,6 +12,7 @@ module Vgrep.Widget.Pager (
     , moveToLine
     , scroll
     , scrollPage
+    , scrollPageFraction
     , hScroll
     , replaceBufferContents
     ) where
@@ -112,6 +113,17 @@ scrollPage :: Monad m => Int -> VgrepT Pager m Redraw
 scrollPage n = view viewportHeight >>= \height ->
     scroll (n * (height - 1))
   -- gracefully leave one ^ line on the screen
+
+-- | Scroll up or down a fraction of a page. For integers,
+-- 'scrollPageFraction n == scrollPage n'.
+--
+-- > scrollPageFraction (-1%2)            -- scroll one half page up
+-- > scrollPageFraction (1%2)             -- scroll one half page down
+-- > scrollPageFraction (fromRational 1)  -- scroll one page down
+scrollPageFraction :: Monad m => Rational -> VgrepT Pager m Redraw
+scrollPageFraction a = view viewportHeight >>= \height ->
+    scroll (round (a * (fromIntegral height - 1)))
+                      -- gracefully leave one ^ line on the screen
 
 -- | Horizontal scrolling. Increment is one 'tabstop'.
 --

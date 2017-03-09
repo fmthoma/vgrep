@@ -24,6 +24,36 @@ test = runTestCases "Pager widget"
         , testCase = run (void (scroll (-1) >> scroll 1))
         , invariant = id
         }
+    , TestProperty
+        { description = "Scrolling n pages at once is the same as scrolling n times one page"
+        , testData = arbitrary
+        , testCase = do
+            n <- pick (arbitrary `suchThat` (/= 0))
+            initialState <- get
+            run (void (scrollPage n))
+            nPagesAtOnce <- get
+            put initialState
+            sequence_ (replicate (abs n) (run (scrollPage (signum n))))
+            nTimesOnePage <- get
+            pure (nPagesAtOnce, nTimesOnePage)
+        , assertion = \(nPagesAtOnce, nTimesOnePage) ->
+            pure (nPagesAtOnce === nTimesOnePage)
+        }
+    , TestProperty
+        { description = "Scrolling by integral page fractions is the same as scrolling entire pages"
+        , testData = arbitrary
+        , testCase = do
+            n <- pick (arbitrary `suchThat` (/= 0))
+            initialState <- get
+            run (void (scrollPage n))
+            scrollNPages <- get
+            put initialState
+            run (void (scrollPageFraction (fromIntegral n)))
+            scrollNFractionalPages <- get
+            pure (scrollNPages, scrollNFractionalPages)
+        , assertion = \(scrollNPages, scrollNFractionalPages) ->
+            pure (scrollNPages === scrollNFractionalPages)
+        }
     , TestInvariant
         { description = "Scrolling right and left leaves pager invariant"
         , testData = arbitrary

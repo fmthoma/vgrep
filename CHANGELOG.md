@@ -3,9 +3,8 @@ Changelog
 
 ## v0.2.1 (unreleased)
 
-* Add `less`-like keybindings Ctrl-u, Ctrl-d, Ctrl-b and Ctrl-f. Since a
-  "half-page-up/down" action is not implemented, Ctrl-b/f currently map to full
-  page-up/down, but the behavior might change in the future.
+* Add `less`-like keybindings Ctrl-u, Ctrl-d (half-page-up/down, only in pager)
+  and Ctrl-b, Ctrl-f (full-page-up/down).
 
 ## v0.2
 
