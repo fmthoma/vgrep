@@ -34,6 +34,7 @@ import           Data.Maybe
 import           Data.Monoid
 import           Data.Text                    (Text)
 import qualified Data.Text                    as T
+import           Graphics.Vty.Attributes
 import           Graphics.Vty.Image           hiding ((<|>))
 
 import Vgrep.Ansi

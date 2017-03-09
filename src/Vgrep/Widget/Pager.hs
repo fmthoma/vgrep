@@ -16,16 +16,17 @@ module Vgrep.Widget.Pager (
     , replaceBufferContents
     ) where
 
-import           Control.Applicative (liftA2)
-import           Control.Lens.Compat hiding ((:<), (:>))
+import           Control.Applicative     (liftA2)
+import           Control.Lens.Compat     hiding ((:<), (:>))
 import           Data.Foldable
-import qualified Data.IntMap.Strict  as Map
-import           Data.Monoid         ((<>))
-import           Data.Sequence       (Seq, (><))
-import qualified Data.Sequence       as Seq
-import           Data.Text           (Text)
-import qualified Data.Text           as T
-import           Graphics.Vty.Image  hiding (resize)
+import qualified Data.IntMap.Strict      as Map
+import           Data.Monoid             ((<>))
+import           Data.Sequence           (Seq, (><))
+import qualified Data.Sequence           as Seq
+import           Data.Text               (Text)
+import qualified Data.Text               as T
+import           Graphics.Vty.Attributes
+import           Graphics.Vty.Image      hiding (resize)
 
 import Vgrep.Ansi
 import Vgrep.Environment
