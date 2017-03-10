@@ -33,7 +33,7 @@ test = runTestCases "Pager widget"
             run (void (scrollPage n))
             nPagesAtOnce <- get
             put initialState
-            sequence_ (replicate (abs n) (run (scrollPage (signum n))))
+            replicateM_ (abs n) (run (scrollPage (signum n)))
             nTimesOnePage <- get
             pure (nPagesAtOnce, nTimesOnePage)
         , assertion = \(nPagesAtOnce, nTimesOnePage) ->
@@ -45,14 +45,14 @@ test = runTestCases "Pager widget"
         , testCase = do
             n <- pick (arbitrary `suchThat` (/= 0))
             initialState <- get
-            run (void (scrollPage n))
-            scrollNPages <- get
-            put initialState
             run (void (scrollPageFraction (fromIntegral n)))
             scrollNFractionalPages <- get
-            pure (scrollNPages, scrollNFractionalPages)
-        , assertion = \(scrollNPages, scrollNFractionalPages) ->
-            pure (scrollNPages === scrollNFractionalPages)
+            put initialState
+            run (void (scrollPage n))
+            scrollNPages <- get
+            pure (scrollNFractionalPages, scrollNPages)
+        , assertion = \(scrollNFractionalPages, scrollNPages) ->
+            pure (scrollNFractionalPages === scrollNPages)
         }
     , TestInvariant
         { description = "Scrolling right and left leaves pager invariant"
