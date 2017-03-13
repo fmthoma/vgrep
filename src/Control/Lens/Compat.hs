@@ -1,6 +1,10 @@
 {-# LANGUAGE RankNTypes #-}
+{-# OPTIONS_GHC -fno-warn-dodgy-imports #-}
 module Control.Lens.Compat
   ( pre
+  , assign
+  , modifying
+  , traverseOf
 
   , Getter
 
@@ -8,11 +12,25 @@ module Control.Lens.Compat
   ) where
 
 import Data.Monoid         (First)
-import Lens.Micro.Platform
+import Lens.Micro.Platform hiding (assign, modifying, traverseOf)
+import Control.Monad.State (MonadState, modify)
 
 
 pre :: Getting (First a) s a -> Getter s (Maybe a)
 pre l = to (preview l)
+{-# INLINE pre #-}
+
+assign :: MonadState s m => ASetter s s a b -> b -> m ()
+assign l b = modify (set l b)
+{-# INLINE assign #-}
+
+modifying :: MonadState s m => ASetter s s a b -> (a -> b) -> m ()
+modifying l f = modify (over l f)
+{-# INLINE modifying #-}
+
+traverseOf :: a -> a
+traverseOf = id
+{-# INLINE traverseOf #-}
 
 type Getter s a = SimpleGetter s a
 
