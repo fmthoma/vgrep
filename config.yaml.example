@@ -80,14 +80,16 @@ tabstop: 8
 ##  * split-focus-results    -- Split screen, focus on results list
 ##  * pager-up               -- Scroll one line up in pager
 ##  * pager-down             -- Scroll one line down in pager
-##  * pager-page-up            -- Scroll one page up in pager
-##  * pager-page-down          -- Scroll one page down in pager
+##  * pager-page-up          -- Scroll one page up in pager
+##  * pager-page-down        -- Scroll one page down in pager
+##  * pager-half-page-up     -- Scroll half a page up in pager
+##  * pager-half-page-down   -- Scroll half a page down in pager
 ##  * pager-scroll-left      -- Scroll eight characters left in pager
 ##  * pager-scroll-right     -- Scroll eight characters right in pager
 ##  * results-up             -- Move to previous result
 ##  * results-down           -- Move to next result
-##  * results-page-up          -- Move one page up in results list
-##  * results-page-down        -- Move one page down in results list
+##  * results-page-up        -- Move one page up in results list
+##  * results-page-down      -- Move one page down in results list
 ##  * prev-result            -- Move to previous result and update pager
 ##  * next-result            -- Move to next result and update pager
 ##  * pager-goto-result      -- Update pager with currently selected result
@@ -127,6 +129,8 @@ keybindings:
         Enter    : pager-goto-result
         k        : results-up
         j        : results-down
+        C-b      : results-page-up
+        C-f      : results-page-down
         f        : display-results-only
         Tab      : split-focus-pager
 
@@ -143,6 +147,10 @@ keybindings:
         j        : pager-down
         h        : pager-scroll-left
         l        : pager-scroll-right
+        C-u      : pager-half-page-up
+        C-d      : pager-half-page-down
+        C-b      : pager-page-up
+        C-f      : pager-page-down
         Tab      : split-focus-results
         f        : display-pager-only
         q        : display-results-only

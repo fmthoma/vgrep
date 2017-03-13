@@ -1,6 +1,11 @@
 Changelog
 =========
 
+## v0.2.1 (unreleased)
+
+* Add `less`-like keybindings Ctrl-u, Ctrl-d (half-page-up/down, only in pager)
+  and Ctrl-b, Ctrl-f (full-page-up/down).
+
 ## v0.2
 
 * Added support for a config file:

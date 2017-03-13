@@ -195,6 +195,8 @@ executeCommand = \case
     PagerDown          -> continue (zoom pager (scroll 1))
     PagerPageUp        -> continue (zoom pager (scrollPage (-1)))
     PagerPageDown      -> continue (zoom pager (scrollPage 1))
+    PagerHalfPageUp    -> continue (zoom pager (scrollPageFraction (-1%2)))
+    PagerHalfPageDown  -> continue (zoom pager (scrollPageFraction (1%2)))
     PagerScrollLeft    -> continue (zoom pager (hScroll (-1)))
     PagerScrollRight   -> continue (zoom pager (hScroll 1))
     ResultsUp          -> continue (zoom results prevLine >> pure Redraw)
