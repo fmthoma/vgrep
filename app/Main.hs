@@ -186,9 +186,12 @@ handleKeyEvent chord environment state =
     globalBindings  = view (config . keybindings . globalKeybindings)  environment
     resultsBindings = view (config . keybindings . resultsKeybindings) environment
     pagerBindings   = view (config . keybindings . pagerKeybindings)   environment
+    edlineBindings  = mempty
     localBindings = case view (widgetState . focusedWidget) state of
-        Left  _ -> resultsBindings
-        Right _ -> pagerBindings
+        Left foo -> case view focusedWidget foo of
+            Left  _ -> resultsBindings
+            Right _ -> pagerBindings
+        Right _ -> edlineBindings
     lookupCmd = fromMaybe Unset . KeybindingMap.lookup chord
     command = case lookupCmd localBindings of
         Unset   -> lookupCmd globalBindings
@@ -198,8 +201,8 @@ handleKeyEvent chord environment state =
 executeCommand :: MonadIO m => Command -> AppState -> Next (VgrepT AppState m Redraw)
 executeCommand = \case
     Unset              -> skip
-    DisplayPagerOnly   -> continue (zoom widgetState secondaryOnly)
-    DisplayResultsOnly -> continue (zoom widgetState primaryOnly)
+    DisplayPagerOnly   -> continue (zoom resultsAndPager secondaryOnly)
+    DisplayResultsOnly -> continue (zoom resultsAndPager primaryOnly)
     SplitFocusPager    -> continue splitViewPager
     SplitFocusResults  -> continue splitViewResults
     PagerUp            -> continue (zoom pager (scroll (-1)))
@@ -225,12 +228,12 @@ executeCommand = \case
     halt = const (Interrupt Halt)
 
 splitViewPager, splitViewResults :: Monad m => VgrepT AppState m Redraw
-splitViewPager   = zoom widgetState $ do
+splitViewPager   = zoom resultsAndPager $ do
     void splitView
     assign focus FocusSecondary
-    assign splitRatio (Dynamic(2%3))
+    assign splitRatio (Dynamic(1%3))
     pure Redraw
-splitViewResults = zoom widgetState $ do
+splitViewResults = zoom resultsAndPager $ do
     void splitView
     assign focus FocusPrimary
     assign splitRatio (Dynamic(2%3))
@@ -289,8 +292,11 @@ widgetState = lens _widgetState (\s ws -> s { _widgetState = ws })
 inputLines :: Lens' AppState (Seq Text)
 inputLines = lens _inputLines (\s l -> s { _inputLines = l })
 
+resultsAndPager :: Lens' AppState (Layout Results Pager)
+resultsAndPager = widgetState . primary
+
 results :: Lens' AppState Results
-results = widgetState . primary . primary
+results = resultsAndPager . primary
 
 pager :: Lens' AppState Pager
-pager = widgetState . primary . secondary
+pager = resultsAndPager . secondary
