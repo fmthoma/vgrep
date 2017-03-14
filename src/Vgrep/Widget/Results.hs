@@ -66,7 +66,8 @@ type ResultsWidget = Widget Results
 resultsWidget :: ResultsWidget
 resultsWidget =
     Widget { initialize = initResults
-           , draw       = renderResultList }
+           , draw       = renderResultList
+           , cursor     = const NoCursor }
 
 initResults :: Results
 initResults = EmptyResults

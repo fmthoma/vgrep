@@ -55,7 +55,8 @@ type PagerWidget = Widget Pager
 pagerWidget :: PagerWidget
 pagerWidget = Widget
     { initialize = initPager
-    , draw       = renderPager }
+    , draw       = renderPager
+    , cursor     = const NoCursor }
 
 initPager :: Pager
 initPager = Pager

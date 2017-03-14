@@ -42,7 +42,8 @@ command = to $ do
 edLineWidget :: EdLineWidget
 edLineWidget = Widget
     { initialize = edLine
-    , draw       = drawWidget }
+    , draw       = drawWidget
+    , cursor     = getCursor }
 
 edLine :: EdLine
 edLine = EdLine Text.empty Text.empty
@@ -68,3 +69,6 @@ drawWidget = do
     width <- view viewportWidth
     cmdText <- use command
     pure (text' defAttr (Text.justifyLeft width ' ' cmdText))
+
+getCursor :: EdLine -> Cursor
+getCursor = views cursorPos (\pos -> Cursor pos 0)

@@ -112,7 +112,13 @@ app = App
             { _widgetState = Widget.initialize mainWidget
             , _inputLines  = S.empty }
     renderMainWidget :: Monad m => VgrepT AppState m Vty.Picture
-    renderMainWidget = fmap picForImage (zoom widgetState (Widget.draw mainWidget))
+    renderMainWidget = do
+        mainImage <- zoom widgetState (Widget.draw mainWidget)
+        mainCursor <- zoom widgetState (get >>= pure . Widget.cursor mainWidget)
+        pure Picture
+            { picCursor = mainCursor
+            , picLayers = [mainImage]
+            , picBackground = ClearBackground }
 
 mainWidget :: MainWidget
 mainWidget = hSplitWidget resultsWidget pagerWidget
