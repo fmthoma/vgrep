@@ -17,7 +17,6 @@ import qualified Data.Text.Lazy.IO                  as TL
 import           Distribution.PackageDescription.TH
 import qualified Graphics.Vty                       as Vty
 import           Graphics.Vty.Input.Events          hiding (Event)
-import           Graphics.Vty.Picture
 import           Language.Haskell.TH
 import           Pipes                              as P
 import           Pipes.Concurrent
@@ -28,12 +27,12 @@ import           System.Exit
 import           System.IO
 import           System.Process
 
-import           Vgrep.App                    as App
+import           Vgrep.App            as App
 import           Vgrep.Command
 import           Vgrep.Environment
 import           Vgrep.Event
-import qualified Vgrep.Key                    as Key
-import qualified Vgrep.KeybindingMap          as KeybindingMap
+import qualified Vgrep.Key            as Key
+import qualified Vgrep.KeybindingMap  as KeybindingMap
 import           Vgrep.Parser
 import           Vgrep.System.Grep
 import           Vgrep.Text
@@ -115,10 +114,14 @@ app = App
     renderMainWidget = zoom widgetState $ do
         mainImage <- Widget.draw mainWidget
         mainCursor <- Widget.cursor mainWidget
-        pure Picture
-            { picCursor = mainCursor
-            , picLayers = [mainImage]
-            , picBackground = ClearBackground }
+        pure Vty.Picture
+            { Vty.picCursor = toVtyCursor mainCursor
+            , Vty.picLayers = [mainImage]
+            , Vty.picBackground = Vty.ClearBackground }
+    toVtyCursor :: Widget.Cursor -> Vty.Cursor
+    toVtyCursor = \case
+        Widget.NoCursor       -> Vty.NoCursor
+        Widget.Cursor col row -> Vty.Cursor col row
 
 mainWidget :: MainWidget
 mainWidget = foo (hSplitWidget resultsWidget pagerWidget) edLineWidget

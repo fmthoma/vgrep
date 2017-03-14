@@ -1,3 +1,4 @@
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE Rank2Types #-}
 module Vgrep.Widget.Layout (
     -- * Layout widget
@@ -102,11 +103,10 @@ getCursor primaryWidget secondaryWidget = use focus >>= \case
             FixedSecondary sdim -> dim - sdim
             Dynamic r           -> ceiling (r * fromIntegral dim)
         zoom secondary (cursor secondaryWidget) >>= \case
-            NoCursor -> pure NoCursor
-            Cursor col row ->
-                use orientation >>= \case
-                    Horizontal -> pure (Cursor (col + offset) row)
-                    Vertical   -> pure (Cursor col (row + offset))
+            NoCursor    -> pure NoCursor
+            Cursor {..} -> use orientation >>= \case
+                Horizontal -> pure (Cursor (col + offset) row)
+                Vertical   -> pure (Cursor col (row + offset))
     SecondaryOnly  -> zoom secondary (cursor secondaryWidget)
 
 runInPrimaryWidget

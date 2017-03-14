@@ -1,6 +1,7 @@
 {-# LANGUAGE Rank2Types #-}
 module Vgrep.Widget.Type
   ( Widget (..)
+  , Cursor (..)
 
   -- ** Re-exports from "Vgrep.Event"
   , Redraw (..)
@@ -8,11 +9,9 @@ module Vgrep.Widget.Type
 
   -- ** Re-exports from "Graphics.Vty"
   , Image ()
-  , Cursor (..)
   ) where
 
 import Graphics.Vty.Image   (Image)
-import Graphics.Vty.Picture (Cursor (..))
 
 import Vgrep.Event (Next (..), Redraw (..))
 import Vgrep.Type
@@ -38,3 +37,13 @@ data Widget s = Widget
     , cursor     :: forall m. Monad m => VgrepT s m Cursor
     -- ^ Get the current cursor position, or 'NoCursor' if not applicable.
     }
+
+-- | Position for the cursor on the screen. Translates to
+-- 'Graphics.Vty.Picture.Cursor'.
+data Cursor
+    = NoCursor
+    -- ^ Don't show a cursor.
+    | Cursor
+        { col :: !Int
+        , row :: !Int }
+    -- ^ Show a cursor at a relative offset of ('col', 'row') from the origin
