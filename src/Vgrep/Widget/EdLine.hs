@@ -1,5 +1,5 @@
-{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TemplateHaskell  #-}
 module Vgrep.Widget.EdLine (
       EdLineWidget
     , EdLine ()
@@ -17,16 +17,22 @@ module Vgrep.Widget.EdLine (
     , insert
     , delete
     , backspace
+    , deleteWord
+    , deletePrevWord
     , moveLeft
     , moveRight
+    , moveWordLeft
+    , moveWordRight
+    , moveHome
+    , moveEnd
     ) where
 
-import           Control.Lens            hiding (pre)
-import           Control.Monad.State
-import           Data.Text               (Text)
-import qualified Data.Text               as Text
-import           Data.Text.Zipper        (TextZipper)
-import qualified Data.Text.Zipper        as Zipper
+import           Control.Lens                   hiding (pre)
+import           Data.Text                      (Text)
+import qualified Data.Text                      as Text
+import           Data.Text.Zipper               (TextZipper)
+import qualified Data.Text.Zipper               as Zipper
+import qualified Data.Text.Zipper.Generic.Words as Zipper
 import           Graphics.Vty.Attributes
 import           Graphics.Vty.Image
 import           Vgrep.Type
@@ -35,7 +41,7 @@ import           Vgrep.Widget.Type
 type EdLineWidget = Widget EdLine
 
 data EdLine = EdLine
-    { _mode :: Mode
+    { _mode   :: Mode
     , _zipper :: TextZipper Text }
 
 data Mode = Cmd | Search | Status
@@ -91,19 +97,43 @@ enterSearch = do
 
 
 insert :: Monad m => Char -> VgrepT EdLine m Redraw
-insert chr = modifying zipper (Zipper.insertChar chr) >> pure Redraw
+insert chr = edit (Zipper.insertChar chr)
 
 delete :: Monad m => VgrepT EdLine m Redraw
-delete = modifying zipper Zipper.deleteChar >> pure Redraw
+delete = edit Zipper.deleteChar
 
 backspace :: Monad m => VgrepT EdLine m Redraw
-backspace = modifying zipper Zipper.deletePrevChar >> pure Redraw
+backspace = edit Zipper.deletePrevChar
+
+deleteWord :: Monad m => VgrepT EdLine m Redraw
+deleteWord = edit Zipper.deleteWord
+
+deletePrevWord :: Monad m => VgrepT EdLine m Redraw
+deletePrevWord = edit Zipper.deletePrevWord
 
 moveLeft :: Monad m => VgrepT EdLine m Redraw
-moveLeft = modifying zipper Zipper.moveLeft >> pure Redraw
+moveLeft = edit Zipper.moveLeft
 
 moveRight :: Monad m => VgrepT EdLine m Redraw
-moveRight = modifying zipper Zipper.moveRight >> pure Redraw
+moveRight = edit Zipper.moveRight
+
+moveHome :: Monad m => VgrepT EdLine m Redraw
+moveHome = edit Zipper.gotoBOL
+
+moveEnd :: Monad m => VgrepT EdLine m Redraw
+moveEnd = edit Zipper.gotoEOL
+
+moveWordLeft :: Monad m => VgrepT EdLine m Redraw
+moveWordLeft = edit Zipper.moveWordLeft
+
+moveWordRight :: Monad m => VgrepT EdLine m Redraw
+moveWordRight = edit Zipper.moveWordRight
+
+edit :: Monad m => (TextZipper Text -> TextZipper Text) -> VgrepT EdLine m Redraw
+edit action = use mode >>= \case
+    Status -> pure Unchanged
+    Cmd    -> modifying zipper action >> pure Redraw
+    Search -> modifying zipper action >> pure Redraw
 
 drawWidget :: Monad m => VgrepT EdLine m Image
 drawWidget = use mode >>= \case

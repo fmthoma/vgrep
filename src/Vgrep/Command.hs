@@ -27,6 +27,10 @@ data Command
     | NextResult           -- ^ Move to next result and update pager
     | PagerGotoResult      -- ^ Update pager with currently selected result
 
+    | EdlineEnterSearch    -- ^
+    | EdlineEnterCommand
+    | EdlineLeave
+
     | OpenFileInEditor     -- ^ Open file in external editor and jump to
                            -- currently selected result
 
@@ -36,3 +40,8 @@ data Command
                            -- alternative binding (used to override keybindings)
 
     deriving (Eq, Show, Generic)
+
+instance Monoid Command where
+    mempty = Unset
+    mappend Unset a = a
+    mappend a     _ = a

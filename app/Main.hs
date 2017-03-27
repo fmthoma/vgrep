@@ -10,6 +10,7 @@ import           Data.Maybe
 import           Data.Monoid
 import           Data.Sequence                      (Seq)
 import qualified Data.Sequence                      as S
+import qualified Data.Set                           as Set
 import           Data.Text                          (Text)
 import qualified Data.Text                          as T
 import qualified Data.Text.Lazy                     as TL
@@ -180,23 +181,38 @@ handleKeyEvent
     -> Environment
     -> AppState
     -> Next (VgrepT AppState m Redraw)
-handleKeyEvent chord environment state =
-    executeCommand command state
+handleKeyEvent chord environment state = localBindings <> globalBindings
   where
-    globalBindings  = view (config . keybindings . globalKeybindings)  environment
-    resultsBindings = view (config . keybindings . resultsKeybindings) environment
-    pagerBindings   = view (config . keybindings . pagerKeybindings)   environment
-    edlineBindings  = mempty
+    globalKeymap  = view (config . keybindings . globalKeybindings)  environment
+    resultsKeymap = view (config . keybindings . resultsKeybindings) environment
+    pagerKeymap   = view (config . keybindings . pagerKeybindings)   environment
+    lookupCmd keymap = fromMaybe Unset . (`KeybindingMap.lookup` keymap)
     localBindings = case view (widgetState . focusedWidget) state of
         Left foo -> case view focusedWidget foo of
-            Left  _ -> resultsBindings
-            Right _ -> pagerBindings
-        Right _ -> edlineBindings
-    lookupCmd = fromMaybe Unset . KeybindingMap.lookup chord
-    command = case lookupCmd localBindings of
-        Unset   -> lookupCmd globalBindings
-        defined -> defined
+            Left  _ -> executeCommand (lookupCmd resultsKeymap chord) state
+            Right _ -> executeCommand (lookupCmd pagerKeymap chord) state
+        Right _ -> edlineBindings chord state
+    globalBindings = executeCommand (lookupCmd globalKeymap chord) state
 
+edlineBindings :: MonadIO m => Key.Chord -> AppState -> Next (VgrepT AppState m Redraw)
+edlineBindings (Key.Chord mods key) state = case key of
+    Key.Char c      | noModifiers -> Continue (zoom edline (insert c))
+    Key.Space       | noModifiers -> Continue (zoom edline (insert ' '))
+    Key.Backspace   | noModifiers -> Continue (zoom edline backspace)
+                    | ctrlPressed -> Continue (zoom edline deletePrevWord)
+    Key.Left        | noModifiers -> Continue (zoom edline moveLeft)
+                    | ctrlPressed -> Continue (zoom edline moveWordLeft)
+    Key.Right       | noModifiers -> Continue (zoom edline moveRight)
+                    | ctrlPressed -> Continue (zoom edline moveWordRight)
+    Key.Del         | noModifiers -> Continue (zoom edline delete)
+                    | ctrlPressed -> Continue (zoom edline deleteWord)
+    Key.Home        | noModifiers -> Continue (zoom edline moveHome)
+    Key.End         | noModifiers -> Continue (zoom edline moveEnd)
+    Key.Esc                       -> executeCommand EdlineLeave state
+    _otherwise -> Skip
+  where
+    noModifiers = Set.null mods
+    ctrlPressed = Key.Ctrl `Set.member` mods
 
 executeCommand :: MonadIO m => Command -> AppState -> Next (VgrepT AppState m Redraw)
 executeCommand = \case
@@ -220,6 +236,9 @@ executeCommand = \case
     PrevResult         -> continue (zoom results prevLine >> loadSelectedFileToPager)
     NextResult         -> continue (zoom results nextLine >> loadSelectedFileToPager)
     PagerGotoResult    -> continue (loadSelectedFileToPager >> splitViewPager)
+    EdlineEnterSearch  -> continue (zoom widgetState (assign focus FocusSecondary >> zoom secondary enterSearch) >> pure Redraw)
+    EdlineEnterCommand -> continue (zoom widgetState (assign focus FocusSecondary >> zoom secondary enterCmd) >> pure Redraw)
+    EdlineLeave        -> continue (zoom widgetState (assign focus FocusPrimary >> zoom secondary reset) >> pure Redraw)
     OpenFileInEditor   -> invokeEditor
     Exit               -> halt
   where
@@ -300,3 +319,6 @@ results = resultsAndPager . primary
 
 pager :: Lens' AppState Pager
 pager = resultsAndPager . secondary
+
+edline :: Lens' AppState EdLine
+edline = widgetState . secondary

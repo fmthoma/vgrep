@@ -9,6 +9,7 @@ packages:
 
 # Packages to be pulled from upstream that are not in the resolver (e.g., acme-missiles-0.3)
 extra-deps:
+  - text-zipper-0.10
   # We want a recent version of stylish-haskell.
   # This is olny for tooling, so does not affect
   # dependency management.
