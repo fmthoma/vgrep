@@ -17,7 +17,7 @@ module Vgrep.Widget.Layout.Internal (
     , focusedWidget
     ) where
 
-import Control.Lens
+import Control.Lens.Compat
 
 -- $setup
 -- >>> :set -fno-warn-missing-fields
