@@ -12,7 +12,6 @@ module Vgrep.Widget.EdLine (
 
     , putStatus
     , enterSearch
-    , enterCmd
 
     , insert
     , delete
@@ -44,7 +43,7 @@ data EdLine = EdLine
     { _mode   :: Mode
     , _zipper :: TextZipper Text }
 
-data Mode = Cmd | Search | Status
+data Mode = Search | Status
 
 makeLenses ''EdLine
 
@@ -83,11 +82,6 @@ clear = assign zipper emptyZipper >> pure Redraw
 putStatus :: Monad m => Text -> VgrepT EdLine m Redraw
 putStatus txt = do
     put EdLine { _mode = Status, _zipper = zipperOf txt }
-    pure Redraw
-
-enterCmd :: Monad m => VgrepT EdLine m Redraw
-enterCmd = do
-    put EdLine { _mode = Cmd, _zipper = emptyZipper }
     pure Redraw
 
 enterSearch :: Monad m => VgrepT EdLine m Redraw
@@ -132,13 +126,11 @@ moveWordRight = edit Zipper.moveWordRight
 edit :: Monad m => (TextZipper Text -> TextZipper Text) -> VgrepT EdLine m Redraw
 edit action = use mode >>= \case
     Status -> pure Unchanged
-    Cmd    -> modifying zipper action >> pure Redraw
     Search -> modifying zipper action >> pure Redraw
 
 drawWidget :: Monad m => VgrepT EdLine m Image
 drawWidget = use mode >>= \case
     Status -> use edLineText >>= render
-    Cmd    -> use edLineText <&> Text.cons ':' >>= render
     Search -> use edLineText <&> Text.cons '/' >>= render
   where
     render txt = do

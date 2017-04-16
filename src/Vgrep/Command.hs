@@ -28,7 +28,6 @@ data Command
     | PagerGotoResult      -- ^ Update pager with currently selected result
 
     | EdlineEnterSearch    -- ^
-    | EdlineEnterCommand
     | EdlineLeave
 
     | OpenFileInEditor     -- ^ Open file in external editor and jump to

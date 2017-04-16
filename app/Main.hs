@@ -237,7 +237,6 @@ executeCommand = \case
     NextResult         -> continue (zoom results nextLine >> loadSelectedFileToPager)
     PagerGotoResult    -> continue (loadSelectedFileToPager >> splitViewPager)
     EdlineEnterSearch  -> continue (zoom widgetState (assign focus FocusSecondary >> zoom secondary enterSearch) >> pure Redraw)
-    EdlineEnterCommand -> continue (zoom widgetState (assign focus FocusSecondary >> zoom secondary enterCmd) >> pure Redraw)
     EdlineLeave        -> continue (zoom widgetState (assign focus FocusPrimary >> zoom secondary reset) >> pure Redraw)
     OpenFileInEditor   -> invokeEditor
     Exit               -> halt
