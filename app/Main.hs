@@ -59,7 +59,9 @@ main = do
     outputToTerminal  <- hIsTerminalDevice stdout
     case (inputFromTerminal, outputToTerminal) of
         (True,  False)  -> runHeadless (const recursiveGrep)
-        (False, False)  -> runHeadless grep
+        (False, False)
+            | null args -> doNothingJustPipe
+            | otherwise -> runHeadless grep
         (False, True)
             | null args -> runGui cfg id
             | otherwise -> runGui cfg grepForApp
@@ -76,6 +78,7 @@ main = do
                                    >-> toOutput evSink
         runApp_ app cfg (fromInput evSource)
         cancel grepThread
+    doNothingJustPipe = runEffect (P.stdinLn >-> P.stdoutLn)
     printVersion = do
         let version = $(packageVariable (pkgVersion . package))
             name = $(packageVariable (pkgName . package))
