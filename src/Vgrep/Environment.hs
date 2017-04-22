@@ -8,6 +8,7 @@ module Vgrep.Environment
     , viewport
     , vpHeight
     , vpWidth
+    , searchRegex
 
     -- * Convenience Lenses
     , viewportWidth
@@ -18,6 +19,8 @@ module Vgrep.Environment
     ) where
 
 import Control.Lens.Compat
+import Text.Regex.TDFA.Text
+import Data.Text
 
 import Vgrep.Environment.Config
 
@@ -31,13 +34,25 @@ makeLenses ''Viewport
 
 -- | 'Vgrep.Type.VgrepT' actions can read from the environment.
 data Environment = Env
-    { _config   :: Config
+    { _config      :: Config
     -- ^ External configuration (colors, editor executable, …)
 
-    , _viewport :: Viewport
+    , _viewport    :: Viewport
     -- ^ The bounds (width and height) of the display viewport where the
     -- 'Vgrep.App.App' or the current 'Vgrep.Widget.Widget' is displayed
-    } deriving (Eq, Show)
+
+    , _searchRegex :: Maybe (Regex, Text)
+    -- ^ The currently active search regex. The 'Text' parameter is for printing
+    -- the regex, since 'Regex' does not have a 'Show' instance.
+    }
+
+instance Show Environment where
+    show env = mconcat
+        [ "Env {"
+        , "_config = ", show (_config env) , ","
+        , "_viewport = ", show (_viewport env), ","
+        , "_searchRegex = ", show (fmap snd (_searchRegex env)), ","
+        , "}" ]
 
 makeLenses ''Environment
 

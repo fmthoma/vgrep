@@ -14,6 +14,8 @@ module Vgrep.Widget.Results (
     , resizeToWindow
     , prevLine
     , nextLine
+    , prevMatch
+    , nextMatch
     , pageUp
     , pageDown
 
@@ -41,6 +43,7 @@ import Vgrep.Ansi
 import Vgrep.Environment
 import Vgrep.Event
 import Vgrep.Results
+import Vgrep.Search
 import Vgrep.Type
 import Vgrep.Widget.Results.Internal as Internal
 import Vgrep.Widget.Type
@@ -116,6 +119,27 @@ maybeModify f = do
         Just s' -> put s'
         Nothing -> pure ()
 
+prevMatch, nextMatch :: Monad m => VgrepT Results m ()
+prevMatch = view searchRegex >>= \case
+    Nothing -> pure ()
+    Just (pattern, _) -> get >>= \buf -> case tryPrevMatch pattern buf of
+        Just buf' -> put buf'
+        Nothing   -> pure ()
+nextMatch = view searchRegex >>= \case
+    Nothing -> pure ()
+    Just (pattern, _) -> get >>= \buf -> case tryNextMatch pattern buf of
+        Just buf' -> put buf'
+        Nothing   -> pure ()
+
+tryPrevMatch, tryNextMatch :: Regex -> Results -> Maybe Results
+(tryPrevMatch, tryNextMatch) = (go tryPrevLine, go tryNextLine)
+  where
+    go step pattern = fix $ \rec buf -> do
+        prevBuf <- step buf
+        line    <- view currentLine prevBuf
+        if (matches pattern (stripAnsi line))
+            then pure prevBuf
+            else rec prevBuf
 
 renderResultList :: Monad m => VgrepT Results m Image
 renderResultList = do

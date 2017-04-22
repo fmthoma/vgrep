@@ -6,6 +6,7 @@ module Vgrep.Widget.Results.Internal (
     , currentFileName
     , currentLineNumber
     , currentFileResults
+    , currentLine
 
     -- * Actions
     -- | In general, actions return @'Just' newResults@ if the buffer has
@@ -205,6 +206,10 @@ currentFileName =
 currentLineNumber :: Getter Results (Maybe Int)
 currentLineNumber =
     pre (to current . _Just . lineReference . lineNumber . _Just)
+
+currentLine :: Getter Results (Maybe AnsiFormatted)
+currentLine =
+    pre (to current . _Just . lineReference . lineText)
 
 current :: Results -> Maybe FileLineReference
 current = \case

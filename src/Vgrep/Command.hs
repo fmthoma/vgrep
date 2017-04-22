@@ -20,6 +20,8 @@ data Command
 
     | ResultsUp            -- ^ Move to previous result
     | ResultsDown          -- ^ Move to next result
+    | ResultsPrevMatch     -- ^ Move to previous search result
+    | ResultsNextMatch     -- ^ Move to next search result
     | ResultsPageUp        -- ^ Move one page up in results list
     | ResultsPageDown      -- ^ Move one page down in results list
 

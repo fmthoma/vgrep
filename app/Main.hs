@@ -35,6 +35,7 @@ import           Vgrep.Event
 import qualified Vgrep.Key            as Key
 import qualified Vgrep.KeybindingMap  as KeybindingMap
 import           Vgrep.Parser
+import           Vgrep.Search
 import           Vgrep.System.Grep
 import           Vgrep.Text
 import           Vgrep.Type
@@ -209,10 +210,20 @@ edlineBindings (Key.Chord mods key) state = case key of
     Key.Home        | noModifiers -> Continue (zoom edline moveHome)
     Key.End         | noModifiers -> Continue (zoom edline moveEnd)
     Key.Esc                       -> executeCommand EdlineLeave state
+    Key.Enter       | noModifiers -> case view (edline . mode) state of
+        Search -> Continue startSearch
+        Status -> Skip
     _otherwise -> Skip
   where
     noModifiers = Set.null mods
     ctrlPressed = Key.Ctrl `Set.member` mods
+
+startSearch :: Monad m => VgrepT AppState m Redraw
+startSearch = do
+    assign (widgetState . focus) FocusPrimary
+    newSearchRegex <- use (edline . edLineText)
+    modifyEnvironment (set searchRegex (Just (regex newSearchRegex, newSearchRegex)))
+    zoom edline reset
 
 executeCommand :: MonadIO m => Command -> AppState -> Next (VgrepT AppState m Redraw)
 executeCommand = \case
@@ -231,6 +242,8 @@ executeCommand = \case
     PagerScrollRight   -> continue (zoom pager (hScroll 1))
     ResultsUp          -> continue (zoom results prevLine >> pure Redraw)
     ResultsDown        -> continue (zoom results nextLine >> pure Redraw)
+    ResultsPrevMatch   -> continue (zoom results prevMatch >> pure Redraw)
+    ResultsNextMatch   -> continue (zoom results nextMatch >> pure Redraw)
     ResultsPageUp      -> continue (zoom results pageUp   >> pure Redraw)
     ResultsPageDown    -> continue (zoom results pageDown >> pure Redraw)
     PrevResult         -> continue (zoom results prevLine >> loadSelectedFileToPager)

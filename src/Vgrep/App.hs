@@ -66,7 +66,7 @@ runApp app conf externalEvents = withSpawn $ \(evSink, evSource) -> do
     initialState <- initialize app
     (_, finalState) <- runVgrepT (appEventLoop app evSource userEventSink)
                                  initialState
-                                 (Env conf initialViewport)
+                                 (Env conf initialViewport Nothing)
     cancel externalEventThread
     pure finalState
 
