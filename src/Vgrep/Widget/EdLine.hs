@@ -3,14 +3,13 @@
 module Vgrep.Widget.EdLine (
       EdLineWidget
     , EdLine ()
-    , mode
-    , Mode (..)
-    , edLine
     , edLineWidget
-    , cursorPos
-    , edLineText
+    , searchText
     , reset
     , clear
+
+    , _Search
+    , _Status
 
     , putStatus
     , enterSearch
@@ -28,7 +27,7 @@ module Vgrep.Widget.EdLine (
     , moveEnd
     ) where
 
-import           Control.Lens                   hiding (pre)
+import           Control.Lens
 import           Data.Text                      (Text)
 import qualified Data.Text                      as Text
 import           Data.Text.Zipper               (TextZipper)
@@ -41,31 +40,24 @@ import           Vgrep.Widget.Type
 
 type EdLineWidget = Widget EdLine
 
-data EdLine = EdLine
-    { _mode   :: Mode
-    , _zipper :: TextZipper Text }
+data EdLine
+    = Status Text
+    | Search (TextZipper Text)
 
-data Mode = Search | Status
+makePrisms ''EdLine
 
-makeLenses ''EdLine
+cursorPos :: Fold EdLine Int
+cursorPos = _Search . to Zipper.cursorPosition . _2
 
-cursorPos :: Getter EdLine Int
-cursorPos = zipper . to Zipper.cursorPosition . _2
-
-edLineText :: Getter EdLine Text
-edLineText = zipper . to Zipper.getText . to head
+searchText :: Fold EdLine Text
+searchText = _Search . to Zipper.getText . to head
 -- We have to maintain the invariant that the TextZipper has exactly one line!
 
 edLineWidget :: EdLineWidget
 edLineWidget = Widget
-    { initialize = edLine
+    { initialize = Status mempty
     , draw       = drawWidget
     , cursor     = getCursor }
-
-edLine :: EdLine
-edLine = EdLine
-    { _mode = Status
-    , _zipper = emptyZipper }
 
 
 emptyZipper :: TextZipper Text
@@ -75,20 +67,20 @@ zipperOf :: Text -> TextZipper Text
 zipperOf txt = Zipper.textZipper [txt] (Just 1)
 
 reset :: Monad m => VgrepT EdLine m Redraw
-reset = put edLine >> pure Redraw
+reset = put (Status mempty) >> pure Redraw
 
 clear :: Monad m => VgrepT EdLine m Redraw
-clear = assign zipper emptyZipper >> pure Redraw
+clear = assign _Search emptyZipper >> pure Redraw
 
 
 putStatus :: Monad m => Text -> VgrepT EdLine m Redraw
 putStatus txt = do
-    put EdLine { _mode = Status, _zipper = zipperOf txt }
+    assign _Status txt
     pure Redraw
 
 enterSearch :: Monad m => VgrepT EdLine m Redraw
 enterSearch = do
-    put EdLine { _mode = Search, _zipper = emptyZipper }
+    put (Search emptyZipper)
     pure Redraw
 
 
@@ -126,20 +118,16 @@ moveWordRight :: Monad m => VgrepT EdLine m Redraw
 moveWordRight = edit Zipper.moveWordRight
 
 edit :: Monad m => (TextZipper Text -> TextZipper Text) -> VgrepT EdLine m Redraw
-edit action = use mode >>= \case
-    Status -> pure Unchanged
-    Search -> modifying zipper action >> pure Redraw
+edit action = modifying _Search action >> pure Redraw
 
 drawWidget :: Monad m => VgrepT EdLine m Image
-drawWidget = use mode >>= \case
-    Status -> use edLineText >>= render
-    Search -> use edLineText <&> Text.cons '/' >>= render
+drawWidget = get >>= \case
+    Status msg -> render msg
+    Search txt -> render (Text.cons '/' (head (Zipper.getText txt)))
   where
     render txt = do
         width <- view viewportWidth
         pure (text' defAttr (Text.justifyLeft width ' ' txt))
 
 getCursor :: Monad m => VgrepT EdLine m Cursor
-getCursor = use mode >>= \case
-    Status -> pure NoCursor
-    _otherwise -> uses cursorPos (\pos -> Cursor (pos + 1) 0)
+getCursor = preuse cursorPos <&> maybe NoCursor (\pos -> Cursor (pos + 1) 0)

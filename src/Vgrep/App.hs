@@ -7,6 +7,7 @@ module Vgrep.App
     ) where
 
 import           Control.Concurrent.Async
+import           Data.Text
 import           Graphics.Vty             (Vty)
 import qualified Graphics.Vty             as Vty
 import           Pipes                    hiding (next)
@@ -42,6 +43,8 @@ data App e s = App
     --     _otherwise          -> 'Skip'
     --     -- Does not handle the event, so other handlers may be invoked.
     -- @
+
+    , displayStatus :: forall m. Monad m => Text -> VgrepT s m ()
 
     , render      :: forall m. Monad m => VgrepT s m Vty.Picture
     -- ^ Creates a 'Vty.Picture' to be displayed. May modify the App's
@@ -106,6 +109,8 @@ appEventLoop app evSource evSink = eventLoop
                 Skip            -> go
                 Continue action -> lift action >>= \case
                     Unchanged   -> go
+                    Tell msg    -> lift (displayStatus app msg)
+                                >> lift (refresh vty) >> go
                     Redraw      -> lift (refresh vty) >> go
                 Interrupt int   -> pure int
 

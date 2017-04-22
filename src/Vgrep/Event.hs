@@ -41,6 +41,7 @@ module Vgrep.Event (
 import           Control.Monad.IO.Class
 import           Data.Map               (Map, fromList)
 import qualified Data.Map               as M
+import           Data.Text
 
 import Vgrep.Environment
 
@@ -72,6 +73,10 @@ data Redraw
     = Redraw
     -- ^ Indicates that the state has been changed visibly, so the screen
     -- should be refreshed.
+
+    | Tell Text
+    -- ^ Display the 'Text' on the status line (and, obviously, refresh the
+    -- screen).
 
     | Unchanged
     -- ^ The state has not changed or the change would not be visible, so

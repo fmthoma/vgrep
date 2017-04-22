@@ -28,7 +28,8 @@ import           System.Exit
 import           System.IO
 import           System.Process
 
-import           Vgrep.App            as App
+import           Vgrep.App            (App (App), runApp_)
+import qualified Vgrep.App            as App
 import           Vgrep.Command
 import           Vgrep.Environment
 import           Vgrep.Event
@@ -103,10 +104,11 @@ data Event = VtyEvent Vty.Event
 
 app :: App Event AppState
 app = App
-    { App.initialize  = initSplitView
-    , App.liftEvent   = VtyEvent
-    , App.handleEvent = eventHandler
-    , App.render      = renderMainWidget }
+    { App.initialize    = initSplitView
+    , App.liftEvent     = VtyEvent
+    , App.handleEvent   = eventHandler
+    , App.displayStatus = displayStatus
+    , App.render        = renderMainWidget }
   where
     initSplitView :: MonadIO m => m AppState
     initSplitView = pure AppState
@@ -210,18 +212,17 @@ edlineBindings (Key.Chord mods key) state = case key of
     Key.Home        | noModifiers -> Continue (zoom edline moveHome)
     Key.End         | noModifiers -> Continue (zoom edline moveEnd)
     Key.Esc                       -> executeCommand EdlineLeave state
-    Key.Enter       | noModifiers -> case view (edline . mode) state of
-        Search -> Continue startSearch
-        Status -> Skip
+    Key.Enter       | noModifiers -> case view edline state of
+        mode | Just pat <- preview searchText mode -> Continue (startSearch pat)
+             | otherwise                           -> Skip
     _otherwise -> Skip
   where
     noModifiers = Set.null mods
     ctrlPressed = Key.Ctrl `Set.member` mods
 
-startSearch :: Monad m => VgrepT AppState m Redraw
-startSearch = do
+startSearch :: Monad m => Text -> VgrepT AppState m Redraw
+startSearch newSearchRegex = do
     assign (widgetState . focus) FocusPrimary
-    newSearchRegex <- use (edline . edLineText)
     modifyEnvironment (set searchRegex (Just (regex newSearchRegex, newSearchRegex)))
     zoom edline reset
 
@@ -313,6 +314,10 @@ exec :: MonadIO io => FilePath -> [String] -> io ()
 exec path args = liftIO $ do
     (_,_,_,h) <- createProcess (proc path args)
     void (waitForProcess h)
+
+displayStatus :: Monad m => Text -> VgrepT AppState m ()
+displayStatus msg = void (zoom edline (putStatus msg))
+
 
 ---------------------------------------------------------------------------
 -- Lenses
