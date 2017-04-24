@@ -45,6 +45,7 @@ data App e s = App
     -- @
 
     , displayStatus :: forall m. Monad m => Text -> VgrepT s m ()
+    -- ^ FIXME
 
     , render      :: forall m. Monad m => VgrepT s m Vty.Picture
     -- ^ Creates a 'Vty.Picture' to be displayed. May modify the App's

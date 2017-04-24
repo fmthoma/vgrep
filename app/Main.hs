@@ -243,8 +243,8 @@ executeCommand = \case
     PagerScrollRight   -> continue (zoom pager (hScroll 1))
     ResultsUp          -> continue (zoom results prevLine >> pure Redraw)
     ResultsDown        -> continue (zoom results nextLine >> pure Redraw)
-    ResultsPrevMatch   -> continue (zoom results prevMatch >> pure Redraw)
-    ResultsNextMatch   -> continue (zoom results nextMatch >> pure Redraw)
+    ResultsPrevMatch   -> continue (zoom results prevMatch)
+    ResultsNextMatch   -> continue (zoom results nextMatch)
     ResultsPageUp      -> continue (zoom results pageUp   >> pure Redraw)
     ResultsPageDown    -> continue (zoom results pageDown >> pure Redraw)
     PrevResult         -> continue (zoom results prevLine >> loadSelectedFileToPager)
@@ -316,7 +316,7 @@ exec path args = liftIO $ do
     void (waitForProcess h)
 
 displayStatus :: Monad m => Text -> VgrepT AppState m ()
-displayStatus msg = void (zoom edline (putStatus msg))
+displayStatus msg = zoom edline (putStatus msg)
 
 
 ---------------------------------------------------------------------------

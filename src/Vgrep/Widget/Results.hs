@@ -119,17 +119,17 @@ maybeModify f = do
         Just s' -> put s'
         Nothing -> pure ()
 
-prevMatch, nextMatch :: Monad m => VgrepT Results m ()
+prevMatch, nextMatch :: Monad m => VgrepT Results m Redraw
 prevMatch = view searchRegex >>= \case
-    Nothing -> pure ()
+    Nothing -> pure Unchanged
     Just (pattern, _) -> get >>= \buf -> case tryPrevMatch pattern buf of
-        Just buf' -> put buf'
-        Nothing   -> pure ()
+        Just buf' -> put buf' >> pure Redraw
+        Nothing   -> pure (Tell "Already on first match")
 nextMatch = view searchRegex >>= \case
-    Nothing -> pure ()
+    Nothing -> pure Unchanged
     Just (pattern, _) -> get >>= \buf -> case tryNextMatch pattern buf of
-        Just buf' -> put buf'
-        Nothing   -> pure ()
+        Just buf' -> put buf' >> pure Redraw
+        Nothing   -> pure (Tell "No more matches")
 
 tryPrevMatch, tryNextMatch :: Regex -> Results -> Maybe Results
 (tryPrevMatch, tryNextMatch) = (go tryPrevLine, go tryNextLine)
