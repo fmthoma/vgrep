@@ -85,17 +85,19 @@ feedResult line = do
     resizeToWindow
 
 -- | Move up/down one results page. File group headers will be skipped.
-pageUp, pageDown :: Monad m => VgrepT Results m ()
+pageUp, pageDown :: Monad m => VgrepT Results m Redraw
 pageUp = do
     unlessS (isJust . moveUp) $ do
         modify (repeatedly (hideNext >=> showPrev))
         void resizeToWindow
     modify (repeatedly moveUp)
+    pure Redraw
 pageDown = do
     unlessS (isJust . moveDown) $ do
         modify (repeatedly hidePrev)
         void resizeToWindow
     modify (repeatedly moveDown)
+    pure Redraw
 
 repeatedly :: (a -> Maybe a) -> a -> a
 repeatedly f = go
@@ -104,9 +106,9 @@ repeatedly f = go
          | otherwise      = x
 
 -- | Move up/down one results line. File group headers will be skipped.
-prevLine, nextLine :: Monad m => VgrepT Results m ()
-prevLine = maybeModify tryPrevLine >> void resizeToWindow
-nextLine = maybeModify tryNextLine >> void resizeToWindow
+prevLine, nextLine :: Monad m => VgrepT Results m Redraw
+prevLine = maybeModify tryPrevLine >> void resizeToWindow >> pure Redraw
+nextLine = maybeModify tryNextLine >> void resizeToWindow >> pure Redraw
 
 tryPrevLine, tryNextLine :: Results -> Maybe Results
 tryPrevLine buf = moveUp   buf <|> (showPrev buf >>= tryPrevLine)
@@ -119,27 +121,28 @@ maybeModify f = do
         Just s' -> put s'
         Nothing -> pure ()
 
+-- | When a search is active, jump to previous/next match for the serach regex.
 prevMatch, nextMatch :: Monad m => VgrepT Results m Redraw
 prevMatch = view searchRegex >>= \case
     Nothing -> pure Unchanged
     Just (pattern, _) -> get >>= \buf -> case tryPrevMatch pattern buf of
-        Just buf' -> put buf' >> pure Redraw
+        Just buf' -> put buf' >> resizeToWindow >> pure Redraw
         Nothing   -> pure (Tell "Already on first match")
 nextMatch = view searchRegex >>= \case
     Nothing -> pure Unchanged
     Just (pattern, _) -> get >>= \buf -> case tryNextMatch pattern buf of
-        Just buf' -> put buf' >> pure Redraw
+        Just buf' -> put buf' >> resizeToWindow >> pure Redraw
         Nothing   -> pure (Tell "No more matches")
 
 tryPrevMatch, tryNextMatch :: Regex -> Results -> Maybe Results
 (tryPrevMatch, tryNextMatch) = (go tryPrevLine, go tryNextLine)
   where
     go step pattern = fix $ \rec buf -> do
-        prevBuf <- step buf
-        line    <- view currentLine prevBuf
+        buf' <- step buf
+        line <- view currentLine buf'
         if (matches pattern (stripAnsi line))
-            then pure prevBuf
-            else rec prevBuf
+            then pure buf'
+            else rec buf'
 
 renderResultList :: Monad m => VgrepT Results m Image
 renderResultList = do
