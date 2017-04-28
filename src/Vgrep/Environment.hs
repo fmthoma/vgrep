@@ -19,8 +19,8 @@ module Vgrep.Environment
     ) where
 
 import Control.Lens.Compat
-import Text.Regex.TDFA.Text
 import Data.Text
+import Text.Regex.TDFA.Text
 
 import Vgrep.Environment.Config
 

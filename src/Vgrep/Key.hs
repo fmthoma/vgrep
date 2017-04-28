@@ -21,12 +21,12 @@ module Vgrep.Key
   , withModifier
   )where
 
-import Prelude hiding (Left, Right)
 import           Control.Applicative
 import           Data.Set                  (Set)
 import qualified Data.Set                  as S
 import           GHC.Generics
 import qualified Graphics.Vty.Input.Events as Vty
+import           Prelude                   hiding (Left, Right)
 
 
 -- | A chord of keys and modifiers pressed simultaneously.

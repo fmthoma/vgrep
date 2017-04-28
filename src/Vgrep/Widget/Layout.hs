@@ -1,5 +1,5 @@
+{-# LANGUAGE Rank2Types      #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE Rank2Types #-}
 module Vgrep.Widget.Layout (
     -- * Layout widget
       layoutWidget
@@ -31,7 +31,7 @@ module Vgrep.Widget.Layout (
 
 import Control.Lens
 import Data.Ratio   ((%))
-import Graphics.Vty ((<|>), (<->))
+import Graphics.Vty ((<->), (<|>))
 
 import Vgrep.Event
 import Vgrep.Type

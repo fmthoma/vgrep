@@ -11,7 +11,7 @@ module Vgrep.Widget.Type
   , Image ()
   ) where
 
-import Graphics.Vty.Image   (Image)
+import Graphics.Vty.Image (Image)
 
 import Vgrep.Event (Next (..), Redraw (..))
 import Vgrep.Type
