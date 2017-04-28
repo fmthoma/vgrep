@@ -125,22 +125,22 @@ maybeModify f = do
 prevMatch, nextMatch :: Monad m => VgrepT Results m Redraw
 prevMatch = view searchRegex >>= \case
     Nothing -> pure Unchanged
-    Just (pattern, _) -> get >>= \buf -> case tryPrevMatch pattern buf of
+    Just (pat, _) -> get >>= \buf -> case tryPrevMatch pat buf of
         Just buf' -> put buf' >> resizeToWindow >> pure Redraw
         Nothing   -> pure (Tell "Already on first match")
 nextMatch = view searchRegex >>= \case
     Nothing -> pure Unchanged
-    Just (pattern, _) -> get >>= \buf -> case tryNextMatch pattern buf of
+    Just (pat, _) -> get >>= \buf -> case tryNextMatch pat buf of
         Just buf' -> put buf' >> resizeToWindow >> pure Redraw
         Nothing   -> pure (Tell "No more matches")
 
 tryPrevMatch, tryNextMatch :: Regex -> Results -> Maybe Results
 (tryPrevMatch, tryNextMatch) = (go tryPrevLine, go tryNextLine)
   where
-    go step pattern = fix $ \rec buf -> do
+    go step pat = fix $ \rec buf -> do
         buf' <- step buf
         line <- view currentLine buf'
-        if (matches pattern (stripAnsi line))
+        if matches pat (stripAnsi line)
             then pure buf'
             else rec buf'
 

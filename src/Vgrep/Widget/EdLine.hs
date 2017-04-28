@@ -74,7 +74,7 @@ clear = assign _Search emptyZipper >> pure Redraw
 
 
 putStatus :: Monad m => Text -> VgrepT EdLine m ()
-putStatus txt = assign _Status txt
+putStatus = assign _Status
 
 enterSearch :: Monad m => VgrepT EdLine m ()
 enterSearch = put (Search emptyZipper)
