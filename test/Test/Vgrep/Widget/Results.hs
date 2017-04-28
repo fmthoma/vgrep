@@ -100,7 +100,7 @@ resultsAsList = to $ \case
     Results as bs c ds es -> mconcat
         [ Seq.reverse as, Seq.reverse bs, pure c, ds, es ]
 
-arbitraryAction ::  Monad m => PropertyM m (Vgrep Results ())
+arbitraryAction ::  Monad m => PropertyM m (Vgrep Results Redraw)
 arbitraryAction = do
     let actions = Map.fromList
             [ ("pageUp",   pageUp)

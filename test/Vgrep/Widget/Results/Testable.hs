@@ -3,6 +3,7 @@
 module Vgrep.Widget.Results.Testable
     ( module Vgrep.Widget.Results
     , module Vgrep.Widget.Results.Internal
+    , Redraw
     ) where
 
 import           Control.Monad
@@ -13,6 +14,7 @@ import qualified Data.Text       as Text
 import           Test.QuickCheck
 
 import Vgrep.Ansi
+import Vgrep.Event
 import Vgrep.Widget.Results          hiding
     ( fileName
     , lineNumber

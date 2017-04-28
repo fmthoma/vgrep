@@ -14,4 +14,5 @@ instance Arbitrary Environment where
         height <- arbitrary `suchThat` (> 0) -- FIXME tweak numbers
         pure Env
             { _viewport = Viewport width height
-            , _config = defaultConfig }
+            , _config = defaultConfig
+            , _searchRegex = Nothing }
