@@ -224,7 +224,10 @@ startSearch :: Monad m => Text -> VgrepT AppState m Redraw
 startSearch newSearchRegex = do
     assign (widgetState . focus) FocusPrimary
     modifyEnvironment (set searchRegex (Just (regex newSearchRegex, newSearchRegex)))
-    zoom edline reset
+    void (zoom edline reset)
+    use (resultsAndPager . focusedWidget) >>= \case
+        Left _  -> zoom results nextMatch
+        Right _ -> pure Redraw
 
 executeCommand :: MonadIO m => Command -> AppState -> Next (VgrepT AppState m Redraw)
 executeCommand = \case
