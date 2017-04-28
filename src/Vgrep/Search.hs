@@ -12,7 +12,6 @@ module Vgrep.Search
 import Data.Array
 import Data.Maybe
 import Data.Text
-import Data.Tuple
 import Text.Regex.Base
 import Text.Regex.TDFA.Text
 
@@ -23,18 +22,6 @@ regex = either error id . compile defaultCompOpt defaultExecOpt
 
 matches :: Regex -> Text -> Bool
 matches needle haystack = isJust (matchOnce needle haystack)
-
-
-nextMatch needle = go
-  where
-    go = \case
-        (ls, []) -> (ls, [])
-        (ls, r:rs) -> if matches needle r
-          then (ls, r:rs)
-          else go (r:ls, rs)
-
-prevMatch :: Regex -> ([Text], [Text]) -> ([Text], [Text])
-prevMatch needle = swap . nextMatch needle . swap
 
 highlight :: (Eq attr, Monoid attr) => attr -> Regex -> Text -> Formatted attr
 highlight attr needle haystack = case matchOnceText needle haystack of
