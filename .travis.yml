@@ -23,6 +23,7 @@ matrix:
         - env: ARGS="--resolver lts-6"
         - env: ARGS="--resolver lts-7"
         - env: ARGS="--resolver lts-8"
+        - env: ARGS="--resolver lts-9"
         - env: ARGS="--resolver lts"
         - env: ARGS="--resolver nightly"
 
