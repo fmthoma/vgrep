@@ -45,6 +45,7 @@ import           Vgrep.KeybindingMap
 
 -- $setup
 -- >>> import Data.List (isInfixOf)
+-- >>> import Data.Yaml.Aeson (decodeEither, ParseException)
 
 
 {- |
