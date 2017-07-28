@@ -1,6 +1,5 @@
 {-# LANGUAGE Rank2Types          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections       #-}
 module Vgrep.App.Internal where
 
 import           Control.Concurrent.Async
