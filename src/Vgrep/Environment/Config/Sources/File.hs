@@ -15,17 +15,23 @@ module Vgrep.Environment.Config.Sources.File
 import           Control.Monad           ((<=<))
 import           Control.Monad.IO.Class
 import           Data.Aeson.Types
-    ( Options (..)
+    ( FromJSON (..)
+    , Options (..)
     , camelTo
     , defaultOptions
     , genericParseJSON
     , withObject
+    , (.!=)
+    , (.:?)
     )
 import           Data.Map.Strict         (Map)
 import qualified Data.Map.Strict         as M
 import           Data.Maybe
 import           Data.Monoid
 import           Data.Yaml.Aeson
+    ( decodeFileEither
+    , prettyPrintParseException
+    )
 import           GHC.Generics
 import qualified Graphics.Vty.Attributes as Vty
 import           System.Directory
