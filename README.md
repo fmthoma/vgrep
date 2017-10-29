@@ -73,6 +73,6 @@ stack install
 ```
 
 [1]: https://github.com/fmthoma/vgrep/releases/latest
-[2]: https://hackage.haskell.org/packages/vgrep
+[2]: https://hackage.haskell.org/package/vgrep
 [3]: https://github.com/commercialhaskell/stack/blob/master/doc/install_and_upgrade.md
 [4]: https://github.com/fmthoma/vgrep
