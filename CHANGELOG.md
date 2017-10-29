@@ -1,8 +1,9 @@
 Changelog
 =========
 
-## v0.2.1 (unreleased)
+## v0.2.1
 
+* Add support for aeson 1.x to enable build with Stackage LTS 9.x
 * Add `less`-like keybindings Ctrl-u, Ctrl-d (half-page-up/down, only in pager)
   and Ctrl-b, Ctrl-f (full-page-up/down).
 
