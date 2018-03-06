@@ -47,14 +47,14 @@ runTestCase :: TestCase -> TestTree
 runTestCase = \case
     TestProperty {..} -> testProperty description $ do
         (initialState, initialEnv) <- testData
-        pure . monadic (`runVgrepForTest` (initialState, initialEnv)) $ do
+        pure . monadic (`runVgrepForTest` (initialState, initialEnv)) . void $ do
             monitor (counterexample (show initialState))
             monitor (counterexample (show initialEnv))
             params <- testCase
             stop =<< assertion params
     TestInvariant {..} -> testProperty description $ do
         (initialState, initialEnv) <- testData
-        pure . monadic (`runVgrepForTest` (initialState, initialEnv)) $ do
+        pure . monadic (`runVgrepForTest` (initialState, initialEnv)) . void $ do
             monitor (counterexample (show initialState))
             monitor (counterexample (show initialEnv))
             before <- use invariant
@@ -83,7 +83,7 @@ runVgrepForTest
 runVgrepForTest action (s, env) = fst (runIdentity (runVgrepT action s env))
 
 monadicVgrep
-    :: Arbitrary s
+    :: (Arbitrary s, Testable a)
     => PropertyM (Vgrep s) a
     -> Gen Property
 monadicVgrep testcase = do
@@ -92,7 +92,7 @@ monadicVgrep testcase = do
     pure (monadic (`runVgrepForTest` (initialState, initialEnv)) testcase)
 
 testPropertyVgrep
-    :: Arbitrary s
+    :: (Arbitrary s, Testable a)
     => TestName
     -> PropertyM (Vgrep s) a
     -> TestTree
