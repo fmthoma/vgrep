@@ -18,15 +18,15 @@ addons:
 matrix:
     fast_finish: true
     include:
-        - env: ARGS=""
-        - env: ARGS="--resolver lts"
-        - env: ARGS="--resolver nightly"
-        - env: ARGS="--resolver lts-10"
-        - env: ARGS="--resolver lts-9"
-        - env: ARGS="--resolver lts-8"
-        - env: ARGS="--resolver lts-7"
-        - env: ARGS="--resolver lts-6"
-        - env: ARGS="--resolver lts-5"
+        - env: ARGS="" SKIP_DOCTESTS=false
+        - env: ARGS="--resolver lts" SKIP_DOCTESTS=false
+        - env: ARGS="--resolver nightly" SKIP_DOCTESTS=false
+        - env: ARGS="--resolver lts-10" SKIP_DOCTESTS=false
+        - env: ARGS="--resolver lts-9" SKIP_DOCTESTS=true
+        - env: ARGS="--resolver lts-8" SKIP_DOCTESTS=true
+        - env: ARGS="--resolver lts-7" SKIP_DOCTESTS=true
+        - env: ARGS="--resolver lts-6" SKIP_DOCTESTS=true
+        - env: ARGS="--resolver lts-5" SKIP_DOCTESTS=true
 
 before_install:
     # Download and unpack the stack executable
@@ -41,7 +41,8 @@ script:
     - stack $ARGS --no-terminal build --pedantic
 
     # Tests
-    - stack $ARGS --no-terminal test --pedantic
+    - stack $ARGS --no-terminal test --pedantic :vgrep-test
+    - $SKIP_DOCTESTS || stack $ARGS --no-terminal test --pedantic :doctest
     - stack $ARGS --no-terminal haddock --no-haddock-deps
 
     - stack $ARGS --no-terminal sdist
