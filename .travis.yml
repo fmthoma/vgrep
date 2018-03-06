@@ -19,14 +19,14 @@ matrix:
     fast_finish: true
     include:
         - env: ARGS=""
-        - env: ARGS="--resolver lts-5"
-        - env: ARGS="--resolver lts-6"
-        - env: ARGS="--resolver lts-7"
-        - env: ARGS="--resolver lts-8"
-        - env: ARGS="--resolver lts-9"
-        - env: ARGS="--resolver lts-10"
         - env: ARGS="--resolver lts"
         - env: ARGS="--resolver nightly"
+        - env: ARGS="--resolver lts-10"
+        - env: ARGS="--resolver lts-9"
+        - env: ARGS="--resolver lts-8"
+        - env: ARGS="--resolver lts-7"
+        - env: ARGS="--resolver lts-6"
+        - env: ARGS="--resolver lts-5"
 
 before_install:
     # Download and unpack the stack executable
