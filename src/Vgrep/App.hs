@@ -9,7 +9,7 @@ module Vgrep.App
 import           Control.Concurrent.Async
 import           Graphics.Vty             (Vty)
 import qualified Graphics.Vty             as Vty
-import           Pipes                    hiding (next)
+import           Pipes
 import           Pipes.Concurrent.PQueue
 import           Pipes.Prelude            as P
 

@@ -6,7 +6,7 @@ import           Control.Concurrent.Async
 import           Control.Exception
 import           Graphics.Vty             (Vty)
 import qualified Graphics.Vty             as Vty
-import           Pipes                    hiding (next)
+import           Pipes
 import           System.Posix.IO
 import           System.Posix.Types       (Fd)
 

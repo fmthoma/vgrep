@@ -27,7 +27,7 @@ import qualified Data.Sequence           as Seq
 import           Data.Text               (Text)
 import qualified Data.Text               as T
 import           Graphics.Vty.Attributes
-import           Graphics.Vty.Image      hiding (resize)
+import           Graphics.Vty.Image
 
 import Vgrep.Ansi
 import Vgrep.Environment

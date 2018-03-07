@@ -9,6 +9,7 @@ module Vgrep.Ansi.Parser
 import           Control.Applicative
 import           Data.Attoparsec.Text
 import           Data.Bits
+import           Data.Functor
 import           Data.Monoid
 import           Data.Text               (Text)
 import qualified Data.Text               as T
@@ -59,7 +60,7 @@ ansiFormatted :: Parser AnsiFormatted
 ansiFormatted = go mempty
   where
     go :: Attr -> Parser AnsiFormatted
-    go attr = endOfInput *> pure mempty
+    go attr = endOfInput $> mempty
           <|> formattedText attr
 
     formattedText :: Attr -> Parser AnsiFormatted
@@ -71,7 +72,7 @@ ansiFormatted = go mempty
         pure (format attr' (bare t) <> rest)
 
     rawText :: Parser Text
-    rawText = atLeastOneTill (== '\ESC') <|> endOfInput *> pure ""
+    rawText = atLeastOneTill (== '\ESC') <|> endOfInput $> ""
 
     atLeastOneTill :: (Char -> Bool) -> Parser Text
     atLeastOneTill = liftA2 T.cons anyChar . takeTill
