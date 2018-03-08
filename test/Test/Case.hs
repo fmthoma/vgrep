@@ -89,7 +89,7 @@ monadicVgrep
 monadicVgrep testcase = do
     initialState <- arbitrary
     initialEnv   <- arbitrary
-    pure (monadic (`runVgrepForTest` (initialState, initialEnv)) testcase)
+    pure (monadic (`runVgrepForTest` (initialState, initialEnv)) (fmap property testcase))
 
 testPropertyVgrep
     :: (Arbitrary s, Testable a)
