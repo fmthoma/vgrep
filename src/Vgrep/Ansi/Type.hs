@@ -193,10 +193,10 @@ dropFormatted amount txt
     | amount <= 0          = txt
     | length txt < amount  = emptyFormatted
     | otherwise = case txt of
-        Empty             -> emptyFormatted
-        Text _ t          -> bare (T.drop amount t)
-        Format _ attr t   -> format' attr (dropFormatted amount t)
-        Cat _ ts          -> cat' (dropChunks amount ts)
+        Empty           -> emptyFormatted
+        Text _ t        -> bare (T.drop amount t)
+        Format _ attr t -> format' attr (dropFormatted amount t)
+        Cat _ ts        -> cat' (dropChunks amount ts)
   where
     dropChunks n = \case
         []   -> []

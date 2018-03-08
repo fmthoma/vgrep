@@ -1,6 +1,10 @@
 Changelog
 =========
 
+## v0.2.2
+
+* Add support for aeson 1.2.x to enable build with Stackage LTS 10.x
+
 ## v0.2.1
 
 * Add support for aeson 1.x to enable build with Stackage LTS 9.x

@@ -2,7 +2,7 @@
 {-# LANGUAGE LambdaCase       #-}
 module Test.Vgrep.Widget.Results (test) where
 
-import           Control.Lens.Compat     (Getter, over, to, view, _1)
+import           Control.Lens.Compat     (Getter, over, to, view, (<&>), _1)
 import           Control.Monad           (void)
 import           Data.Map.Strict         ((!))
 import qualified Data.Map.Strict         as Map
@@ -34,7 +34,7 @@ test = runTestCases "Results widget"
         { description = "Scrolling one page down jumps to end of screen"
         , testData = arbitrary
         , testCase = run pageDown
-        , assertion = const $ get >>= pure . \case
+        , assertion = const $ get <&> \case
             EmptyResults       -> True
             Results _ _ _ ds _ -> null ds
         }
@@ -42,7 +42,7 @@ test = runTestCases "Results widget"
         { description = "Scrolling one page up jumps to start of screen"
         , testData = arbitrary
         , testCase = run pageUp
-        , assertion = const $ get >>= pure . \case
+        , assertion = const $ get <&> \case
             EmptyResults       -> True
             Results _ bs _ _ _ -> null bs
         }
@@ -121,6 +121,6 @@ assertWidgetFitsOnScreen = do
         (linesOnScreen <= height)
 
 numberOfLinesOnScreen :: MonadState Results m => m Int
-numberOfLinesOnScreen = get >>= pure . \case
+numberOfLinesOnScreen = get <&> \case
     EmptyResults        -> 0
     Results _ bs c ds _ -> length (mconcat [bs, pure c, ds])

@@ -2,11 +2,11 @@
 {-# LANGUAGE TemplateHaskell #-}
 module Vgrep.Environment.Config where
 
-import           Control.Lens.Compat
-import           Control.Monad.IO.Class
-import           Data.Maybe
-import           Data.Monoid
-import           Graphics.Vty.Attributes
+import Control.Lens.Compat
+import Control.Monad.IO.Class
+import Data.Maybe
+import Data.Monoid
+import Graphics.Vty.Attributes
     ( Attr
     , blue
     , bold

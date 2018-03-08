@@ -24,7 +24,7 @@ module Vgrep.Widget.HorizontalSplit (
 
 import Control.Applicative (liftA2)
 import Control.Lens.Compat
-import Graphics.Vty.Image  hiding (resize)
+import Graphics.Vty.Image
 
 import Vgrep.Environment
 import Vgrep.Event

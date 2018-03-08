@@ -5,13 +5,13 @@ module Vgrep.Ansi.Vty.Attributes
 
 import Data.Bits               ((.|.))
 import Data.Monoid             ((<>))
-import Graphics.Vty.Attributes (Attr (..), MaybeDefault (..))
+import Graphics.Vty.Attributes (Attr (..), MaybeDefault (..), defAttr)
 
 -- | Combines two 'Attr's. This differs from 'mappend' from the 'Monoid'
 -- instance of 'Attr' in that 'Vty.Style's are combined rather than
 -- overwritten.
 combineStyles :: Attr -> Attr -> Attr
-combineStyles l r = Attr
+combineStyles l r = defAttr
     { attrStyle = case (attrStyle l, attrStyle r) of
         (SetTo l', SetTo r') -> SetTo (l' .|. r')
         (l', r')             -> l' <> r'

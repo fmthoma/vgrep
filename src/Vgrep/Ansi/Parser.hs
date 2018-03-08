@@ -9,6 +9,7 @@ module Vgrep.Ansi.Parser
 import           Control.Applicative
 import           Data.Attoparsec.Text
 import           Data.Bits
+import           Data.Functor
 import           Data.Monoid
 import           Data.Text               (Text)
 import qualified Data.Text               as T
@@ -24,22 +25,22 @@ Directly parses ANSI formatted text using 'ansiFormatted'.
 Parsing ANSI color codes:
 
 >>> parseAnsi "Hello \ESC[31mWorld\ESC[m!"
-Cat 12 [Text 6 "Hello ",Format 5 (Attr {attrStyle = KeepCurrent, attrForeColor = SetTo (ISOColor 1), attrBackColor = KeepCurrent}) (Text 5 "World"),Text 1 "!"]
+Cat 12 [Text 6 "Hello ",Format 5 (Attr {attrStyle = KeepCurrent, attrForeColor = SetTo (ISOColor 1), attrBackColor = KeepCurrent, attrURL = KeepCurrent}) (Text 5 "World"),Text 1 "!"]
 
 More elaborate example with nested foreground and background colors:
 
 >>> parseAnsi "\ESC[m\ESC[40mHello \ESC[31mWorld\ESC[39m!"
-Cat 12 [Format 6 (Attr {attrStyle = KeepCurrent, attrForeColor = KeepCurrent, attrBackColor = SetTo (ISOColor 0)}) (Text 6 "Hello "),Format 5 (Attr {attrStyle = KeepCurrent, attrForeColor = SetTo (ISOColor 1), attrBackColor = SetTo (ISOColor 0)}) (Text 5 "World"),Format 1 (Attr {attrStyle = KeepCurrent, attrForeColor = KeepCurrent, attrBackColor = SetTo (ISOColor 0)}) (Text 1 "!")]
+Cat 12 [Format 6 (Attr {attrStyle = KeepCurrent, attrForeColor = KeepCurrent, attrBackColor = SetTo (ISOColor 0), attrURL = KeepCurrent}) (Text 6 "Hello "),Format 5 (Attr {attrStyle = KeepCurrent, attrForeColor = SetTo (ISOColor 1), attrBackColor = SetTo (ISOColor 0), attrURL = KeepCurrent}) (Text 5 "World"),Format 1 (Attr {attrStyle = KeepCurrent, attrForeColor = KeepCurrent, attrBackColor = SetTo (ISOColor 0), attrURL = KeepCurrent}) (Text 1 "!")]
 
 Some CSI sequences are ignored, since they are not supported by 'Vty':
 
 >>> parseAnsi "\ESC[A\ESC[B\ESC[31mfoo\ESC[1K\ESC[mbar"
-Cat 6 [Format 3 (Attr {attrStyle = KeepCurrent, attrForeColor = SetTo (ISOColor 1), attrBackColor = KeepCurrent}) (Text 3 "foo"),Text 3 "bar"]
+Cat 6 [Format 3 (Attr {attrStyle = KeepCurrent, attrForeColor = SetTo (ISOColor 1), attrBackColor = KeepCurrent, attrURL = KeepCurrent}) (Text 3 "foo"),Text 3 "bar"]
 
 Non-CSI sequences are not parsed, but included in the output:
 
 >>> parseAnsi "\ESC]710;font\007foo\ESC[31mbar"
-Cat 17 [Text 14 "\ESC]710;font\afoo",Format 3 (Attr {attrStyle = KeepCurrent, attrForeColor = SetTo (ISOColor 1), attrBackColor = KeepCurrent}) (Text 3 "bar")]
+Cat 17 [Text 14 "\ESC]710;font\afoo",Format 3 (Attr {attrStyle = KeepCurrent, attrForeColor = SetTo (ISOColor 1), attrBackColor = KeepCurrent, attrURL = KeepCurrent}) (Text 3 "bar")]
 
 -}
 parseAnsi :: Text -> AnsiFormatted
@@ -59,7 +60,7 @@ ansiFormatted :: Parser AnsiFormatted
 ansiFormatted = go mempty
   where
     go :: Attr -> Parser AnsiFormatted
-    go attr = endOfInput *> pure mempty
+    go attr = endOfInput $> mempty
           <|> formattedText attr
 
     formattedText :: Attr -> Parser AnsiFormatted
@@ -71,7 +72,7 @@ ansiFormatted = go mempty
         pure (format attr' (bare t) <> rest)
 
     rawText :: Parser Text
-    rawText = atLeastOneTill (== '\ESC') <|> endOfInput *> pure ""
+    rawText = atLeastOneTill (== '\ESC') <|> endOfInput $> ""
 
     atLeastOneTill :: (Char -> Bool) -> Parser Text
     atLeastOneTill = liftA2 T.cons anyChar . takeTill
