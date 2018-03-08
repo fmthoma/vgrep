@@ -2,7 +2,7 @@
 {-# LANGUAGE LambdaCase       #-}
 module Test.Vgrep.Widget.Results (test) where
 
-import           Control.Lens.Compat     (Getter, over, to, view, _1, (<&>))
+import           Control.Lens.Compat     (Getter, over, to, view, (<&>), _1)
 import           Control.Monad           (void)
 import           Data.Map.Strict         ((!))
 import qualified Data.Map.Strict         as Map
