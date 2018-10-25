@@ -30,9 +30,11 @@ data ConfigMonoid = ConfigMonoid
     , _mkeybindings :: KeybindingsMonoid
     } deriving (Eq, Show, Generic)
 
+instance Semigroup ConfigMonoid where
+    (<>) = mappenddefault
+
 instance Monoid ConfigMonoid where
     mempty  = memptydefault
-    mappend = mappenddefault
 
 
 -- | A 'Monoid' for reading partial 'Vgrep.Environment.Config.Colors'
@@ -58,9 +60,11 @@ data ColorsMonoid = ColorsMonoid
     , _mselected      :: First Attr
     } deriving (Eq, Show, Generic)
 
+instance Semigroup ColorsMonoid where
+    (<>) = mappenddefault
+
 instance Monoid ColorsMonoid where
     mempty = memptydefault
-    mappend = mappenddefault
 
 
 -- | A 'Monoid' for reading a partial 'Vgrep.Environment.Config.Keybindings'
@@ -91,6 +95,8 @@ data KeybindingsMonoid = KeybindingsMonoid
     , _mglobalKeybindings  :: Maybe KeybindingMap
     } deriving (Eq, Show, Generic)
 
+instance Semigroup KeybindingsMonoid where
+    (<>) = mappenddefault
+
 instance Monoid KeybindingsMonoid where
     mempty = memptydefault
-    mappend = mappenddefault

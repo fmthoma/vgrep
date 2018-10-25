@@ -10,7 +10,6 @@ import           Control.Applicative
 import           Data.Attoparsec.Text
 import           Data.Bits
 import           Data.Functor
-import           Data.Monoid
 import           Data.Text               (Text)
 import qualified Data.Text               as T
 import           Graphics.Vty.Attributes (Attr)

@@ -48,9 +48,11 @@ instance Functor Formatted where
         Format l a t -> Format l (f a) (fmap f t)
         Cat l ts     -> Cat l (map (fmap f) ts)
 
-instance (Eq attr, Monoid attr) => Monoid (Formatted attr) where
+instance (Eq attr, Semigroup attr) => Semigroup (Formatted attr) where
+    (<>) = fuse
+
+instance (Eq attr, Semigroup attr) => Monoid (Formatted attr) where
     mempty = Empty
-    mappend = fuse
 
 
 -- | Type alias for Text formatted with 'Attr' from "Graphics.Vty".
@@ -120,7 +122,7 @@ cat' = \case
 -- >>> format (Just ()) (bare "Left") `fuse` format (Just ()) (bare "Right")
 -- Format 9 (Just ()) (Text 9 "LeftRight")
 --
-fuse :: (Eq attr, Monoid attr) => Formatted attr -> Formatted attr -> Formatted attr
+fuse :: (Eq attr, Semigroup attr) => Formatted attr -> Formatted attr -> Formatted attr
 fuse left right = case (left, right) of
     (Empty,           formatted)    -> formatted
     (formatted,       Empty)        -> formatted

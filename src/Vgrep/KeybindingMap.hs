@@ -8,7 +8,7 @@ import qualified Vgrep.Key       as Key
 
 
 newtype KeybindingMap = KeybindingMap { unKeybindingMap :: Map Key.Chord Command }
-  deriving (Show, Eq, Monoid)
+  deriving (Show, Eq, Semigroup, Monoid)
 
 lookup :: Key.Chord -> KeybindingMap -> Maybe Command
 lookup chord (KeybindingMap m) = M.lookup chord m
