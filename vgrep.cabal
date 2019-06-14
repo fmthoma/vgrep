@@ -1,7 +1,7 @@
 name:                vgrep
 version:             0.2.2.0
 synopsis:            A pager for grep
-description:         
+description:
   @vgrep@ is a pager for navigating through @grep@ output.
   .
   Usage:

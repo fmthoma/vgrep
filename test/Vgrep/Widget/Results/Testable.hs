@@ -5,7 +5,6 @@ module Vgrep.Widget.Results.Testable
     , module Vgrep.Widget.Results.Internal
     ) where
 
-import           Control.Monad
 import qualified Data.List       as List
 import qualified Data.Sequence   as Seq
 import           Data.Text       (Text)
