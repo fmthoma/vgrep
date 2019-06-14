@@ -5,4 +5,3 @@ module Vgrep.Environment.Config.Sources
 
 import Vgrep.Environment.Config.Sources.Env  (editorConfigFromEnv)
 import Vgrep.Environment.Config.Sources.File (configFromFile)
-

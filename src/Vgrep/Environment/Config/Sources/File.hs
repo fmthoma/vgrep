@@ -44,7 +44,7 @@ import qualified Vgrep.Key                       as Key
 import           Vgrep.KeybindingMap
 
 -- $setup
--- >>> import Data.List (isInfixOf)
+-- >>> import Data.Either (isLeft)
 -- >>> import Data.Yaml.Aeson (decodeEither', ParseException(..))
 
 
@@ -233,8 +233,7 @@ Right [Black,Red,BrightBlack]
 
 Fails with error message if the 'Color' cannot be parsed:
 
->>> let Left (AesonException err) = decodeEither' "foo" :: Either ParseException Color
->>> "The key \"foo\" was not found" `isInfixOf` err
+>>> isLeft (decodeEither' "foo" :: Either ParseException Color)
 True
 -}
 data Color
@@ -292,8 +291,7 @@ Right [Standout,Underline,Bold]
 
 Fails with error message if the 'Style' cannot be parsed:
 
->>> let Left (AesonException err) = decodeEither' "foo" :: Either ParseException Style
->>> "The key \"foo\" was not found" `isInfixOf` err
+>>> isLeft (decodeEither' "foo" :: Either ParseException Color)
 True
 -}
 data Style
