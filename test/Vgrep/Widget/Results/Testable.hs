@@ -28,7 +28,10 @@ instance Arbitrary Results where
 generateResults :: Gen Results
 generateResults = sized $ \n -> do
     streamOfResults <- arbitraryGrepResults
-    [numAs, numBs, numDs, numEs] <- replicateM 4 (choose (0, n))
+    numAs <- choose (0, n)
+    numBs <- choose (0, n)
+    numDs <- choose (0, n)
+    numEs <- choose (0, n)
     let (as,  as') = splitAt numAs streamOfResults
         (bs,  bs') = splitAt numBs as'
         ([c], cs') = splitAt 1     bs'
