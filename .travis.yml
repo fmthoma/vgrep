@@ -21,12 +21,8 @@ matrix:
         - env: ARGS="" SKIP_DOCTESTS=false
         - env: ARGS="--resolver lts" SKIP_DOCTESTS=false
         - env: ARGS="--resolver nightly" SKIP_DOCTESTS=false
-        - env: ARGS="--resolver lts-10" SKIP_DOCTESTS=false
-        - env: ARGS="--resolver lts-9" SKIP_DOCTESTS=true
-        - env: ARGS="--resolver lts-8" SKIP_DOCTESTS=true
-        - env: ARGS="--resolver lts-7" SKIP_DOCTESTS=true
-        - env: ARGS="--resolver lts-6" SKIP_DOCTESTS=true
-        - env: ARGS="--resolver lts-5" SKIP_DOCTESTS=true
+        - env: ARGS="--resolver lts-13" SKIP_DOCTESTS=false
+        - env: ARGS="--resolver lts-12" SKIP_DOCTESTS=false
 
 before_install:
     # Download and unpack the stack executable

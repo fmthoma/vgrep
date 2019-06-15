@@ -58,10 +58,12 @@ data Next a
 
 -- | The first event handler that triggers (i. e. does not return 'Skip')
 -- handles the event.
+instance Semigroup (Next a) where
+    Skip        <> next       = next
+    next        <> _other     = next
+
 instance Monoid (Next a) where
     mempty = Skip
-    Skip        `mappend` next       = next
-    next        `mappend` _other     = next
 
 instance Functor Next where
     fmap f = \case Skip        -> Skip
@@ -77,10 +79,12 @@ data Redraw
     -- ^ The state has not changed or the change would not be visible, so
     -- refreshing the screen is not required.
 
+instance Semigroup Redraw where
+    Unchanged <> Unchanged = Unchanged
+    _         <> _         = Redraw
+
 instance Monoid Redraw where
     mempty = Unchanged
-    Unchanged `mappend` Unchanged = Unchanged
-    _         `mappend` _         = Redraw
 
 
 data Interrupt

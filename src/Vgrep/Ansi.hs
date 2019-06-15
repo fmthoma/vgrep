@@ -31,8 +31,10 @@ import Vgrep.Ansi.Vty.Attributes
 -- combined with 'combineStyles'. The given 'Vty.Attr' is used as style for the
 -- root of the 'Formatted' tree.
 --
--- >>> renderAnsi Vty.defAttr (bare "Text")
--- HorizText "Text"@(Attr {attrStyle = Default, attrForeColor = Default, attrBackColor = Default, attrURL = Default},4,4)
+-- >>> import Graphics.Vty.Image.Internal (Image (HorizText, attr))
+-- >>> let HorizText { attr = attr } = renderAnsi Vty.defAttr (bare "Text")
+-- >>> attr
+-- Attr {attrStyle = Default, attrForeColor = Default, attrBackColor = Default, attrURL = Default}
 --
 renderAnsi :: Attr -> AnsiFormatted -> Vty.Image
 renderAnsi attr = \case

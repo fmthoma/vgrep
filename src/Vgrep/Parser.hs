@@ -21,7 +21,7 @@ import Vgrep.Results     (File (..), FileLineReference (..), LineReference (..))
 -- | Parses lines of 'Text', skipping lines that are not valid @grep@
 -- output.
 parseGrepOutput :: [Text] -> [FileLineReference]
-parseGrepOutput = catMaybes . fmap parseLine
+parseGrepOutput = mapMaybe parseLine
 
 -- | Parses a line of @grep@ output. Returns 'Nothing' if the line cannot
 -- be parsed.

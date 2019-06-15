@@ -57,10 +57,10 @@ runTestCase = \case
         pure . monadic (`runVgrepForTest` (initialState, initialEnv)) . void $ do
             monitor (counterexample (show initialState))
             monitor (counterexample (show initialEnv))
-            before <- use invariant
+            invariantBefore <- use invariant
             void testCase
-            after <- use invariant
-            stop (after === before)
+            invariantAfter <- use invariant
+            stop (invariantAfter === invariantBefore)
 
 
 runTestCases :: TestName -> [TestCase] -> TestTree

@@ -44,8 +44,8 @@ import qualified Vgrep.Key                       as Key
 import           Vgrep.KeybindingMap
 
 -- $setup
--- >>> import Data.List (isInfixOf)
--- >>> import Data.Yaml.Aeson (decodeEither, ParseException)
+-- >>> import Data.Either (isLeft)
+-- >>> import Data.Yaml.Aeson (decodeEither', ParseException(..))
 
 
 {- |
@@ -167,38 +167,38 @@ A JSON-parsable data type for 'Vty.Attr'.
 
 JSON example:
 
->>> decodeEither "{\"fore-color\": \"black\", \"style\": \"standout\"}" :: Either String Attr
+>>> decodeEither' "{\"fore-color\": \"black\", \"style\": \"standout\"}" :: Either ParseException Attr
 Right (Attr {foreColor = Just Black, backColor = Nothing, style = Just Standout})
 
 JSON example without quotes:
->>> decodeEither "{fore-color: black, style: standout}" :: Either String Attr
+>>> decodeEither' "{fore-color: black, style: standout}" :: Either ParseException Attr
 Right (Attr {foreColor = Just Black, backColor = Nothing, style = Just Standout})
 
 YAML example:
 
 >>> :{
->>> decodeEither
+>>> decodeEither'
 >>>   $  "fore-color: \"blue\"\n"
 >>>   <> "back-color: \"bright-blue\"\n"
 >>>   <> "style: \"reverse-video\"\n"
->>>   :: Either String Attr
+>>>   :: Either ParseException Attr
 >>> :}
 Right (Attr {foreColor = Just Blue, backColor = Just BrightBlue, style = Just ReverseVideo})
 
 YAML example without quotes:
 
 >>> :{
->>> decodeEither
+>>> decodeEither'
 >>>   $  "fore-color: blue\n"
 >>>   <> "back-color: bright-blue\n"
 >>>   <> "style: reverse-video\n"
->>>   :: Either String Attr
+>>>   :: Either ParseException Attr
 >>> :}
 Right (Attr {foreColor = Just Blue, backColor = Just BrightBlue, style = Just ReverseVideo})
 
 An empty JSON/YAML object yields the default colors:
 
->>> decodeEither "{}" :: Either String Attr
+>>> decodeEither' "{}" :: Either ParseException Attr
 Right (Attr {foreColor = Nothing, backColor = Nothing, style = Nothing})
 -}
 data Attr = Attr
@@ -223,18 +223,17 @@ attrToVty Attr{..} = foldAttrs
 {- |
 A JSON-parsable data type for 'Vty.Color'.
 
->>> decodeEither "[\"black\",\"red\",\"bright-black\"]" :: Either String [Color]
+>>> decodeEither' "[\"black\",\"red\",\"bright-black\"]" :: Either ParseException [Color]
 Right [Black,Red,BrightBlack]
 
 Also works without quotes:
 
->>> decodeEither "[black,red,bright-black]" :: Either String [Color]
+>>> decodeEither' "[black,red,bright-black]" :: Either ParseException [Color]
 Right [Black,Red,BrightBlack]
 
 Fails with error message if the 'Color' cannot be parsed:
 
->>> let Left err = decodeEither "foo" :: Either String Color
->>> "The key \"foo\" was not found" `isInfixOf` err
+>>> isLeft (decodeEither' "foo" :: Either ParseException Color)
 True
 -}
 data Color
@@ -282,18 +281,17 @@ colorToVty = \case
 {- |
 A JSON-parsable data type for 'Vty.Style'.
 
->>> decodeEither "[\"standout\", \"underline\", \"bold\"]" :: Either String [Style]
+>>> decodeEither' "[\"standout\", \"underline\", \"bold\"]" :: Either ParseException [Style]
 Right [Standout,Underline,Bold]
 
 Also works without quotes:
 
->>> decodeEither "[standout, underline, bold]" :: Either String [Style]
+>>> decodeEither' "[standout, underline, bold]" :: Either ParseException [Style]
 Right [Standout,Underline,Bold]
 
 Fails with error message if the 'Style' cannot be parsed:
 
->>> let Left err = decodeEither "foo" :: Either String Style
->>> "The key \"foo\" was not found" `isInfixOf` err
+>>> isLeft (decodeEither' "foo" :: Either ParseException Color)
 True
 -}
 data Style
