@@ -98,9 +98,9 @@ executable vgrep
   ghc-options:         -threaded -rtsopts -with-rtsopts=-N -Wall
   default-extensions:  LambdaCase
                      , MultiWayIf
+  other-modules:       Paths_vgrep
   build-depends:       base >= 4.7 && < 5
                      , async              >= 2.0.2
-                     , cabal-file-th      >= 0.2.3
                      , containers         >= 0.5.6.2
                      , directory          >= 1.2.2
                      , lens               >= 4.13

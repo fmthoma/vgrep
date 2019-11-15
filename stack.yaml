@@ -13,7 +13,6 @@ extra-deps:
   # This is olny for tooling, so does not affect
   # dependency management.
   - stylish-haskell-0.6.1.0
-  - cabal-file-th-0.2.6
 
 # Override default flag values for local packages and extra-deps
 flags: {}
