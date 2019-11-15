@@ -14,7 +14,7 @@ import           Data.Text                          (Text)
 import qualified Data.Text                          as T
 import qualified Data.Text.Lazy                     as TL
 import qualified Data.Text.Lazy.IO                  as TL
-import           Distribution.PackageDescription.TH
+import           Data.Version                       (showVersion)
 import qualified Graphics.Vty                       as Vty
 import           Graphics.Vty.Input.Events          hiding (Event)
 import           Graphics.Vty.Picture
@@ -28,6 +28,7 @@ import           System.Exit
 import           System.IO
 import           System.Process
 
+import           Paths_vgrep
 import           Vgrep.App                    as App
 import           Vgrep.Command
 import           Vgrep.Environment
@@ -79,9 +80,7 @@ main = do
         cancel grepThread
     doNothingJustPipe = runEffect (P.stdinLn >-> P.stdoutLn)
     printVersion = do
-        let version = $(packageVariable (pkgVersion . package))
-            name = $(packageVariable (pkgName . package))
-        putStrLn (name <> " " <> version)
+        putStrLn ("vgrep " <> showVersion version)
         putStrLn ""
         putStrLn "grep version: "
         runEffect (grepVersion >-> P.take 1 >-> P.map ("    " <>) >-> stdoutText)
