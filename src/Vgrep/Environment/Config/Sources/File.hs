@@ -13,6 +13,7 @@ module Vgrep.Environment.Config.Sources.File
     ) where
 
 import           Control.Monad           ((<=<))
+import           Control.Monad.Fail      (MonadFail)
 import           Control.Monad.IO.Class
 import           Data.Aeson.Types
     ( FromJSON (..)
@@ -333,7 +334,7 @@ mapMKeys f = fmap M.fromList . M.foldrWithKey go (pure [])
         xs <- mxs
         pure ((k', x) : xs)
 
-parseChord :: Monad m => String -> m Key.Chord
+parseChord :: MonadFail m => String -> m Key.Chord
 parseChord = \case
     'C' : '-' : t -> fmap (`Key.withModifier` Key.Ctrl)  (parseChord t)
     'S' : '-' : t -> fmap (`Key.withModifier` Key.Shift) (parseChord t)
