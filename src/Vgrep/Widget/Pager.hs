@@ -21,7 +21,6 @@ import           Control.Applicative     (liftA2)
 import           Control.Lens.Compat     hiding ((:<), (:>))
 import           Data.Foldable
 import qualified Data.IntMap.Strict      as Map
-import           Data.Monoid             ((<>))
 import           Data.Sequence           (Seq, (><))
 import qualified Data.Sequence           as Seq
 import           Data.Text               (Text)

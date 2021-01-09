@@ -17,7 +17,6 @@ module Vgrep.Ansi.Type
   ) where
 
 import           Data.Foldable (foldl')
-import           Data.Monoid   ((<>))
 import           Data.Text     (Text)
 import qualified Data.Text     as T
 import           Graphics.Vty  (Attr)

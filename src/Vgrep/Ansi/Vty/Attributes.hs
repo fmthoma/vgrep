@@ -4,7 +4,6 @@ module Vgrep.Ansi.Vty.Attributes
   ) where
 
 import Data.Bits               ((.|.))
-import Data.Monoid             ((<>))
 import Graphics.Vty.Attributes (Attr (..), MaybeDefault (..), defAttr)
 
 -- | Combines two 'Attr's. This differs from 'mappend' from the 'Monoid'
