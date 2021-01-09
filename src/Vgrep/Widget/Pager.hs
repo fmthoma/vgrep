@@ -153,11 +153,10 @@ renderPager = do
     let (renderedLineNumbers, renderedTextLines)
             = over both fold
             . unzip
-            . map renderLine
-            $ zip [startPosition+1..] visibleLines
+            $ zipWith renderLine [startPosition+1..] visibleLines
           where
-            renderLine :: (Int, Text) -> (Image, Image)
-            renderLine (num, txt) = case Map.lookup num highlightedLines of
+            renderLine :: Int -> Text -> (Image, Image)
+            renderLine num txt = case Map.lookup num highlightedLines of
                 Just formatted -> ( renderLineNumber lineNumberColorHl num
                                   , renderFormatted textColorHl formatted )
                 Nothing        -> ( renderLineNumber lineNumberColor num
