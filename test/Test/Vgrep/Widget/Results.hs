@@ -6,7 +6,6 @@ import           Control.Lens.Compat     (Getter, over, to, view, (<&>), _1)
 import           Control.Monad           (void)
 import           Data.Map.Strict         ((!))
 import qualified Data.Map.Strict         as Map
-import           Data.Monoid             ((<>))
 import           Data.Sequence           (Seq, ViewR (..))
 import qualified Data.Sequence           as Seq
 import           Test.Case

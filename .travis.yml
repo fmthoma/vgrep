@@ -21,6 +21,10 @@ matrix:
         - env: ARGS="" SKIP_DOCTESTS=false
         - env: ARGS="--resolver lts" SKIP_DOCTESTS=false
         - env: ARGS="--resolver nightly" SKIP_DOCTESTS=false
+        - env: ARGS="--resolver lts-17" SKIP_DOCTESTS=false
+        - env: ARGS="--resolver lts-16" SKIP_DOCTESTS=false
+        - env: ARGS="--resolver lts-15" SKIP_DOCTESTS=false
+        - env: ARGS="--resolver lts-14" SKIP_DOCTESTS=false
         - env: ARGS="--resolver lts-13" SKIP_DOCTESTS=false
         - env: ARGS="--resolver lts-12" SKIP_DOCTESTS=false
 

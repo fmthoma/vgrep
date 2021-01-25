@@ -8,7 +8,7 @@ import           Control.Lens.Compat
 import           Control.Monad.Reader
 import           Data.Maybe
 import           Data.Ratio
-import           Data.Sequence                      (Seq)
+import           Data.Sequence                      (Seq, (|>))
 import qualified Data.Sequence                      as S
 import           Data.Text                          (Text)
 import qualified Data.Text                          as T
@@ -220,8 +220,7 @@ splitViewResults = zoom widgetState (splitView FocusLeft  (2 % 3))
 
 loadSelectedFileToPager :: MonadIO m => VgrepT AppState m Redraw
 loadSelectedFileToPager = do
-    maybeFileName <- uses (results . currentFileName)
-                          (fmap T.unpack)
+    maybeFileName <- use (results . currentFileName . to (fmap T.unpack))
     whenJust maybeFileName $ \selectedFile -> do
         fileExists <- liftIO (doesFileExist selectedFile)
         fileContent <- if fileExists
@@ -248,10 +247,10 @@ whenJust :: (Monoid r, Monad m) => Maybe a -> (a -> m r) -> m r
 whenJust item action = maybe (pure mempty) action item
 
 invokeEditor :: AppState -> Next (VgrepT AppState m Redraw)
-invokeEditor state = case views (results . currentFileName) (fmap T.unpack) state of
+invokeEditor state = case view (results . currentFileName . to (fmap T.unpack)) state of
     Just selectedFile -> Interrupt $ Suspend $ \environment -> do
         let configuredEditor = view (config . editor) environment
-            selectedLineNumber = views (results . currentLineNumber) (fromMaybe 0) state
+            selectedLineNumber = view (results . currentLineNumber . to (fromMaybe 0)) state
         liftIO $ doesFileExist selectedFile >>= \case
             True  -> exec configuredEditor ['+' : show selectedLineNumber, selectedFile]
             False -> hPutStrLn stderr ("File not found: " ++ show selectedFile)

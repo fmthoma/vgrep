@@ -21,6 +21,7 @@ module Test.Case (
 
 import Control.Lens.Compat
 import Control.Monad
+import Data.Functor.Identity
 import Test.QuickCheck.Monadic
 import Test.Tasty
 import Test.Tasty.QuickCheck
