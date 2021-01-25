@@ -1,6 +1,13 @@
 Changelog
 =========
 
+## v0.2.3
+
+* Replace `lens` dependency with `microlens` for faster builds
+* Compatibility with GHC 8.4 to 8.10, stackage LTS-12 to LTS-17
+* Explicitly passing a tty to the editor process, rather than stdin, to work
+  around a vim bug
+
 ## v0.2.2
 
 * Add support for aeson 1.2.x to enable build with Stackage LTS 10.x
