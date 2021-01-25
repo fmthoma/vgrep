@@ -27,6 +27,7 @@ import           System.Environment                 (getArgs)
 import           System.Exit
 import           System.IO
 import           System.Process
+import           System.Posix.IO
 
 import           Paths_vgrep
 import           Vgrep.App                    as App
@@ -258,8 +259,10 @@ invokeEditor state = case view (results . currentFileName . to (fmap T.unpack)) 
 
 exec :: MonadIO io => FilePath -> [String] -> io ()
 exec command args = liftIO $ do
-    (_,_,_,h) <- createProcess (proc command args)
+    tty <- openFd "/dev/tty" ReadWrite Nothing defaultFileFlags >>= fdToHandle
+    (_,_,_,h) <- createProcess (proc command args) {std_in = UseHandle tty}
     void (waitForProcess h)
+    hClose tty
 
 ---------------------------------------------------------------------------
 -- Lenses
