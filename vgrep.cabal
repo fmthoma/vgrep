@@ -129,7 +129,6 @@ test-suite vgrep-test
                      , Vgrep.Widget.Results.Testable
   build-depends:       base
                      , containers
-                     , lens
                      , QuickCheck
                      , tasty
                      , tasty-quickcheck
