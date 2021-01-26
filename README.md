@@ -45,25 +45,22 @@ Keybindings:
 
 ## Installation
 
-### Binaries
+### Via [`nix`] from [nixpkgs]
 
-Debian/Ubuntu: `.deb` files are available for the [latest release][1].
-
-```bash
-wget https://github.com/fmthoma/vgrep/releases/download/v0.2/vgrep_0.2.0.0-1_amd64.deb
-sudo dpkg -i vgrep_0.2.0.0-1_amd64.deb
+```
+nix-env -iA nixpkgs.haskellPackages.vgrep
 ```
 
-### From [Hackage][2]
+### From [Hackage]
 
-Installation from Hackage via [`stack`][3] is recommended:
+Installation from Hackage via [`stack`] is recommended:
 ```bash
 stack update
 stack install vgrep
 ```
 This will install `vgrep` to your `~/.local/bin` directory.
 
-### From [source][4]
+### From [source]
 
 ```bash
 git clone https://github.com/fmthoma/vgrep.git
@@ -72,7 +69,8 @@ stack setup
 stack install
 ```
 
-[1]: https://github.com/fmthoma/vgrep/releases/latest
-[2]: https://hackage.haskell.org/package/vgrep
-[3]: https://github.com/commercialhaskell/stack/blob/master/doc/install_and_upgrade.md
-[4]: https://github.com/fmthoma/vgrep
+[`nix`]: https://nixos.org/
+[nixpkgs]: https://github.com/NixOS/nixpkgs
+[Hackage]: https://hackage.haskell.org/package/vgrep
+[`stack`]: https://github.com/commercialhaskell/stack/blob/master/doc/install_and_upgrade.md
+[source]: https://github.com/fmthoma/vgrep
